@@ -4,7 +4,7 @@ Sentinel is an autonomous on-call and incident-response system. It combines a tr
 
 ## Current status
 
-Phase 0 (repository and build bootstrap) is in progress. The application intentionally contains no database, broker, cache, security, or AI integration yet. Those capabilities are introduced and verified in strict phase order.
+Phase 0 (repository and build bootstrap) is complete and verified. The application intentionally contains no database, broker, cache, security, or AI integration yet. Those capabilities are introduced and verified in strict phase order. The active work queue is maintained in [TODO.md](TODO.md).
 
 ## Prerequisites
 
@@ -51,4 +51,3 @@ The durable architecture, safety invariants, phase gates, environment policy, an
 4. Structured agent orchestration and grounded runbook retrieval.
 5. Guardrails, risk scoring, action ledger, approval, and compensation.
 6. Observability, test harnesses, and Azure deployment.
-
