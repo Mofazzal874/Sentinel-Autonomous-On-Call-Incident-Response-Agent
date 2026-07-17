@@ -225,3 +225,68 @@ The documentation now has three complementary layers:
 ### Next action
 
 Begin Phase 1 and update both the system-design workbook and the Phase 1 Spring/JPA learning note alongside implementation.
+
+---
+
+## Session 4 — Phase 1 fleet foundation
+
+### Goal
+
+Break Phase 1 into ordered checkpoints, implement the complete fleet persistence/read slice, verify each boundary, and preserve beginner and system-design learning material.
+
+### Prerequisites audit
+
+- Re-read the overview, Phase 1 plan, repository memory, current sources, and Git state.
+- Reused Java 25, the Gradle wrapper, Docker Desktop, and Ubuntu integration; installed no additional desktop software.
+- Verified current official image tags and Spring Boot/Testcontainers coordinates before using them.
+- Found an unrelated existing `postgres.exe` listening on Windows IPv4 port `5432`. It was not stopped, changed, or reinstalled.
+
+### Changes
+
+- Added pinned PostgreSQL 17 + pgvector 0.8.2, Redis 7.4.9, and RabbitMQ 4.3.2 services with health checks and named volumes.
+- Published Sentinel PostgreSQL on host port `55432` to isolate it from the existing server.
+- Added the Boot 4 Flyway starter, JPA, validation, PostgreSQL, and Testcontainers 2.x dependencies.
+- Added externalized datasource configuration, `ddl-auto: validate`, `open-in-view: false`, UTC JDBC handling, and batching.
+- Added Flyway V1 core schema and V2 stable reference data.
+- Modeled teams, services, remediation allowlists, deployments, metrics, logs, runbooks, and the incident lifecycle skeleton.
+- Added query-driven composite indexes and bounded deployment/metric/log repositories.
+- Added a transactional `seed` profile correlating one bad deployment with metric spikes and log clusters.
+- Added a read-only application transaction and `GET /api/v1/fleet/services` DTO endpoint.
+- Added unit tests and a disposable pgvector/PostgreSQL integration test.
+- Added ADR 0002 and the Phase 1 beginner lesson.
+
+### Problems found and corrected
+
+1. The Phase 1 plan used the pre-2.0 Testcontainers coordinate `org.testcontainers:postgresql`. Testcontainers 2.x prefixes module artifacts, so it was corrected to `testcontainers-postgresql` and the relocated PostgreSQL package.
+2. Spring Boot 4 modularized Flyway auto-configuration. Raw Flyway libraries alone did not enable it, so `spring-boot-starter-flyway` was added.
+3. A container health check proved PostgreSQL was healthy internally, but the application reached a different server on host port `5432`. The actual port owner audit found an existing Windows `postgres.exe`; Sentinel moved to `55432`.
+
+### Architectural connection
+
+This phase establishes the deterministic evidence store. Phase 2 will attach alert ingestion to the same database boundary; Phase 3 tools will call these bounded repositories; Phase 4 will receive DTO evidence rather than entities; Phase 5 will extend the incident skeleton and optimistic concurrency into guarded execution.
+
+The HTTP layer depends on an application service, the application service owns the transaction, repositories express bounded access, Hibernate maps objects, and Flyway/PostgreSQL own schema correctness.
+
+### Verification
+
+- All Compose services reached `healthy`; Redis returned `PONG`, RabbitMQ ping succeeded, and pgvector 0.8.2 was available.
+- Flyway applied V1/V2 to PostgreSQL 17.10; Hibernate 7.4 initialized with schema validation enabled.
+- The seed profile produced 2 deployments, 63 metric samples, and 5 logs. A second start left the same counts.
+- The fleet endpoint returned three stable service DTOs.
+- SQL review showed one joined endpoint query for services, teams, and allowlists rather than N+1 queries.
+- `clean test` passed under normal Gradle configuration-cache settings using Java 25 and a disposable pgvector/PostgreSQL Testcontainer.
+- Docker currently uses about 963 MB of images and 49 MB of local volumes; `E:` had approximately 14.11 GB free at the checkpoint.
+
+### Insights to retain
+
+- Verify a dependency's current module coordinate instead of copying an older plan verbatim.
+- Container health proves only the container boundary; verify the application-to-host-port path too.
+- Flyway and Hibernate have different jobs: migrate first, validate second.
+- LAZY associations require an intentional fetch plan inside an intentional transaction.
+- DTOs keep persistence behavior out of the HTTP contract.
+- Query limits and matching composite indexes are safety boundaries for high-volume evidence.
+- A repeatable scenario needs both an application transaction and a durable uniqueness constraint.
+
+### Next action
+
+The Phase 1 engineering work is complete. Review the seven Phase 1 Defend This questions in the learning note before opening Phase 2 ingestion/messaging work. No Git commit was created.

@@ -1,0 +1,54 @@
+name: sentinel
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
+    environment:
+      POSTGRES_DB: ${SENTINEL_DB_NAME:-sentinel}
+      POSTGRES_USER: ${SENTINEL_DB_USERNAME:-sentinel}
+      POSTGRES_PASSWORD: ${SENTINEL_DB_PASSWORD:-sentinel}
+    ports:
+      - "${SENTINEL_POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7.4.9-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${SENTINEL_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.3.2-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${SENTINEL_RABBITMQ_USERNAME:-sentinel}
+      RABBITMQ_DEFAULT_PASS: ${SENTINEL_RABBITMQ_PASSWORD:-sentinel}
+    ports:
+      - "${SENTINEL_RABBITMQ_PORT:-5672}:5672"
+      - "${SENTINEL_RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:

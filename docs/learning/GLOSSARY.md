@@ -13,6 +13,18 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **Docker Hub:** A remote registry for storing and distributing container images.
 - **Gradle wrapper:** Repository files that select and launch a known Gradle version reproducibly.
 - **Image:** An immutable package used to create containers.
+- **Entity:** A Java object mapped by JPA to persistent database identity and columns.
+- **Entity graph:** An explicit JPA fetch plan that selects which associations an operation needs.
+- **Flyway:** A database migration tool that applies ordered, versioned schema scripts.
+- **Foreign key:** A database constraint requiring a referenced row to exist.
+- **Hibernate:** Sentinel's JPA implementation; it maps entities to SQL and validates the Flyway schema.
+- **JPA:** The Jakarta Persistence API specification for mapping Java objects to relational data.
+- **N+1 query:** One query for parent rows followed by repeated queries for their related rows.
+- **Optimistic locking:** Detecting conflicting concurrent updates with a version value instead of holding a long database lock.
+- **Repository:** A persistence-facing interface that expresses storage operations and queries.
+- **Schema migration:** A versioned change to database structures or stable reference data.
+- **Testcontainers:** A test library that starts disposable real infrastructure, such as PostgreSQL, for integration tests.
+- **Transaction:** A unit of database work that commits as a whole or rolls back as a whole.
 - **JDK:** The Java compiler, runtime, standard libraries, and development tools.
 - **JVM:** The virtual machine that executes Java bytecode.
 - **Spring:** A Java framework centered on dependency injection and application infrastructure.

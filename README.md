@@ -4,7 +4,7 @@ Sentinel is an autonomous on-call and incident-response system. It combines a tr
 
 ## Current status
 
-Phase 0 (repository and build bootstrap) is complete and verified. Docker Desktop is installed with its application and WSL data on `E:`, so Phase 1 infrastructure work is ready to begin. The application intentionally contains no database, broker, cache, security, or AI integration yet. Those capabilities are introduced and verified in strict phase order. The active work queue is maintained in [TODO.md](TODO.md).
+Phase 0 is complete. Phase 1's engineering deliverables are implemented and verified: healthy Docker infrastructure, a Flyway-owned PostgreSQL/pgvector schema, the simulated-fleet JPA model, bounded evidence queries, an idempotent seed profile, a DTO-based fleet endpoint, and real PostgreSQL Testcontainers coverage. The Phase 1 learning/Defend This review remains the exit gate before Phase 2. The active work queue is maintained in [TODO.md](TODO.md).
 
 ## Prerequisites
 
@@ -25,15 +25,25 @@ Open a new terminal after initial setup so persisted environment variables are a
 
 ## Build and test
 
+Start local infrastructure and wait for health:
+
+```powershell
+docker compose up -d --wait
+```
+
+Sentinel's PostgreSQL is published on `localhost:55432` because another local PostgreSQL process already owns IPv4 port `5432`. Redis uses `6379`; RabbitMQ uses `5672` and its management UI is at http://localhost:15672.
+
 ```powershell
 .\gradlew.bat clean test
 ```
 
-Run the minimal application:
+Run the application with the repeatable synthetic incident evidence:
 
 ```powershell
-.\gradlew.bat bootRun
+.\gradlew.bat bootRun --args="--spring.profiles.active=seed"
 ```
+
+Read the fleet API at http://localhost:8080/api/v1/fleet/services.
 
 ## Engineering rules
 

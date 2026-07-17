@@ -53,6 +53,7 @@ The AI is not the backend. It is one decision-producing component inside a backe
 ## Current notes
 
 - [Phase 0: Java, Gradle, and Spring Boot foundations](00_PHASE_0_FOUNDATIONS.md)
+- [Phase 1: fleet persistence and the first read API](01_PHASE_1_FLEET_PERSISTENCE.md)
 - [System Design Workbook](SYSTEM_DESIGN_WORKBOOK.md)
 - [Living Glossary](GLOSSARY.md)
 
