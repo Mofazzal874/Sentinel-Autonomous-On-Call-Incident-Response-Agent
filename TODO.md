@@ -86,9 +86,55 @@ Execution checkpoints (complete in order):
 
 Phase 1 engineering gate: **passed**. Learning/defense gate: **awaiting user review**.
 
+## Phase 2 — Alert ingestion, suppression, and durable delivery
+
+Execution checkpoints:
+
+- **P2.1 Deterministic intake:** validated alert contract, canonical SHA-256 fingerprint, command contract, and atomic PostgreSQL incident insert.
+- **P2.2 Storm suppression:** atomic Redis first-seen claim, expiring duplicate counter, and client idempotency-key layer.
+- **P2.3 Broker delivery:** durable topic/DLX/DLQ topology, JSON messages, publisher confirms/returns, and `202` REST response.
+- **P2.4 Idempotent consumer:** manual acknowledgement after database commit, bounded transient retry, and poison-message dead lettering.
+- **P2.5 Evidence and learning:** unit tests, PostgreSQL/Redis/RabbitMQ Testcontainers burst tests, failure-path checks, ADR/journal/lesson, and Defend This review.
+
+### 1. Deterministic contract and database sink
+
+- [x] Add only the Spring AMQP and Spring Data Redis production dependencies plus required Testcontainers modules.
+- [ ] Add a bounded, validated Alertmanager-style request DTO and stable acknowledgement DTO.
+- [x] Canonicalize service, alert name, and sorted labels before SHA-256 fingerprinting.
+- [x] Define a version-tolerant triage command contract without JPA entities.
+- [x] Atomically create an incident with PostgreSQL `ON CONFLICT DO NOTHING` and the existing unique fingerprint constraint.
+
+### 2. Redis storm suppression
+
+- [ ] Claim the fingerprint with one atomic `SET NX` operation and a configurable TTL.
+- [ ] Count suppressed duplicates with an expiring Redis counter.
+- [ ] Layer an optional bounded client `Idempotency-Key` over semantic fingerprinting.
+- [ ] Treat Redis as an efficiency layer; database uniqueness remains the correctness boundary.
+
+### 3. RabbitMQ and REST intake
+
+- [ ] Declare durable `alerts.exchange`, `triage.queue`, dead-letter exchange, and DLQ with explicit routing keys.
+- [ ] Configure JSON conversion, publisher confirms/returns, manual acknowledgements, prefetch, bounded concurrency, and virtual threads.
+- [ ] Publish only first occurrences and return `202 Accepted` with queued/suppressed status.
+- [ ] Keep the public alert webhook security requirement explicitly deferred to Phase 3.
+
+### 4. Consumer correctness
+
+- [ ] Acknowledge only after the idempotent database transaction commits.
+- [ ] Apply bounded retries to transient failures; never create an infinite requeue loop.
+- [ ] Reject permanent/poison failures to the DLQ and preserve diagnostic context.
+- [ ] Prove redelivery cannot create a second incident.
+
+### 5. Verification and phase gate
+
+- [ ] POST 50 identical alerts and prove one incident plus 49 suppressions.
+- [ ] Verify durable queued delivery across a controlled broker restart.
+- [ ] Verify a poison command lands in the DLQ without looping.
+- [ ] Run all unit and PostgreSQL/Redis/RabbitMQ Testcontainers tests.
+- [ ] Review every Phase 2 “Defend This” question before marking the phase complete.
+
 ## Later phases
 
-- [ ] Phase 2 — alert intake, Redis deduplication, RabbitMQ delivery, DLQ, and sink idempotency.
 - [ ] Phase 3 — JWT/RBAC, under-privileged agent account, and deterministic bounded tools.
 - [ ] Phase 4 — structured agent router/workers/evaluator and grounded pgvector RAG.
 - [ ] Phase 5 — deterministic guardrails, risk scoring, action ledger, approval, and compensation.

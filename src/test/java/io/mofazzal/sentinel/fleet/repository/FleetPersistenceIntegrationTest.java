@@ -1,11 +1,17 @@
 package io.mofazzal.sentinel.fleet.repository;
 
+import io.mofazzal.sentinel.alert.api.AlertPayload;
+import io.mofazzal.sentinel.alert.messaging.TriageCommand;
 import io.mofazzal.sentinel.fleet.domain.Deployment;
 import io.mofazzal.sentinel.fleet.domain.DeploymentStatus;
 import io.mofazzal.sentinel.fleet.domain.FleetService;
 import io.mofazzal.sentinel.fleet.domain.LogEvent;
 import io.mofazzal.sentinel.fleet.domain.LogLevel;
 import io.mofazzal.sentinel.fleet.domain.MetricSample;
+import io.mofazzal.sentinel.incident.application.IncidentCreationService;
+import io.mofazzal.sentinel.incident.domain.IncidentSeverity;
+import io.mofazzal.sentinel.incident.domain.IncidentStatus;
+import io.mofazzal.sentinel.incident.repository.IncidentRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +28,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,6 +59,12 @@ class FleetPersistenceIntegrationTest {
 
     @Autowired
     private LogEventRepository logRepository;
+
+    @Autowired
+    private IncidentCreationService incidentCreationService;
+
+    @Autowired
+    private IncidentRepository incidentRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -112,5 +125,28 @@ class FleetPersistenceIntegrationTest {
                 .singleElement()
                 .extracting(LogEvent::getTraceId)
                 .isEqualTo("test-trace-2");
+    }
+
+    @Test
+    void incidentSinkTreatsRepeatedFingerprintAsOneDatabaseEffect() {
+        Instant receivedAt = Instant.parse("2026-07-18T00:00:00Z");
+        AlertPayload payload = new AlertPayload(
+                "payments-api",
+                "HighErrorRate",
+                IncidentSeverity.SEV2,
+                receivedAt.minusSeconds(30),
+                "Error rate is above threshold",
+                Map.of("environment", "production")
+        );
+        TriageCommand command = TriageCommand.create("integration-fingerprint", payload, receivedAt);
+
+        assertThat(incidentCreationService.createIfAbsent(command)).isTrue();
+        assertThat(incidentCreationService.createIfAbsent(command)).isFalse();
+
+        assertThat(incidentRepository.countByFingerprint(command.fingerprint())).isOne();
+        assertThat(incidentRepository.findByFingerprint(command.fingerprint()))
+                .get()
+                .extracting(incident -> incident.getStatus(), incident -> incident.getSeverity())
+                .containsExactly(IncidentStatus.OPEN, IncidentSeverity.SEV2);
     }
 }

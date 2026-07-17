@@ -7,6 +7,10 @@ spring:
     password: "${SENTINEL_DB_PASSWORD:sentinel}"
   flyway:
     enabled: true
+  data:
+    redis:
+      host: "${SENTINEL_REDIS_HOST:localhost}"
+      port: "${SENTINEL_REDIS_PORT:6379}"
   jpa:
     hibernate:
       ddl-auto: validate
@@ -18,3 +22,25 @@ spring:
           time_zone: UTC
         order_inserts: true
         order_updates: true
+  rabbitmq:
+    host: "${SENTINEL_RABBITMQ_HOST:localhost}"
+    port: "${SENTINEL_RABBITMQ_PORT:5672}"
+    username: "${SENTINEL_RABBITMQ_USERNAME:sentinel}"
+    password: "${SENTINEL_RABBITMQ_PASSWORD:sentinel}"
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 10
+        concurrency: 4
+        max-concurrency: 16
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+  threads:
+    virtual:
+      enabled: true
+
+sentinel:
+  alerts:
+    dedup-window: 10m

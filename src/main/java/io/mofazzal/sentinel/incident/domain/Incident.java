@@ -87,6 +87,14 @@ public class Incident {
         return id;
     }
 
+    public String getFingerprint() {
+        return fingerprint;
+    }
+
+    public IncidentSeverity getSeverity() {
+        return severity;
+    }
+
     public IncidentStatus getStatus() {
         return status;
     }
