@@ -99,7 +99,7 @@ Execution checkpoints:
 ### 1. Deterministic contract and database sink
 
 - [x] Add only the Spring AMQP and Spring Data Redis production dependencies plus required Testcontainers modules.
-- [ ] Add a bounded, validated Alertmanager-style request DTO and stable acknowledgement DTO.
+- [x] Add a bounded, validated Alertmanager-style request DTO and stable acknowledgement DTO.
 - [x] Canonicalize service, alert name, and sorted labels before SHA-256 fingerprinting.
 - [x] Define a version-tolerant triage command contract without JPA entities.
 - [x] Atomically create an incident with PostgreSQL `ON CONFLICT DO NOTHING` and the existing unique fingerprint constraint.
@@ -113,23 +113,23 @@ Execution checkpoints:
 
 ### 3. RabbitMQ and REST intake
 
-- [ ] Declare durable `alerts.exchange`, `triage.queue`, dead-letter exchange, and DLQ with explicit routing keys.
-- [ ] Configure JSON conversion, publisher confirms/returns, manual acknowledgements, prefetch, bounded concurrency, and virtual threads.
-- [ ] Publish only first occurrences and return `202 Accepted` with queued/suppressed status.
+- [x] Declare durable `alerts.exchange`, `triage.queue`, retry queue, dead-letter exchange, and DLQ with explicit routing keys.
+- [x] Configure JSON conversion, publisher confirms/returns, manual acknowledgements, prefetch, bounded concurrency, and virtual threads.
+- [x] Publish only first occurrences and return `202 Accepted` with queued/suppressed status.
 - [ ] Keep the public alert webhook security requirement explicitly deferred to Phase 3.
 
 ### 4. Consumer correctness
 
-- [ ] Acknowledge only after the idempotent database transaction commits.
-- [ ] Apply bounded retries to transient failures; never create an infinite requeue loop.
-- [ ] Reject permanent/poison failures to the DLQ and preserve diagnostic context.
-- [ ] Prove redelivery cannot create a second incident.
+- [x] Acknowledge only after the idempotent database transaction commits.
+- [x] Apply bounded retries to transient failures; never create an infinite requeue loop.
+- [x] Reject permanent/poison failures to the DLQ and preserve the original message plus broker `x-death` context.
+- [x] Prove redelivery cannot create a second incident.
 
 ### 5. Verification and phase gate
 
-- [ ] POST 50 identical alerts and prove one incident plus 49 suppressions.
+- [x] POST 50 identical alerts and prove one incident plus 49 suppressions.
 - [ ] Verify durable queued delivery across a controlled broker restart.
-- [ ] Verify a poison command lands in the DLQ without looping.
+- [x] Verify a poison command lands in the DLQ without looping.
 - [ ] Run all unit and PostgreSQL/Redis/RabbitMQ Testcontainers tests.
 - [ ] Review every Phase 2 “Defend This” question before marking the phase complete.
 

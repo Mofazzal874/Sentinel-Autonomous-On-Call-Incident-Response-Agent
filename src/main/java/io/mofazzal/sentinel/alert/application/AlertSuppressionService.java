@@ -39,6 +39,10 @@ public class AlertSuppressionService {
             return count
             """, Long.class);
 
+    private static final DefaultRedisScript<Long> RELEASE_SCRIPT = new DefaultRedisScript<>("""
+            return redis.call('DEL', KEYS[1], KEYS[2], KEYS[3])
+            """, Long.class);
+
     private final StringRedisTemplate redis;
     private final long windowMillis;
 
@@ -70,6 +74,14 @@ public class AlertSuppressionService {
     public long suppressedCount(String fingerprint) {
         String value = redis.opsForValue().get(countKey(fingerprint));
         return value == null ? 0L : Long.parseLong(value);
+    }
+
+    public void release(String fingerprint, String idempotencyKey) {
+        String seenKey = seenKey(fingerprint);
+        redis.execute(
+                RELEASE_SCRIPT,
+                List.of(seenKey, clientKey(idempotencyKey, seenKey), countKey(fingerprint))
+        );
     }
 
     private static String seenKey(String fingerprint) {
@@ -109,6 +121,10 @@ public class AlertSuppressionService {
 
         static SuppressionDecision duplicate(long count) {
             return new SuppressionDecision(false, count);
+        }
+
+        public static SuppressionDecision bypassed() {
+            return new SuppressionDecision(true, 0);
         }
     }
 }

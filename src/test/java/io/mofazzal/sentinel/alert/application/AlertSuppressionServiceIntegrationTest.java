@@ -83,4 +83,15 @@ class AlertSuppressionServiceIntegrationTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("200");
     }
+
+    @Test
+    void releaseAllowsRetryAfterDownstreamPublishFailure() {
+        String fingerprint = "publish-retry";
+        String clientKey = "client-publish-retry";
+        assertThat(suppressionService.claim(fingerprint, clientKey).firstOccurrence()).isTrue();
+
+        suppressionService.release(fingerprint, clientKey);
+
+        assertThat(suppressionService.claim(fingerprint, clientKey).firstOccurrence()).isTrue();
+    }
 }
