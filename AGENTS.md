@@ -92,7 +92,22 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Keep Gradle dependency/cache data under `E:\DevCaches\gradle`.
 - Docker is not installed during Phase 0. Ask for or perform installation only when a Docker-dependent phase is ready to begin.
 - Install other tools only when their phase requires them; avoid speculative global installs.
+- Before installing anything, audit commands, versions, package registrations, services, and known install locations. Reuse a compatible existing installation instead of reinstalling it.
 - Before large installations, check available disk space because all local drives are constrained.
+- Remove verified-unnecessary installers, corrupt downloads, temporary archives, and task-specific scratch data after successful verification. Never remove caches or user data merely because they look unused.
+
+## Mentor and continuity policy
+
+- Maintain `docs/PROJECT_JOURNAL.md` after every material work session and at every phase checkpoint.
+- Record the user's goal, what was required, what changed, how components connect, verification evidence, important tradeoffs, lessons to retain, and the next safe action.
+- Teach while building: explain why a component exists, which failure it prevents, and which later phase depends on it.
+- Assume the user is new to Spring Boot, persistence, messaging, security, distributed systems, containers, and agent systems. Never rely on unexplained framework vocabulary.
+- For each phase, maintain beginner notes under `docs/learning/` with: prerequisite concepts, plain-language definitions, request/data flow, code map, concrete example, failure modes, design tradeoffs, verification commands, and pen-and-paper exercises.
+- Teach each important component at three levels: what it does locally, how it participates in the system design, and how to defend the decision in an engineering interview.
+- Introduce concepts in dependency order. Explain interfaces before implementations, transactions before concurrency, deterministic tools before AI orchestration, and safety invariants before autonomous execution.
+- Keep `TODO.md` synchronized with actual progress. Do not mark an item complete without evidence.
+- Record durable architectural choices as ADRs under `docs/decisions/`; use the journal for chronological learning context.
+- Do not rely on chat history as the only memory. The repository journal is the handoff source for future sessions and for the user's project review.
 
 ## Git and authorship policy
 
@@ -112,4 +127,5 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 6. Review transaction, idempotency, security, and blast-radius implications explicitly.
 7. Record material architectural decisions as ADRs under `docs/decisions/` once implementation choices begin.
 8. Report what is verified, what remains deferred, and any manual prerequisites.
-
+9. Update the project journal with the session summary and teaching insights.
+10. Update the applicable beginner learning note and glossary when a new framework or system-design concept is introduced.

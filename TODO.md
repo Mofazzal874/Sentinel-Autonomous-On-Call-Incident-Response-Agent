@@ -17,12 +17,18 @@ This is the active, phase-gated task list. Complete and verify each phase before
 
 Phase 0 exit gate: **passed**.
 
-## User attention required before Phase 1 verification
+## Phase 1 infrastructure prerequisite
 
-- [ ] Install Docker Desktop with the WSL 2 backend.
-- [ ] Put Docker application/data storage on `E:` wherever the installer and Docker settings allow it.
-- [ ] Start Docker Desktop and confirm `docker version` and `docker compose version` work from PowerShell.
-- [ ] Confirm there is enough free space for PostgreSQL/pgvector, Redis, RabbitMQ, and Testcontainers images.
+- [x] Audit and reuse the existing compatible WSL installation.
+- [x] Install Docker Desktop with the WSL 2 backend.
+- [x] Put Docker application and Docker WSL storage on `E:`.
+- [x] Start Docker Desktop and verify both client and Linux engine.
+- [x] Confirm `docker compose version` works from PowerShell.
+- [x] Run and remove the `hello-world` verification container/image.
+- [x] Confirm enough free space remains for the Phase 1 baseline; continue monitoring image growth.
+- [x] Enable Ubuntu 24.04 WSL integration and verify it reaches Docker Engine 29.5.2.
+- [x] Confirm the downloaded Docker Desktop installer was removed after installation.
+- [ ] Decide separately whether to migrate the existing Ubuntu 24.04 WSL disk from `C:` to `E:` using a backup-first procedure.
 
 Do not install standalone PostgreSQL, Redis, or RabbitMQ on Windows. Phase 1 and later run them in Docker.
 
@@ -76,4 +82,3 @@ Do not install standalone PostgreSQL, Redis, or RabbitMQ on Windows. Phase 1 and
 - [ ] Phase 4 — structured agent router/workers/evaluator and grounded pgvector RAG.
 - [ ] Phase 5 — deterministic guardrails, risk scoring, action ledger, approval, and compensation.
 - [ ] Phase 6 — observations/metrics, layered testing, offline evaluation, and Azure deployment.
-

@@ -4,16 +4,18 @@ Sentinel is an autonomous on-call and incident-response system. It combines a tr
 
 ## Current status
 
-Phase 0 (repository and build bootstrap) is complete and verified. The application intentionally contains no database, broker, cache, security, or AI integration yet. Those capabilities are introduced and verified in strict phase order. The active work queue is maintained in [TODO.md](TODO.md).
+Phase 0 (repository and build bootstrap) is complete and verified. Docker Desktop is installed with its application and WSL data on `E:`, so Phase 1 infrastructure work is ready to begin. The application intentionally contains no database, broker, cache, security, or AI integration yet. Those capabilities are introduced and verified in strict phase order. The active work queue is maintained in [TODO.md](TODO.md).
 
 ## Prerequisites
 
 - Git
 - Java 25 LTS
 - PowerShell 7 or Windows PowerShell
-- Docker is not required during Phase 0 and is intentionally deferred.
+- Docker Desktop with the WSL 2 backend (installed under `E:\Docker`).
 
 The development JDK is installed under `E:\DevTools\temurin-25`, and Gradle caches are directed to `E:\DevCaches\gradle` to avoid filling `C:`. Gradle itself is supplied by the checked-in wrapper.
+
+Docker Desktop application files are under `E:\Docker\Docker`, and its private WSL disks are under `E:\Docker\wsl`. Open a new terminal after installation so the machine PATH update is visible.
 
 Open a new terminal after initial setup so persisted environment variables are available. Alternatively, initialize the current PowerShell session from the repository root:
 
@@ -35,7 +37,7 @@ Run the minimal application:
 
 ## Engineering rules
 
-The durable architecture, safety invariants, phase gates, environment policy, and contribution workflow are recorded in [AGENTS.md](AGENTS.md). Key constraints include:
+The durable architecture, safety invariants, phase gates, environment policy, and contribution workflow are recorded in [AGENTS.md](AGENTS.md). The chronological build record is maintained in [docs/PROJECT_JOURNAL.md](docs/PROJECT_JOURNAL.md), while the beginner curriculum starts at [docs/learning/README.md](docs/learning/README.md). Key constraints include:
 
 - Build the Spring and distributed-systems core before adding the agent.
 - Keep safety decisions deterministic and outside the model.
