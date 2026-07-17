@@ -106,10 +106,10 @@ Execution checkpoints:
 
 ### 2. Redis storm suppression
 
-- [ ] Claim the fingerprint with one atomic `SET NX` operation and a configurable TTL.
-- [ ] Count suppressed duplicates with an expiring Redis counter.
-- [ ] Layer an optional bounded client `Idempotency-Key` over semantic fingerprinting.
-- [ ] Treat Redis as an efficiency layer; database uniqueness remains the correctness boundary.
+- [x] Claim the fingerprint with one atomic Redis script and a configurable TTL.
+- [x] Count suppressed duplicates with an expiring Redis counter.
+- [x] Layer an optional bounded client `Idempotency-Key` over semantic fingerprinting.
+- [x] Treat Redis as an efficiency layer; database uniqueness remains the correctness boundary.
 
 ### 3. RabbitMQ and REST intake
 
