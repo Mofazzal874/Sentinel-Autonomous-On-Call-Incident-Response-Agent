@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -80,6 +81,9 @@ class AlertPipelineIntegrationTest {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    private RabbitListenerEndpointRegistry listenerRegistry;
 
     private MockMvc mockMvc;
 
@@ -153,6 +157,26 @@ class AlertPipelineIntegrationTest {
         assertThat(incidents.countByFingerprint(poison.fingerprint())).isZero();
     }
 
+    @Test
+    void persistentQueuedCommandSurvivesControlledBrokerRestart() throws Exception {
+        TriageCommand command = command(
+                "pipeline-restart-fingerprint", "payments-api", "BrokerRestartAlert");
+        listenerRegistry.stop();
+        try {
+            publisher.publish(command);
+
+            assertThat(RABBIT.execInContainer("rabbitmqctl", "stop_app").getExitCode()).isZero();
+            assertThat(RABBIT.execInContainer("rabbitmqctl", "start_app").getExitCode()).isZero();
+            await(Duration.ofSeconds(20), this::rabbitConnectionAvailable);
+
+            listenerRegistry.start();
+            await(Duration.ofSeconds(10), () -> incidents.countByFingerprint(command.fingerprint()) == 1);
+            assertThat(incidents.countByFingerprint(command.fingerprint())).isOne();
+        } finally {
+            listenerRegistry.start();
+        }
+    }
+
     private static TriageCommand command(String fingerprint, String service, String alertName) {
         Instant receivedAt = Instant.parse("2026-07-18T02:00:00Z");
         AlertPayload payload = new AlertPayload(
@@ -182,6 +206,14 @@ class AlertPipelineIntegrationTest {
             sleepBriefly();
         }
         throw new AssertionError("Value was not available within " + timeout);
+    }
+
+    private boolean rabbitConnectionAvailable() {
+        try {
+            return Boolean.TRUE.equals(rabbitTemplate.execute(channel -> channel.isOpen()));
+        } catch (RuntimeException exception) {
+            return false;
+        }
     }
 
     private static void sleepBriefly() {

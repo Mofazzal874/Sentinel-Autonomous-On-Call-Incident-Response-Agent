@@ -31,5 +31,15 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **Spring Boot:** Spring conventions and auto-configuration that make standalone applications easier to configure and run.
 - **Volume:** Persistent container data managed by Docker independently of a particular container.
 - **WSL 2:** A Windows feature that runs Linux distributions using a lightweight virtual machine and Linux kernel.
+- **Acknowledgement (ack):** A signal that a publisher or consumer operation succeeded; publisher and consumer acknowledgements protect different handoffs.
+- **Dead-letter queue (DLQ):** A queue that isolates rejected or exhausted messages for diagnosis instead of retrying them forever.
+- **Fingerprint:** A deterministic hash used as the semantic identity of an alert.
+- **Idempotency:** The property that repeating an operation has the same final effect as performing it once.
+- **Lua script (Redis):** Server-side logic Redis executes atomically, used here to combine claim, expiration, and duplicate counting.
+- **Message exchange:** A RabbitMQ routing component that sends published messages to bound queues.
+- **Poison message:** A message that repeatedly cannot be processed because its content or assumptions are permanently invalid.
+- **Prefetch:** The number of unacknowledged messages RabbitMQ may deliver to a consumer at once.
+- **Publisher confirm:** RabbitMQ's signal that it accepted responsibility for a published message.
+- **Routing key:** A value an exchange uses to select matching queue bindings.
 - **Linux container:** A container whose processes use Linux system calls. Docker Desktop runs these through its Linux environment even when the host computer is Windows.
 - **Windows container:** A distinct container type built from Windows images and using Windows host kernel features. It is not required merely because Docker Desktop is installed on Windows.

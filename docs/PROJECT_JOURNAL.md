@@ -290,3 +290,54 @@ The HTTP layer depends on an application service, the application service owns t
 ### Next action
 
 The Phase 1 engineering work is complete. Review the seven Phase 1 Defend This questions in the learning note before opening Phase 2 ingestion/messaging work. No Git commit was created.
+
+---
+
+## Session 5 — Phase 2 alert ingestion and durable delivery
+
+### Goal
+
+Implement alert intake in ordered checkpoints: deterministic identity, storm suppression, durable messaging, idempotent incident creation, bounded failure handling, and evidence that the complete path survives duplicates and broker restart.
+
+### Prerequisites audit
+
+- Reused the Phase 1 PostgreSQL, Redis, RabbitMQ, Java, Gradle, and Docker installation; installed no host software.
+- Kept Sentinel PostgreSQL on `55432`; the unrelated Windows PostgreSQL on `5432` was not touched.
+- Verified current Spring Boot 4.1 AMQP/Redis and Testcontainers 2.0.5 module APIs against official documentation.
+
+### Changes
+
+- Added a validated Alertmanager-style HTTP contract and `202` queued/suppressed acknowledgement.
+- Added canonical SHA-256 semantic fingerprints and a versioned triage command.
+- Added atomic Redis first-seen/client-key claims, expiring duplicate counts, and release after failed publish.
+- Added durable RabbitMQ primary, delayed retry, dead-letter topology, persistent JSON messages, mandatory returns, and correlated publisher confirms.
+- Added a manual-ack consumer that commits the idempotent incident transaction before acknowledgement, retries transient database failures three total times, and dead-letters permanent/exhausted work.
+- Added ADR 0003, the Phase 2 learning lesson, glossary terms, and the delivery-plane system design.
+
+### Architectural connection
+
+Phase 1 supplied the fleet and database correctness boundary. Phase 2 turns external alerts into durable incident records. Phase 3 will secure this webhook and expose under-privileged deterministic tools. Later AI phases consume the incident; they do not replace ingestion correctness.
+
+### Verification
+
+- Unit tests proved canonicalization, orchestration, publisher confirms, post-database acknowledgement order, bounded retries, and DLQ decisions.
+- Redis Testcontainers proved one first-seen claim, 49 suppressions, TTLs, client-key semantics, and claim release.
+- PostgreSQL Testcontainers proved duplicate commands create one incident.
+- A three-container test POSTed 50 identical alerts and observed one queued, 49 suppressed, and one incident.
+- The same test proved duplicate broker delivery remains one database effect and poison work reaches the DLQ with `x-death` context.
+- With consumers stopped, a confirmed persistent message survived `rabbitmqctl stop_app/start_app` and was processed after recovery.
+- `clean test` passed for the complete project in 1 minute 32 seconds.
+- The packaged application started against the local Compose stack; a real POST returned `QUEUED` and its fingerprint appeared exactly once in Sentinel PostgreSQL.
+- All three Sentinel Compose services remained healthy. Docker used about 963 MB for images and 49 MB for volumes; `E:` had approximately 13.84 GB free.
+
+### Insights to retain
+
+- Distributed exactly-once delivery is not claimed; an idempotent database boundary makes the observable effect effectively once.
+- Redis protects capacity, RabbitMQ protects delivery, and PostgreSQL protects truth.
+- Acknowledging after commit converts a crash window into harmless redelivery instead of message loss.
+- Retries need classification, delay, and a limit; otherwise a poison message becomes a self-inflicted outage.
+- `202 Accepted` is an asynchronous contract, not proof that downstream processing finished.
+
+### Next action
+
+The Phase 2 engineering gate is complete. Review the seven Phase 2 Defend This questions with the user before marking the learning gate complete or opening Phase 3. No machine installation or manual cleanup is required.

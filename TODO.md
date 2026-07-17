@@ -116,7 +116,7 @@ Execution checkpoints:
 - [x] Declare durable `alerts.exchange`, `triage.queue`, retry queue, dead-letter exchange, and DLQ with explicit routing keys.
 - [x] Configure JSON conversion, publisher confirms/returns, manual acknowledgements, prefetch, bounded concurrency, and virtual threads.
 - [x] Publish only first occurrences and return `202 Accepted` with queued/suppressed status.
-- [ ] Keep the public alert webhook security requirement explicitly deferred to Phase 3.
+- [x] Keep the public alert webhook security requirement explicitly deferred to Phase 3.
 
 ### 4. Consumer correctness
 
@@ -128,10 +128,12 @@ Execution checkpoints:
 ### 5. Verification and phase gate
 
 - [x] POST 50 identical alerts and prove one incident plus 49 suppressions.
-- [ ] Verify durable queued delivery across a controlled broker restart.
+- [x] Verify durable queued delivery across a controlled broker restart.
 - [x] Verify a poison command lands in the DLQ without looping.
-- [ ] Run all unit and PostgreSQL/Redis/RabbitMQ Testcontainers tests.
+- [x] Run all unit and PostgreSQL/Redis/RabbitMQ Testcontainers tests.
 - [ ] Review every Phase 2 “Defend This” question before marking the phase complete.
+
+Phase 2 engineering gate: **passed**. Learning/defense gate: **awaiting user review**.
 
 ## Later phases
 

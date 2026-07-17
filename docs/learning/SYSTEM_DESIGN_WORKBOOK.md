@@ -200,3 +200,48 @@ For a `payments-api` error-rate spike:
 - `LogEventRepository.recentWindow/searchWindow` returns a limited evidence window.
 - The synthetic scenario aligns a bad deployment, error-rate/p99/CPU changes, and timeout logs.
 - No agent or automatic rollback exists yet. Those remain deliberately deferred.
+
+## 9. Phase 2 implemented delivery plane
+
+Phase 2 converts synchronous alert intake into durable, asynchronous incident creation.
+
+```text
+50 equivalent POSTs
+        |
+        v
+fingerprint + Redis claim -----> 49 suppressed
+        |
+        v
+1 persistent Rabbit message
+        |
+        v
+manual-ack consumer -----> 1 PostgreSQL incident
+```
+
+### State ownership and failure behavior
+
+| Component | Owns | If unavailable |
+|---|---|---|
+| Redis | short-lived suppression keys and counters | bypass suppression; database still protects correctness |
+| RabbitMQ | accepted commands awaiting processing/retry | intake returns `503` when publish cannot be confirmed |
+| PostgreSQL | durable incident identity and state | consumer retries transient failures, then dead-letters |
+
+No single transaction spans these three systems. Correctness comes from explicit handoffs: confirmed publish before HTTP success, committed idempotent insert before consumer acknowledgement, and a unique fingerprint at the final state boundary.
+
+### Capacity controls
+
+- A ten-minute Redis TTL bounds suppression state.
+- Alert fields, label count, label sizes, and idempotency-key length are validated.
+- Rabbit prefetch limits unacknowledged work per consumer.
+- Consumer concurrency is bounded even though virtual threads make blocking cheaper.
+- Retries have a delay and a finite attempt count.
+- The DLQ isolates work that requires inspection instead of consuming the hot path forever.
+
+### Phase 2 answers to the running scenario
+
+- The REST controller receives the alert and validates its bounded DTO.
+- The fingerprinter calculates a semantic SHA-256 identifier.
+- Redis lets one request publish and suppresses the other 49 during the window.
+- RabbitMQ preserves the triage command independently of the HTTP request lifetime.
+- PostgreSQL uniqueness makes redelivery safe.
+- No agent analysis or rollback exists yet; Phase 2 ends at deterministic incident creation.
