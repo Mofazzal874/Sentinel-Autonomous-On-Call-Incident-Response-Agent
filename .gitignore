@@ -1,0 +1,43 @@
+# Private planning source (intentionally kept outside version control)
+/project_plan/
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Java
+*.class
+hs_err_pid*
+
+# IDEs and editors
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Claude-specific local memory and settings
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+*.jks
+*.p12
+*.pem
+
+# Runtime output
+logs/
+*.log
+tmp/
+
+# OS metadata
+.DS_Store
+Thumbs.db
