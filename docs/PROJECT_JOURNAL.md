@@ -633,3 +633,45 @@ The agent now ends at an auditable proposal. The next safety layer can consume t
 ### Next action
 
 The Phase 4 engineering and defense gates are complete. Begin Phase 5 by decomposing the single gate, deterministic risk, dry-run/kill switch, append-only ledger, approval, and idempotent execution boundaries. No user action or installation is required.
+
+---
+
+## Session 12 — Deterministic safety foundation
+
+### Goal
+
+Checkpoint the fully verified grounded-proposal workflow, reconstruct durable state after context compaction, decompose the safety work, and implement its first model-free policy slice.
+
+### Continuity and prerequisites
+
+- Reconstructed state from `AGENTS.md`, `TODO.md`, the private safety plan, the prior journal entry, Git status/history, and test XML rather than relying on compacted chat.
+- Added that recovery sequence to repository memory as a mandatory future-session rule.
+- Confirmed 62 tests passed with zero failures/errors before checkpointing the proposal workflow.
+- Confirmed private plan and Claude-local files remained ignored, attribution was absent, and E: had approximately 13.7 GB free.
+- Installed nothing and left all existing database/container resources unchanged.
+
+### Changes
+
+- Committed and pushed the grounded proposal milestone as `7beceae` (`feat: complete grounded incident proposals`).
+- Replaced the broad future safety item with decision-boundary, durable-execution, human-control, and evidence checkpoints.
+- Added validated `RiskFacts`, an invariant-checking `RiskBreakdown`, and `DeterministicRiskScorer`.
+- Encoded explicit action, tier, dependent, confidence, and peak-window contributions. Blast-radius contribution is capped at 10.
+- Recorded the safety decision in ADR 0006 and began the beginner guardrail chapter, glossary, and workbook exercise.
+
+### Iterative verification
+
+- Focused risk tests passed six cases: low-risk restart, high-risk rollback, the exact `0.75` confidence boundary, capped blast radius, invalid safety facts, and inconsistent-total rejection.
+- The first clean-suite command exceeded its two-minute shell limit; this was recorded as an incomplete run rather than a failure.
+- A forced uncached rerun completed in 1 minute 57 seconds: 68 tests, zero failures, zero errors, and zero skips.
+
+### Architectural connection
+
+The proposal layer supplies an action and grounded evidence; persisted fleet/incident facts will supply the rest of `RiskFacts`. The scorer only explains risk. It cannot execute, approve, read a kill switch, or bypass an allowlist. Those policies will converge in one future `GuardrailGate` before any strategy exists.
+
+### Insight to retain
+
+An explainable number is still not permission. The safety boundary is the combination of deterministic facts, operator controls, durable idempotency, and a single gate—not the score alone.
+
+### Next action
+
+Checkpoint this model-free scorer, then implement a decision-only gate with ordering tests before adding any execution mutation. No user action or installation is required.

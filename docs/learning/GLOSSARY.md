@@ -47,6 +47,12 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **HMAC:** A keyed cryptographic digest that proves a message came from a holder of the shared secret and was not modified.
 - **JWT:** A signed, claim-bearing token commonly used as a bearer credential; its payload is encoded, not encrypted.
 - **Least privilege:** Giving an identity only the permissions required for its job, limiting compromise and error blast radius.
+- **Blast radius:** The amount of the system or number of dependents that a failed change could affect.
+- **Deterministic risk score:** A reproducible safety score computed from validated system facts rather than model judgment.
+- **Guardrail gate:** The single policy chokepoint every proposed or approved mutation must pass before execution.
+- **Kill switch:** An operator-controlled mechanism that stops all remediation execution regardless of other decisions.
+- **Dry-run:** A mode that records the action and decision without performing the side effect.
+- **Compensation:** A separately recorded action that counteracts an earlier side effect without erasing its history.
 - **RBAC:** Role-based access control, where permissions are assigned through roles such as `VIEWER` or `ADMIN`.
 - **Resource server:** An API that validates access tokens and protects resources; it does not necessarily issue tokens.
 - **Stateless authentication:** Reconstructing authentication from each request instead of storing it in a server-side login session.

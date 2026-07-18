@@ -108,6 +108,7 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Keep `TODO.md` synchronized with actual progress. Do not mark an item complete without evidence.
 - Record durable architectural choices as ADRs under `docs/decisions/`; use the journal for chronological learning context.
 - Do not rely on chat history as the only memory. The repository journal is the handoff source for future sessions and for the user's project review.
+- After chat context is compacted, reconstruct the working state from this file, `TODO.md`, the relevant private phase plan, `docs/PROJECT_JOURNAL.md`, and Git status/history before changing code; record any newly recovered durable constraint here or in the journal.
 
 ## Git and authorship policy
 

@@ -211,7 +211,43 @@ Execution checkpoints:
 
 Phase 4 gate: **complete** — semantic RAG, structured Spring AI roles, bounded tool orchestration, Redis call limits, durable transcripts, end-to-end scenarios, full regression evidence, and the seven-question learning defense all pass. A live Ollama demo remains an optional later deployment task, not a correctness dependency.
 
-## Later phases
+## Deterministic safety and execution
 
-- [ ] Phase 5 — deterministic guardrails, risk scoring, action ledger, approval, and compensation.
+Execution checkpoints:
+
+- **P5.1 Decision boundary:** deterministic risk facts/breakdown, kill switch, service allowlist, idempotency query, dry-run, and one `GuardrailGate`.
+- **P5.2 Durable execution:** append-only action ledger, committed `IN_PROGRESS` marker, idempotent strategies, result transaction, and compensation facts.
+- **P5.3 Human control:** approval/rejection endpoint, approver authorization, approval timeout, and mandatory re-entry through the gate.
+- **P5.4 Evidence:** low/high-risk scenarios, duplicate delivery, kill switch, dry-run, induced failure/compensation, full regression, lesson, ADR, and Defend This review.
+
+### 1. Decision boundary
+
+- [x] Decompose the safety work before implementation and preserve the single-gate invariant.
+- [x] Compute risk only from validated Java facts and return an inspectable component breakdown.
+- [ ] Implement a DB-backed global kill switch with a Redis acceleration layer and fail-closed behavior.
+- [ ] Enforce the service action allowlist from persisted fleet ownership data.
+- [ ] Check durable action idempotency before any execution path.
+- [ ] Keep local remediation in dry-run by default.
+- [ ] Route every proposed or human-approved action through one `GuardrailGate` in the documented order.
+
+### 2. Durable execution
+
+- [ ] Add a forward-only append-only action-ledger migration and immutable persistence model.
+- [ ] Commit `IN_PROGRESS` before an external/simulated side effect and record the outcome in a separate transaction.
+- [ ] Add an idempotent strategy registry for the simulated remediation actions.
+- [ ] Make duplicate and crash-recovery behavior safe through database constraints plus strategy idempotency.
+- [ ] Record compensation as a new linked fact and compensate completed steps in reverse order.
+
+### 3. Human control and verification
+
+- [ ] Add approve/reject handling for `SRE_APPROVER`; reject agent self-approval.
+- [ ] Re-check kill switch, allowlist, and idempotency after approval rather than bypassing the gate.
+- [ ] Escalate expired approvals instead of executing silently.
+- [ ] Prove low-risk, high-risk, duplicate, dry-run, kill-switch, and compensation scenarios.
+- [ ] Run the complete suite and complete all seven safety Defend This answers.
+
+Safety/execution gate: **open** — the work is decomposed and deterministic risk scoring passes its boundary tests; the single decision gate and all mutation paths remain unimplemented.
+
+## Later work
+
 - [ ] Phase 6 — observations/metrics, layered testing, offline evaluation, and Azure deployment.

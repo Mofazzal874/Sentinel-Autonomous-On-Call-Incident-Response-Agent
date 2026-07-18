@@ -347,3 +347,8 @@ The local live-demo target is Qwen3 4B plus `nomic-embed-text`, but test correct
 | Concurrent runs | 1 `RUNNING` row per incident |
 
 Orchestration and semantic retrieval are separate switches. Ordinary application/security/messaging tests use disabled orchestration and lexical retrieval; an intentional agent profile enables the model and semantic components. This prevents surprise model calls, downloads, or startup coupling.
+## Exercise 11 — Explainable risk is policy, not prediction
+
+For a critical-service rollback affecting three dependents at similarity `0.60` during peak traffic, write the five risk components and total. Then draw the future gate around the score and add kill-switch, allowlist, idempotency, approval, and dry-run checks. Circle the reason the score cannot itself be an execution capability.
+
+Defend the design in one sentence: the model supplies a grounded proposal, while validated Java facts produce an inspectable score that only the single gate may use.
