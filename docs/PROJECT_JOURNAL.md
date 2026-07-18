@@ -420,3 +420,60 @@ Phase 3 may rely on a durable incident existing exactly once at the database-eff
 ### Next action
 
 Begin Phase 3 only after re-reading its security/tooling plan, auditing prerequisites, and breaking the work into ordered checkpoints.
+
+---
+
+## Session 8 — Phase 3 security and deterministic tools
+
+### Goal
+
+Establish identity and least-privilege authorization, authenticate machine alert intake, and build the four bounded read tools before any LLM orchestration exists.
+
+### Prerequisites audit
+
+- Re-read repository memory and the complete Phase 3 plan after Phases 1–2 passed both gates.
+- Verified the current Boot resource-server starter, JWT authority converter, and Spring Security MockMvc support against official Spring documentation.
+- Reused Java, Gradle, Docker, PostgreSQL, Redis, and RabbitMQ; installed no machine or desktop software.
+- Docker Desktop had stopped and was restarted from its existing `E:` installation without reinstall/reset. Compose data volumes remained intact.
+
+### Changes
+
+- Added Spring Security and OAuth2 resource-server starters plus test support only.
+- Added validated external JWT/webhook settings, stateless JWT security, issuer/audience/time validation, and `roles` to `ROLE_*` conversion.
+- Added a 64 KiB timestamped constant-time HMAC filter for alert intake.
+- Added E:-local ignored secret generation and a bounded short-lived development token helper.
+- Added deployment, metric, ERROR-log cluster, and lexical runbook tools as read-only guarded Java components returning immutable DTOs.
+- Added repository queries only where required; no AI dependency or mutation was introduced.
+- Added ADR 0004 and the Phase 3 lesson, glossary, system-design, README, and checklist updates.
+
+### Architectural connection
+
+Phase 3 creates the trust boundary and deterministic evidence API that Phase 4 may orchestrate. The future model chooses among already tested methods; it cannot reshape their queries or gain approval/admin authority. Phase 5 remains the only owner of approval business logic, guardrails, ledger, and execution mutations.
+
+### Problems found and corrected
+
+1. Windows PowerShell's older .NET runtime lacked the static RNG method used initially; the script now uses the compatible cryptographic RNG instance API.
+2. Spring Security 7 adds `FACTOR_BEARER` alongside JWT roles; the test now asserts both factor evidence and application roles.
+3. Docker Engine was stopped during the first Testcontainers attempt; the existing E:-installed Docker Desktop was started, not reinstalled.
+
+### Verification
+
+- Real signed token tests validate signature, issuer, audience, expiration, subject, and role mapping; invalid issuer/audience/expiry fail.
+- URL tests prove `401`, viewer/agent reads, agent `403` at approval/admin rules, approver/admin passage, and no session cookie.
+- Webhook tests prove accepted signatures and missing/stale/wrong-body/oversized rejection.
+- Unit tests prove all tool validation, bounds, DTO mapping, calculations, and clustering.
+- Real PostgreSQL under `ROLE_AGENT` finds the bad deploy, calculates a 1700% increase, clusters timeout errors, and retrieves the rollback runbook.
+- `clean test` passed 47 tests with zero failures/errors in 1 minute 38 seconds.
+- Docker storage remained about 963 MB of images and 49 MB of volumes; `E:` had about 13.81 GB free.
+
+### Insights to retain
+
+- Authentication establishes identity; authorization limits that identity.
+- `401` and `403` describe different failures.
+- Least privilege is especially important for autonomous actors because model error is an expected input, not an impossible event.
+- HMAC authenticity and idempotency solve different problems and are both required.
+- A deterministic tool owns validation, transaction, query bounds, and DTO shape before a model is allowed to select it.
+
+### Next action
+
+Phase 3 is complete. Do not open Phase 4 until its Spring AI artifact names and model-provider strategy are re-verified, its work is decomposed, and the user is told whether any local model dependency requires attention.

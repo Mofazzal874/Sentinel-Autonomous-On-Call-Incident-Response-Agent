@@ -41,5 +41,14 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **Prefetch:** The number of unacknowledged messages RabbitMQ may deliver to a consumer at once.
 - **Publisher confirm:** RabbitMQ's signal that it accepted responsibility for a published message.
 - **Routing key:** A value an exchange uses to select matching queue bindings.
+- **Authentication:** Establishing who a caller is and whether its credential is trustworthy.
+- **Authorization:** Deciding whether an authenticated identity may perform a specific operation.
+- **CSRF:** An attack that abuses credentials a browser attaches automatically; its protection is essential for cookie/session authentication flows.
+- **HMAC:** A keyed cryptographic digest that proves a message came from a holder of the shared secret and was not modified.
+- **JWT:** A signed, claim-bearing token commonly used as a bearer credential; its payload is encoded, not encrypted.
+- **Least privilege:** Giving an identity only the permissions required for its job, limiting compromise and error blast radius.
+- **RBAC:** Role-based access control, where permissions are assigned through roles such as `VIEWER` or `ADMIN`.
+- **Resource server:** An API that validates access tokens and protects resources; it does not necessarily issue tokens.
+- **Stateless authentication:** Reconstructing authentication from each request instead of storing it in a server-side login session.
 - **Linux container:** A container whose processes use Linux system calls. Docker Desktop runs these through its Linux environment even when the host computer is Windows.
 - **Windows container:** A distinct container type built from Windows images and using Windows host kernel features. It is not required merely because Docker Desktop is installed on Windows.

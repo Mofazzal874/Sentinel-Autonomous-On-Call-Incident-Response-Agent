@@ -164,11 +164,11 @@ Execution checkpoints:
 
 - [x] Add focused unit tests for validation, bounds, mapping, computations, authorization, and HMAC failure paths.
 - [x] Add real PostgreSQL seeded-scenario evidence for all four tool contracts.
-- [ ] Run the complete test suite and review query/transaction/security behavior.
-- [ ] Add ADR, project journal, beginner lesson, glossary, and system-design updates.
-- [ ] Review all seven Phase 3 “Defend This” questions before marking the phase complete.
+- [x] Run the complete test suite and review query/transaction/security behavior.
+- [x] Add ADR, project journal, beginner lesson, glossary, and system-design updates.
+- [x] Review all seven Phase 3 “Defend This” questions before marking the phase complete.
 
-Phase 3 gate: **in progress**.
+Phase 3 gate: **complete** — engineering evidence and the seven-question learning/defense review both passed.
 
 ## Later phases
 

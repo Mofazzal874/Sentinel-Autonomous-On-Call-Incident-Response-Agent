@@ -4,7 +4,7 @@ Sentinel is an autonomous on-call and incident-response system. It combines a tr
 
 ## Current status
 
-Phase 0 is complete. Phase 1's engineering deliverables are implemented and verified: healthy Docker infrastructure, a Flyway-owned PostgreSQL/pgvector schema, the simulated-fleet JPA model, bounded evidence queries, an idempotent seed profile, a DTO-based fleet endpoint, and real PostgreSQL Testcontainers coverage. The Phase 1 learning/Defend This review remains the exit gate before Phase 2. The active work queue is maintained in [TODO.md](TODO.md).
+Phases 0–3 are complete. Sentinel now has the reproducible build and Docker baseline, Flyway-owned fleet/evidence persistence, idempotent Redis/RabbitMQ alert ingestion, stateless JWT/RBAC security, HMAC-authenticated alert intake, and four bounded deterministic read tools. All engineering and Defend This gates through Phase 3 are recorded in [TODO.md](TODO.md).
 
 ## Prerequisites
 
@@ -22,6 +22,8 @@ Open a new terminal after initial setup so persisted environment variables are a
 ```powershell
 . .\scripts\dev-env.ps1
 ```
+
+The environment script creates two cryptographically random local development secrets once under ignored `.sentinel/` project storage on `E:`. It reuses them on later runs and never prints their values.
 
 ## Build and test
 
@@ -43,7 +45,15 @@ Run the application with the repeatable synthetic incident evidence:
 .\gradlew.bat bootRun --args="--spring.profiles.active=seed"
 ```
 
-Read the fleet API at http://localhost:8080/api/v1/fleet/services.
+Create a short-lived local viewer token and call the protected fleet API:
+
+```powershell
+$token = .\scripts\new-dev-token.ps1 -Role VIEWER -Subject local-viewer
+Invoke-RestMethod http://localhost:8080/api/v1/fleet/services `
+    -Headers @{ Authorization = "Bearer $token" }
+```
+
+The token helper permits only the four declared roles and a maximum 60-minute lifetime. It is a local-development convenience, not an authorization server. Production deployment must use externally managed asymmetric keys and issuer/JWK discovery.
 
 ## Engineering rules
 

@@ -245,3 +245,40 @@ No single transaction spans these three systems. Correctness comes from explicit
 - RabbitMQ preserves the triage command independently of the HTTP request lifetime.
 - PostgreSQL uniqueness makes redelivery safe.
 - No agent analysis or rollback exists yet; Phase 2 ends at deterministic incident creation.
+
+## 10. Phase 3 implemented trust and evidence-tool plane
+
+```text
+Human/service caller --JWT--> Security filter chain --RBAC--> read API/tools
+Alert sender --------HMAC--> alert intake -----------------> Phase 2 pipeline
+Agent identity ------JWT ROLE_AGENT------------------------> bounded read tools
+                                      X approval/admin
+```
+
+### Trust boundaries
+
+- JWT signature, issuer, audience, and time establish a caller identity.
+- URL and method rules decide what that identity may do.
+- The webhook HMAC establishes machine-sender authenticity without granting user roles.
+- Database idempotency remains necessary because authentic requests can still be repeated.
+- The agent identity is a principal with fewer permissions than human approvers or administrators.
+
+### Tool capacity boundaries
+
+| Tool | Input bound | Output bound |
+|---|---|---|
+| Deploy | service + before time | 3 deployments |
+| Metrics | service/metric + ≤6 hours, 360 raw | ≤20 points + aggregates |
+| Logs | service + ±≤1 hour, 100 raw ERROR rows | ≤10 clusters, ≤5 traces each |
+| Runbook | ≤200-character lexical symptom | 5 DTOs |
+
+These bounds protect PostgreSQL first and the future model context second. An LLM adapter cannot expand the repository query because the hard limit lives inside deterministic Java.
+
+### Phase 3 answers to the running scenario
+
+- An authenticated viewer or agent can retrieve bounded deploy, metric, log, and runbook evidence.
+- The deploy tool finds what changed before the spike.
+- The metric tool quantifies baseline versus current behavior.
+- The log tool reduces repeated lines into typed clusters.
+- The runbook tool returns lexical candidates but does not claim semantic grounding yet.
+- The agent cannot approve or administer anything, and no mutating tool exists.

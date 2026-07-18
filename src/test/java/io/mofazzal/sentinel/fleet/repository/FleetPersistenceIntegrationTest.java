@@ -16,6 +16,7 @@ import io.mofazzal.sentinel.tools.DeployQueryTool;
 import io.mofazzal.sentinel.tools.LogSearchTool;
 import io.mofazzal.sentinel.tools.MetricsQueryTool;
 import io.mofazzal.sentinel.tools.RunbookRetrieveTool;
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -39,6 +45,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Base64;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,6 +65,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "sentinel.security.webhook-secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 })
 class FleetPersistenceIntegrationTest {
+
+    private static final String TEST_JWT_SECRET =
+            "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
 
     @Container
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
@@ -120,7 +132,7 @@ class FleetPersistenceIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(get("/api/v1/fleet/services")
-                        .with(jwt().authorities(() -> "ROLE_VIEWER")))
+                        .header("Authorization", "Bearer " + signedToken("VIEWER")))
                 .andExpect(status().isOk())
                 .andExpect(header().doesNotExist("Set-Cookie"));
 
@@ -143,6 +155,22 @@ class FleetPersistenceIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/security-check")
                         .with(jwt().authorities(() -> "ROLE_ADMIN")))
                 .andExpect(status().isNotFound());
+    }
+
+    private static String signedToken(String role) {
+        SecretKey key = new SecretKeySpec(Base64.getDecoder().decode(TEST_JWT_SECRET), "HmacSHA256");
+        NimbusJwtEncoder encoder = new NimbusJwtEncoder(new ImmutableSecret<>(key));
+        Instant now = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("sentinel-local")
+                .subject("integration-viewer")
+                .audience(List.of("sentinel-api"))
+                .issuedAt(now.minusSeconds(1))
+                .expiresAt(now.plusSeconds(60))
+                .claim("roles", List.of(role))
+                .build();
+        return encoder.encode(JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
     }
 
     @Test
