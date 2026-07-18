@@ -77,3 +77,9 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **RAG:** Retrieval-augmented generation, where relevant documents are retrieved and supplied as evidence for model generation.
 - **Structured output:** A model response constrained and converted into a known schema such as a Java record instead of parsed as free text.
 - **Transcript:** Sentinel's durable ordered audit of classifications, evidence, proposals, critiques, and outcomes; it is not merely conversational memory.
+- **OCI image:** An immutable, content-addressable package containing an application runtime and filesystem layers for a container engine.
+- **Image digest:** A cryptographic identifier for exact image content; unlike a tag, it cannot silently point to different bytes.
+- **Liveness probe:** A platform check answering whether a process is responsive enough to keep running.
+- **Readiness probe:** A platform check answering whether a replica should receive traffic now.
+- **OTLP:** OpenTelemetry Protocol, a vendor-neutral way to export traces, metrics, or logs to a collector.
+- **Holdout set:** Evaluation examples reserved until a candidate change is selected, reducing the risk of tuning to the test answers.

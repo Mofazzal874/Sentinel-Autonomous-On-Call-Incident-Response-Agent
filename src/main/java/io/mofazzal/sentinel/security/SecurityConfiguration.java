@@ -32,6 +32,8 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/v1/alerts").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/actuator/health/liveness", "/actuator/health/readiness").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/incidents/*/approve")
                         .hasRole("SRE_APPROVER")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

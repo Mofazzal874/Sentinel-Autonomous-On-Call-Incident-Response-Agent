@@ -280,11 +280,11 @@ Execution checkpoints:
 
 ### 3. Packaging and deployment readiness
 
-- [ ] Produce and smoke-test the executable application artifact.
-- [ ] Choose buildpacks or a multi-stage image after current official review; run as non-root and add health/readiness probes.
-- [ ] Build and smoke-test the image locally while keeping Docker data on `E:`.
-- [ ] Document environment variables, secret injection, resource limits, migrations, rollback, recovery, and cost controls.
-- [ ] Compare current Azure Container Apps and AKS tradeoffs/costs using official sources.
+- [x] Produce and reproducibility-check the executable application artifact.
+- [x] Add a layered multi-stage Java 25 image, numeric non-root runtime, and status-only health/readiness probes.
+- [x] Build and smoke-test the image locally with a read-only root filesystem while keeping Docker data on `E:`.
+- [x] Document environment variables, secret injection, resource limits, migrations, rollback, recovery, and cost controls.
+- [x] Compare a one-VM demo, Azure Container Apps managed topology, and AKS using current official sources.
 
 ### 4. Deployment and portfolio gate
 

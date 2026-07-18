@@ -105,3 +105,21 @@ The fixed corpus now separates development, validation, and holdout scenarios an
 On paper, classify this example and list the minimum evidence you would request: “CPU is saturated, there was no recent deployment, dependencies are healthy, and latency keeps rising.” Then explain why seeing the words “deployment” in the negative statement must not turn it into a bad-deploy incident.
 
 Next, run the model baseline and preserve raw per-scenario mismatches. Change one variable at a time, validate, and touch holdout only after choosing the candidate. Packaging and Azure provisioning remain separate and require the user handoff.
+
+## 9. Packaging flow
+
+```text
+Gradle wrapper -> reproducible executable JAR -> Spring Boot layer extraction
+                                                |
+                               digest-pinned Java 25 runtime
+                                                |
+                            numeric non-root, read-only container
+                                                |
+                         liveness/readiness platform probes
+```
+
+Locally, the image carries the application and runtime without carrying source code or Gradle. In system design, immutable images make rollback and environment comparison tractable: the same digest is promoted while secrets and endpoints come from each environment. In an interview, explain why the image is non-root, why its base is pinned by digest, and why readiness differs from liveness.
+
+The first smoke test ran against the real local dependency network, used a read-only root filesystem, reached `UP`, and still rejected anonymous Prometheus access. The container was temporary and removed; the image remains because it is the next deployment input.
+
+Pen-and-paper exercise: draw what happens when PostgreSQL is unavailable during startup. Flyway cannot complete, readiness never becomes healthy, and the platform must not send traffic. Explain why restarting forever is not the same as recovery and where an operator would inspect the failure.

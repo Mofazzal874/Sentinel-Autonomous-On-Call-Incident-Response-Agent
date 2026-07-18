@@ -191,6 +191,18 @@ class FleetPersistenceIntegrationTest {
     }
 
     @Test
+    void platformHealthProbesExposeStatusWithoutOpeningOtherManagementData() throws Exception {
+        mockMvc.perform(get("/actuator/health/liveness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+        mockMvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+        mockMvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void authenticatedViewerReadsBoundedIncidentDtos() throws Exception {
         Instant receivedAt = Instant.parse("2030-01-01T00:00:00Z");
         AlertPayload payload = new AlertPayload(

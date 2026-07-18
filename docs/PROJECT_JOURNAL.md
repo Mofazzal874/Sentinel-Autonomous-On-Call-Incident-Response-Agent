@@ -828,3 +828,34 @@ Create train/validation/holdout incident scenarios and a deterministic scoring h
 - Corpus structure tests reject duplicate IDs, missing splits, duplicate signals, and incoherent action/escalation labels.
 - Recorded the current live baseline as `NOT_RUN`. The PC audit found no Ollama installation or model image, 16 GB RAM, integrated AMD graphics, and 13.1 GB free on `E:`. Installing the current official Windows binary plus Qwen3 4B and embeddings would consume a material share of that space, so it is not being hidden inside this scorer checkpoint.
 - Focused corpus/scorer tests pass. No model, package, cloud resource, or unrelated database was changed.
+
+---
+
+## Session 16 — Reproducible container and deadline deployment analysis
+
+### Goal
+
+Turn the verified application into a cloud-portable artifact, prove its runtime constraints locally, and answer the tonight/tomorrow deployment question without provisioning or hiding missing prerequisites.
+
+### Implementation and iterative checks
+
+- Added a Spring Boot layered Dockerfile on patch-pinned official Temurin Java 25.0.3+9.
+- Kept build tooling outside the runtime image and ran the process as numeric `10001:10001`.
+- Added status-only liveness/readiness endpoints for platform probes; Prometheus, metrics, health details, and business APIs remain protected.
+- A focused real-PostgreSQL web test proves both probes return `UP` anonymously while `/actuator/metrics` remains `401`.
+- Built the executable JAR twice from clean/no-cache inputs; both SHA-256 values matched.
+- Built `sentinel:local` using Docker's E-backed storage. It is about 200 MB.
+- Started it against the existing isolated Compose network with a read-only root filesystem and bounded `/tmp`; readiness/liveness returned `UP`, Prometheus returned `401`, and Docker confirmed the numeric user.
+- Stopped and automatically removed the scratch container. The reusable base/application image remains for deployment work; `E:` has 10.75 GB free.
+
+### Deployment conclusion
+
+A one-VM Azure demo can realistically be online by tomorrow after subscription, region, budget, access mode, and credentials are supplied. A platform-only deployment can be sooner. A full live-agent demonstration still requires the selected chat/embedding models and evaluation; managed Container Apps plus PostgreSQL/Redis/RabbitMQ networking is a production-shaped follow-up, not the safest one-night shortcut. No Azure CLI, cloud resource, public endpoint, registry, paid model, or model weight was installed or created.
+
+### Learning insight
+
+An image is the immutable program artifact; environment variables and secret stores supply deployment-specific configuration. Liveness answers “should the platform restart me?” Readiness answers “should traffic reach me?” Neither should reveal database details or become an authorization bypass.
+
+### Regression evidence
+
+The final uncached packaging checkpoint passed 95 tests with zero failures, errors, or skips in 2 minutes 37 seconds. The run included all PostgreSQL/pgvector, Redis, RabbitMQ, agent, guardrail, evaluation-contract, security, and probe tests and made no OTLP connection attempt.

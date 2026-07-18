@@ -1,0 +1,62 @@
+# Deployment Readiness and Fastest Safe Route
+
+## Verified local artifact
+
+- `clean bootJar --no-build-cache` produced the same SHA-256 twice: `69117635C45BDB99ECDFD243973A6D4DAF08AE3F67C2A4A05BAB0DA447F7C69E`.
+- `sentinel:local` is 200,453,664 bytes and runs as `10001:10001` with a read-only root filesystem.
+- A real container reached both liveness and readiness against the isolated Compose PostgreSQL/pgvector, Redis, and RabbitMQ services.
+- Anonymous Prometheus access returned `401`; only status-only platform probes are public.
+- The scratch smoke container was stopped and automatically removed. Docker application/image data remains on `E:`.
+
+## Can this be online tonight or tomorrow?
+
+Yes, conditionally. The fastest honest demo is one Azure Linux VM running the already verified container plus the pinned Compose dependencies. It preserves the current topology and avoids rewriting RabbitMQ for a different broker hours before a demo. Restrict inbound access to the user's IP and use an SSH tunnel initially; a genuinely public demo also needs TLS, a hostname, secret rotation, and webhook ingress controls.
+
+This route is a demo topology, not the final highly available architecture. PostgreSQL, Redis, RabbitMQ, and the app share one failure domain. Back up the Docker volumes and delete/deallocate the VM when the demo window ends to control cost.
+
+A production-shaped Azure route is slower: Container Apps for Sentinel, PostgreSQL Flexible Server 17 with `vector` allowlisted, Azure Managed Redis, and a deliberate RabbitMQ decision (persistent self-hosted container or managed third party). Azure Container Apps can deploy an existing image quickly, but wiring private networking, persistent broker storage, secrets, probes, and every managed dependency is the real work.
+
+AKS is not recommended for this deadline. It adds cluster, ingress, identity, storage-class, upgrade, and cost work without improving the portfolio demonstration enough to justify it.
+
+## Current blockers to an actual deployment
+
+1. Azure CLI is not installed and no Azure login/subscription has been verified.
+2. The user must choose a region, maximum demo budget, and private SSH-tunnel versus public TLS endpoint.
+3. No registry or cloud resource may be created until the user explicitly approves provisioning.
+4. Live agent quality is not yet measured. Ollama and model weights are not installed; the application currently has an Ollama adapter, not an Azure OpenAI adapter.
+5. A full-agent VM therefore needs local Qwen3 4B plus `nomic-embed-text` and enough memory, or a separately implemented/approved paid model provider. An agent-disabled platform demo can deploy sooner but should not be presented as the full product.
+
+## Required secret/configuration set
+
+- Database: `SENTINEL_DB_URL`, `SENTINEL_DB_USERNAME`, `SENTINEL_DB_PASSWORD`.
+- Redis: `SENTINEL_REDIS_HOST`, `SENTINEL_REDIS_PORT` and future TLS/auth settings for a managed service.
+- RabbitMQ: host, port, username, password; production also needs TLS configuration.
+- Identity: random base64 `SENTINEL_JWT_SECRET`, issuer, audience. The HS256 local implementation is acceptable for the demo only; production should use an external issuer and asymmetric JWK validation.
+- Alert intake: independent random base64 `SENTINEL_WEBHOOK_SECRET`.
+- Safety: leave `SENTINEL_REMEDIATION_DRY_RUN=true` for deployment verification.
+- Agent: keep disabled until the model and embeddings are present and the live evaluation is recorded.
+
+Never pass secrets as Docker build arguments or bake them into the image. Use the platform secret store or a permission-restricted environment file on the demo VM.
+
+## Migration, rollback, and recovery
+
+Flyway runs forward-only migrations before Hibernate validation. Back up PostgreSQL before deploying a new migration. Roll back application code by redeploying the prior immutable image only when that image is schema-compatible; never undo a committed migration by editing it. A failed migration stops startup rather than letting Hibernate change the schema.
+
+For uncertain remediation, inspect `action_claim` and the append-only ledger; never delete or replay a claim to make a demo pass. Keep dry-run enabled. RabbitMQ redelivery is safe through database idempotency, and Redis loss may reduce suppression efficiency but does not remove the database correctness boundary.
+
+## Cost controls
+
+- Put all demo resources in one dedicated resource group so the complete environment can be enumerated and removed.
+- Apply a subscription budget alert before provisioning; budgets warn but do not automatically stop resources.
+- Use one fixed small VM only after checking that 16 GB RAM is sufficient for the app, infrastructure, and 4B model; deallocate it outside the demo.
+- Do not create legacy Azure Cache for Redis. Microsoft recommends Azure Managed Redis for new work.
+- Do not enable paid Azure OpenAI until model availability, quota, region, and a hard evaluation call budget are confirmed.
+
+## Official references
+
+- [Azure CLI Linux VM creation](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/create-cli-complete)
+- [Deploy an existing image to Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/get-started-existing-container-image-portal)
+- [Azure Container Apps health probes](https://learn.microsoft.com/en-ca/azure/container-apps/health-probes)
+- [PostgreSQL Flexible Server pgvector](https://learn.microsoft.com/en-us/azure/postgresql/extensions/how-to-use-pgvector)
+- [Azure Cache for Redis retirement and migration direction](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/cache-migration-guide)
+- [Create and deploy an Azure OpenAI resource/model](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource)
