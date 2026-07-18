@@ -477,3 +477,43 @@ Phase 3 creates the trust boundary and deterministic evidence API that Phase 4 m
 ### Next action
 
 Phase 3 is complete. Do not open Phase 4 until its Spring AI artifact names and model-provider strategy are re-verified, its work is decomposed, and the user is told whether any local model dependency requires attention.
+
+---
+
+## Session 9 — Authenticated bounded incident reads
+
+### Goal
+
+Give authorized viewers and the service agent a real incident-facing read path instead of defining read roles without an incident API.
+
+### Prerequisites audit
+
+- Reused the existing incident entity, unique sink, JWT security chain, role mapping, and PostgreSQL test infrastructure.
+- Added no dependency, migration, local installation, or mutable operation.
+
+### Changes
+
+- Added `GET /api/v1/incidents` with optional status filtering and a default limit of 20.
+- Enforced an absolute limit range of 1–100 in both HTTP validation and the application service.
+- Added a read-only transactional query service with method-level role authorization.
+- Added an explicit entity graph for the service relationship and mapped incidents to immutable API summaries.
+
+### Architectural connection
+
+The incident table is the durable output of alert ingestion. This endpoint exposes that state through a controlled read model while keeping persistence entities and lazy associations inside the transaction. Human viewers and the service agent now share the same bounded evidence boundary.
+
+### Verification
+
+- Unit tests prove status-filtered repository selection, DTO mapping, and rejection of an excessive limit before repository access.
+- A real PostgreSQL test creates an incident and reads it through the full JWT filter chain using a genuinely signed viewer token.
+- The response contains only the intended incident, service, status, severity, and timestamp fields.
+
+### Insights to retain
+
+- Defining a role is incomplete until it protects a useful application capability.
+- API limits must also exist behind the controller so internal callers cannot bypass them.
+- Entity graphs solve the required association fetch without making the relationship globally eager.
+
+### Next action
+
+Add the next product capability as a similarly bounded vertical slice, with a code-focused commit message and evidence before expansion.

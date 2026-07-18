@@ -56,6 +56,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Testcontainers
@@ -155,6 +156,27 @@ class FleetPersistenceIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/security-check")
                         .with(jwt().authorities(() -> "ROLE_ADMIN")))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void authenticatedViewerReadsBoundedIncidentDtos() throws Exception {
+        Instant receivedAt = Instant.parse("2030-01-01T00:00:00Z");
+        AlertPayload payload = new AlertPayload(
+                "payments-api", "IncidentReadApi", IncidentSeverity.SEV3,
+                receivedAt.minusSeconds(30), "Incident read API verification",
+                Map.of("environment", "integration"));
+        incidentCreationService.createIfAbsent(TriageCommand.create(
+                "incident-read-api-fingerprint", payload, receivedAt));
+
+        mockMvc.perform(get("/api/v1/incidents")
+                        .queryParam("status", "OPEN")
+                        .queryParam("limit", "1")
+                        .header("Authorization", "Bearer " + signedToken("VIEWER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].fingerprint").value("incident-read-api-fingerprint"))
+                .andExpect(jsonPath("$[0].service").value("payments-api"))
+                .andExpect(jsonPath("$[0].status").value("OPEN"))
+                .andExpect(jsonPath("$[0].severity").value("SEV3"));
     }
 
     private static String signedToken(String role) {

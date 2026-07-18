@@ -53,6 +53,13 @@ Invoke-RestMethod http://localhost:8080/api/v1/fleet/services `
     -Headers @{ Authorization = "Bearer $token" }
 ```
 
+Read at most 20 open incidents through the same authenticated boundary:
+
+```powershell
+Invoke-RestMethod 'http://localhost:8080/api/v1/incidents?status=OPEN&limit=20' `
+    -Headers @{ Authorization = "Bearer $token" }
+```
+
 The token helper permits only the four declared roles and a maximum 60-minute lifetime. It is a local-development convenience, not an authorization server. Production deployment must use externally managed asymmetric keys and issuer/JWK discovery.
 
 ## Engineering rules

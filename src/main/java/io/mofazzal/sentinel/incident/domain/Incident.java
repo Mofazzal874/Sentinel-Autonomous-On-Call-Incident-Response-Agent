@@ -91,6 +91,10 @@ public class Incident {
         return fingerprint;
     }
 
+    public FleetService getService() {
+        return service;
+    }
+
     public IncidentSeverity getSeverity() {
         return severity;
     }
@@ -101,6 +105,10 @@ public class Incident {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public void transitionTo(IncidentStatus nextStatus, Instant changedAt) {
