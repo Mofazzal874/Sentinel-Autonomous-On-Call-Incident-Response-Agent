@@ -40,6 +40,22 @@ spring:
   threads:
     virtual:
       enabled: true
+  ai:
+    model:
+      chat: "${SENTINEL_AI_CHAT_MODEL:none}"
+      embedding: "${SENTINEL_AI_EMBEDDING_MODEL:none}"
+    ollama:
+      base-url: "${SENTINEL_OLLAMA_BASE_URL:http://localhost:11434}"
+      init:
+        pull-model-strategy: never
+    vectorstore:
+      type: "${SENTINEL_AI_VECTOR_STORE:none}"
+      pgvector:
+        initialize-schema: false
+        schema-validation: true
+        table-name: runbook_embedding
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
 
 sentinel:
   alerts:

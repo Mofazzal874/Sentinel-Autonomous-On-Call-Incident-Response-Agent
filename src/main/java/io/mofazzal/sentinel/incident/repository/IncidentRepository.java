@@ -4,6 +4,7 @@ import io.mofazzal.sentinel.incident.domain.Incident;
 import io.mofazzal.sentinel.incident.domain.IncidentStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +16,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface IncidentRepository extends JpaRepository<Incident, UUID> {
+
+    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select incident from Incident incident where incident.id = :incidentId")
+    Optional<Incident> findForAgentStart(@Param("incidentId") UUID incidentId);
 
     @EntityGraph(attributePaths = "service")
     List<Incident> findAllByOrderByUpdatedAtDesc(Pageable page);

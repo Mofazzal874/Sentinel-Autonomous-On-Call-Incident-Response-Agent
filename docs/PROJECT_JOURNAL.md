@@ -517,3 +517,57 @@ The incident table is the durable output of alert ingestion. This endpoint expos
 ### Next action
 
 Add the next product capability as a similarly bounded vertical slice, with a code-focused commit message and evidence before expansion.
+
+---
+
+## Session 10 — Bounded proposal workflow and audit transcript
+
+### Goal
+
+Reconstruct all durable project context, confirm the security/tooling gate, verify current Spring AI 2.0 contracts, and begin model-assisted triage without installing a model runtime or weakening deterministic safety boundaries.
+
+### Prerequisites audit
+
+- Re-read repository memory, all private plan files, the current journal/checklist, architecture decisions, source tree, Git history, and the relevant learning/design notes.
+- Confirmed the earlier gate is complete, Git began clean, and PostgreSQL/Redis/RabbitMQ remained healthy.
+- Audited Ollama command/process/port/images: no runtime or model was installed, so nothing was duplicated.
+- Confirmed `E:` had about 13.81 GB free. Java/Gradle dependencies were downloaded through `E:\DevCaches\gradle`; no application or model was installed on `C:`.
+- Verified Spring AI 2.0 BOM, Ollama starter, pgvector starter, structured output, tool-calling advisor, and vector-store configuration against official Spring documentation. Confirmed Azure now uses the general OpenAI integration.
+
+### Changes
+
+- Added Spring AI 2.0, Ollama, and pgvector libraries with chat, embeddings, vector-store creation, and automatic model pulls disabled by default.
+- Added immutable router/evidence/proposal/evaluator contracts and a sequential Java workflow capped at three proposals.
+- Added a deterministic runbook-membership check that overrides any favorable model evaluation of ungrounded output.
+- Added V3 Flyway tables for agent runs and ordered transcript entries, including one-running-run partial uniqueness.
+- Added lifecycle transactions for `OPEN -> TRIAGING -> AWAITING_APPROVAL/ESCALATED` and short independent transcript writes.
+- Added ADR 0005, this journal entry, an evolving beginner lesson, glossary terms, system-design flow, and synchronized checklist.
+
+### Architectural connection
+
+The earlier deterministic tools now form the evidence boundary for model adapters. Spring AI will implement narrow ports; it will not own workflow policy. pgvector will improve runbook selection, while Java still proves that a proposal cites retrieved evidence. The later guardrail layer remains the only place that may calculate authoritative risk or authorize infrastructure mutation.
+
+### Problems found and corrected
+
+1. The remembered Java directory pointed at the SDK parent rather than its versioned JDK child; verification used `E:\DevTools\temurin-25\jdk-25.0.3+9` without reinstalling Java.
+2. pgvector auto-configuration activates by default and required an embedding model bean, breaking model-free application tests. `spring.ai.vectorstore.type` now defaults to `none` and must be deliberately enabled with a selected embedding profile.
+3. The private plan's Azure starter was stale. Official 2.0 documentation says Azure/Foundry access should use the OpenAI integration.
+
+### Verification
+
+- Three workflow tests prove safe refinement, immediate escalation on empty retrieval, invented-runbook rejection, and the maximum-three-attempt bound.
+- A real pgvector/PostgreSQL 17 Testcontainer applied V3, persisted ordered transcript rows through separate transactions, completed the run, and transitioned the incident.
+- `clean test` passed 54 tests with zero failures/errors in 1 minute 36 seconds.
+- Existing Compose services remained healthy and no model/runtime/model-weight data was created.
+
+### Insights to retain
+
+- The framework should adapt to domain ports; it should not hide orchestration policy inside prompts.
+- A second model is not a deterministic safety check. Grounding must be verified against retrieved identifiers in Java.
+- A model's risk explanation is input to a later deterministic scorer, never the permission to act.
+- Do not hold a database transaction while waiting for an LLM.
+- Application dependency installation and model-weight installation are separate choices; auto-pull is disabled to preserve disk control.
+
+### Next action
+
+Audit RAM/GPU and current small model options, choose E:-hosted chat and embedding models, then implement Flyway-owned dimension-specific pgvector retrieval and Spring AI adapters. No user action is required for the completed checkpoint; model installation will be presented with exact E: storage impact before it occurs.

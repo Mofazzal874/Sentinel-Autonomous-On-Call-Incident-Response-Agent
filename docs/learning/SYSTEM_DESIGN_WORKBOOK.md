@@ -282,3 +282,39 @@ These bounds protect PostgreSQL first and the future model context second. An LL
 - The log tool reduces repeated lines into typed clusters.
 - The runbook tool returns lexical candidates but does not claim semantic grounding yet.
 - The agent cannot approve or administer anything, and no mutating tool exists.
+
+## 11. Bounded proposal and audit plane
+
+```text
+OPEN incident --short transaction--> TRIAGING + agent_run(RUNNING)
+                                         |
+                                  no transaction held
+                                         v
+router -> evidence -> generator <-> evaluator (maximum 3)
+            |                              |
+            +---- deterministic grounding-+
+                                         |
+                        short transaction v
+                       PROPOSED or ESCALATED + ordered transcript
+```
+
+### Ownership boundaries
+
+| Component | Owns | Must not own |
+|---|---|---|
+| Model role adapter | classification/draft/critique response | transactions, authorization, execution eligibility |
+| Java workflow | order, attempt bound, grounding check, escalation | infrastructure mutation |
+| Deterministic tools | validated bounded evidence | model policy or writes |
+| PostgreSQL | run uniqueness, state, transcript order | slow model calls |
+| Future guardrail gate | authoritative risk and execution decision | generated reasoning |
+
+The workflow is deliberately sequential. It is easier to replay and explain, and it gives transcript order an obvious meaning. Independent workers may later run in parallel only with explicit budgets and deterministic aggregation.
+
+### Failure containment
+
+- Empty retrieval stops generation immediately.
+- Invented runbook names fail a Java membership check even if a model evaluator approves them.
+- Three attempts cap generator/evaluator consumption.
+- Model integrations and vector storage default off, preventing surprise downloads and ordinary-test coupling.
+- Short transactions protect the connection pool from slow external calls.
+- A partial unique index prevents two active workflows for one incident.

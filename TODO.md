@@ -170,8 +170,48 @@ Execution checkpoints:
 
 Phase 3 gate: **complete** — engineering evidence and the seven-question learning/defense review both passed.
 
+## Phase 4 — Grounded proposal workflow
+
+Execution checkpoints:
+
+- **P4.1 Safe workflow skeleton:** Spring AI dependency baseline, typed model-role ports, bounded sequential orchestration, and durable transcript lifecycle.
+- **P4.2 Grounded retrieval:** Flyway-owned pgvector schema, explicit embedding profile, idempotent runbook indexing, and similarity-threshold retrieval.
+- **P4.3 Model adapters:** structured router, deterministic evidence workers/tool adapters, proposal generator, evaluator, and per-incident call budget.
+- **P4.4 Evidence:** bad-deploy and no-grounding scenarios, full transcript inspection, complete regression suite, lesson, ADR, and Defend This review.
+
+### 1. Safe workflow skeleton
+
+- [x] Verify Spring AI 2.0 BOM, Ollama, pgvector, tool-calling, and structured-output APIs against official documentation.
+- [x] Add Spring AI libraries without installing a runtime or automatically downloading model weights.
+- [x] Keep chat, embedding, and vector-store auto-configuration disabled unless explicitly enabled by environment.
+- [x] Define typed router, evidence, generator, evaluator, proposal, and outcome contracts.
+- [x] Bound proposal refinement to at most three attempts.
+- [x] Reject a proposal whose cited runbook is absent from retrieved evidence, regardless of model evaluation.
+- [x] Add Flyway-owned agent-run/transcript tables with one active run per incident and ordered entries.
+- [x] Keep LLM calls outside database transactions; transcript writes use short independent transactions.
+- [x] Prove the workflow skeleton with deterministic fake roles and real PostgreSQL persistence.
+
+### 2. Grounded retrieval and model adapters
+
+- [ ] Select chat and embedding models after a disk/RAM/GPU audit; store Ollama runtime/model data on `E:` and never auto-pull.
+- [ ] Add the dimension-specific runbook embedding migration and idempotent indexing job.
+- [ ] Replace lexical runbook candidates with top-k semantic hits and an explicit similarity threshold.
+- [ ] Adapt the router and proposal/evaluator roles to Spring AI structured output with validation.
+- [ ] Adapt the existing bounded read tools to the sequential evidence-gathering workflow.
+- [ ] Add a Redis per-incident model-call budget and recoverable tool-input failure handling.
+- [ ] Wire lifecycle begin/complete/fail around the workflow without holding a transaction over network calls.
+
+### 3. Verification and learning gate
+
+- [ ] Prove a seeded bad deploy produces a grounded proposal without executing it.
+- [ ] Prove an unmatched symptom escalates without inventing a runbook.
+- [ ] Prove duplicate concurrent delivery cannot create two active agent runs.
+- [ ] Inspect the persisted classification, evidence, proposals, critiques, and outcome.
+- [ ] Run the complete suite and complete all seven Phase 4 Defend This answers.
+
+Phase 4 gate: **open** — the model-independent workflow and transcript checkpoint passes; semantic RAG, Spring AI adapters, end-to-end scenarios, and the learning defense remain.
+
 ## Later phases
 
-- [ ] Phase 4 — structured agent router/workers/evaluator and grounded pgvector RAG.
 - [ ] Phase 5 — deterministic guardrails, risk scoring, action ledger, approval, and compensation.
 - [ ] Phase 6 — observations/metrics, layered testing, offline evaluation, and Azure deployment.

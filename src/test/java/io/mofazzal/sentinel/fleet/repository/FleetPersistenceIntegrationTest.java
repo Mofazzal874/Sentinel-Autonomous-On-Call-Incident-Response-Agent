@@ -2,6 +2,11 @@ package io.mofazzal.sentinel.fleet.repository;
 
 import io.mofazzal.sentinel.alert.api.AlertPayload;
 import io.mofazzal.sentinel.alert.messaging.TriageCommand;
+import io.mofazzal.sentinel.agent.application.AgentRunLifecycleService;
+import io.mofazzal.sentinel.agent.application.TranscriptRecorder;
+import io.mofazzal.sentinel.agent.domain.RemediationProposal;
+import io.mofazzal.sentinel.agent.domain.TriageOutcome;
+import io.mofazzal.sentinel.agent.persistence.PersistentTranscriptRecorder;
 import io.mofazzal.sentinel.fleet.domain.Deployment;
 import io.mofazzal.sentinel.fleet.domain.DeploymentStatus;
 import io.mofazzal.sentinel.fleet.domain.FleetService;
@@ -46,6 +51,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Base64;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -99,6 +105,12 @@ class FleetPersistenceIntegrationTest {
 
     @Autowired
     private IncidentRepository incidentRepository;
+
+    @Autowired
+    private AgentRunLifecycleService agentRunLifecycle;
+
+    @Autowired
+    private PersistentTranscriptRecorder transcriptRecorder;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -329,5 +341,46 @@ class FleetPersistenceIntegrationTest {
                 .get()
                 .extracting(incident -> incident.getStatus(), incident -> incident.getSeverity())
                 .containsExactly(IncidentStatus.OPEN, IncidentSeverity.SEV2);
+    }
+
+    @Test
+    void agentRunAndOrderedTranscriptPersistAcrossShortTransactions() {
+        Instant receivedAt = Instant.now().minusSeconds(30);
+        AlertPayload payload = new AlertPayload(
+                "payments-api", "AgentTranscript", IncidentSeverity.SEV2,
+                receivedAt, "Error rate rose after deployment", Map.of("test", "transcript"));
+        TriageCommand command = TriageCommand.create(
+                "agent-transcript-integration-fingerprint", payload, receivedAt);
+        incidentCreationService.createIfAbsent(command);
+        var incident = incidentRepository.findByFingerprint(command.fingerprint()).orElseThrow();
+
+        UUID runId = agentRunLifecycle.begin(incident.getId());
+        transcriptRecorder.record(incident.getId(), TranscriptRecorder.EntryType.CLASSIFICATION,
+                0, "BAD_DEPLOY");
+        transcriptRecorder.record(incident.getId(), TranscriptRecorder.EntryType.EVIDENCE,
+                0, "Retrieved rollback runbook");
+        RemediationProposal proposal = new RemediationProposal(
+                io.mofazzal.sentinel.fleet.domain.RemediationActionType.ROLLBACK_DEPLOYMENT,
+                "Rollback a faulty service deployment",
+                List.of("Confirm correlation", "Propose guarded rollback"),
+                "Deployment correlates with the error spike",
+                "Requires deterministic risk scoring in the guardrail layer");
+        agentRunLifecycle.complete(runId, new TriageOutcome(
+                TriageOutcome.Decision.PROPOSED, proposal,
+                "Grounded proposal passed evaluation", 1));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select status from agent_run where id = ?", String.class, runId))
+                .isEqualTo("PROPOSED");
+        assertThat(jdbcTemplate.queryForList("""
+                select sequence_number, entry_type
+                from agent_transcript_entry
+                where run_id = ?
+                order by sequence_number
+                """, runId))
+                .extracting(row -> row.get("entry_type"))
+                .containsExactly("CLASSIFICATION", "EVIDENCE");
+        assertThat(incidentRepository.findById(incident.getId()).orElseThrow().getStatus())
+                .isEqualTo(IncidentStatus.AWAITING_APPROVAL);
     }
 }

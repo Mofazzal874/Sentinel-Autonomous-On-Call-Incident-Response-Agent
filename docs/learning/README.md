@@ -56,6 +56,7 @@ The AI is not the backend. It is one decision-producing component inside a backe
 - [Phase 1: fleet persistence and the first read API](01_PHASE_1_FLEET_PERSISTENCE.md)
 - [Phase 2: alert ingestion, Redis, and RabbitMQ](02_PHASE_2_ALERT_MESSAGING.md)
 - [Phase 3: JWT security, RBAC, and deterministic tools](03_PHASE_3_SECURITY_TOOLS.md)
+- [Phase 4: bounded agent orchestration and audit memory](04_PHASE_4_AGENT_CORE.md)
 - [System Design Workbook](SYSTEM_DESIGN_WORKBOOK.md)
 - [Living Glossary](GLOSSARY.md)
 

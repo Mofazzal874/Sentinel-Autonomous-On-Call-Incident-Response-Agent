@@ -52,3 +52,13 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **Stateless authentication:** Reconstructing authentication from each request instead of storing it in a server-side login session.
 - **Linux container:** A container whose processes use Linux system calls. Docker Desktop runs these through its Linux environment even when the host computer is Windows.
 - **Windows container:** A distinct container type built from Windows images and using Windows host kernel features. It is not required merely because Docker Desktop is installed on Windows.
+- **Agent orchestrator:** Ordinary application code that controls the order, bounds, and stopping conditions of model-assisted work.
+- **Embedding:** A fixed-length numeric representation of content used to compare semantic similarity.
+- **Evaluator–optimizer:** A bounded loop in which one role drafts an answer and another critiques it before a refined attempt.
+- **Grounding:** Requiring a model output to be supported by retrieved, identifiable source material.
+- **HNSW:** A graph-based approximate-nearest-neighbor index with strong query speed/recall at the cost of more memory and build work.
+- **LLM:** A large language model; a probabilistic component that produces text or structured responses from prompts.
+- **Pessimistic lock:** A database lock that prevents competing transactions from modifying a selected row until the current transaction finishes.
+- **RAG:** Retrieval-augmented generation, where relevant documents are retrieved and supplied as evidence for model generation.
+- **Structured output:** A model response constrained and converted into a known schema such as a Java record instead of parsed as free text.
+- **Transcript:** Sentinel's durable ordered audit of classifications, evidence, proposals, critiques, and outcomes; it is not merely conversational memory.

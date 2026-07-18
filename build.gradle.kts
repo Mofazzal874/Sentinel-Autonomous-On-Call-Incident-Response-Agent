@@ -18,6 +18,7 @@ repositories {
 }
 
 dependencies {
+    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -27,6 +28,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    implementation("org.springframework.ai:spring-ai-starter-model-ollama")
+    implementation("org.springframework.ai:spring-ai-starter-vector-store-pgvector")
 
     runtimeOnly("org.postgresql:postgresql")
 
