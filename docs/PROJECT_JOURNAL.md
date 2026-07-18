@@ -341,3 +341,43 @@ Phase 1 supplied the fleet and database correctness boundary. Phase 2 turns exte
 ### Next action
 
 The Phase 2 engineering gate is complete. Review the seven Phase 2 Defend This questions with the user before marking the learning gate complete or opening Phase 3. No machine installation or manual cleanup is required.
+
+---
+
+## Session 6 — Phase 1 learning-gate correction
+
+### Goal
+
+Complete every Phase 1 requirement, including the interview-oriented learning review, before allowing further phase progression.
+
+### Prerequisites audit
+
+- Compared all seven private-plan questions with the implemented lesson and code decisions.
+- Confirmed the existing answers cover Open Session in View, N+1, lazy loading, enum storage, transactions, Flyway validation, and large-scale query design.
+- No application code, dependency, container, or database change was required.
+
+### Changes
+
+- Added a formal interview-evidence checklist to the Phase 1 lesson.
+- Marked the seven-question review complete and changed the Phase 1 status from a split gate to fully complete.
+- Recorded the sequencing correction instead of rewriting the earlier journal history.
+
+### Architectural connection
+
+Phase 2 relies on the Phase 1 transaction, schema, query, and PostgreSQL correctness boundaries. The review confirms those foundations are explainable as well as tested. No Phase 3 work should begin until Phase 2 receives the same treatment.
+
+### Verification
+
+- Every Phase 1 Defend This question has a concise model answer and project-specific evidence.
+- Each topic is connected to the failure it prevents or the tradeoff it introduces.
+- `TODO.md` now records one complete Phase 1 gate.
+
+### Insights to retain
+
+- Tests prove behavior; the learning gate proves the design can be explained.
+- Learn annotations through the failure they prevent, not as isolated syntax.
+- Record and correct sequencing gaps rather than hiding them.
+
+### Next action
+
+Continue from Phase 2. Its engineering work is complete; its seven-question learning/defense review remains the next gate before Phase 3.

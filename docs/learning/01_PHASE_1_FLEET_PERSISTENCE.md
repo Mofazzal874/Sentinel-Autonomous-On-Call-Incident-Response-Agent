@@ -280,6 +280,8 @@ Do not use `docker compose down -v` unless you deliberately want to delete the l
 
 ## 15. Defend This answers
 
+Review status: **completed on 2026-07-18**. Each answer below was checked against the Phase 1 plan and the implemented Sentinel code.
+
 1. `open-in-view: false` prevents the web layer from quietly keeping persistence access open through serialization. Fetch and transaction decisions stay explicit.
 2. N+1 is one parent query followed by repeated association queries. Use an entity graph, fetch join, DTO projection, or batching according to result shape.
 3. A lazy proxy accessed after its persistence context closes causes `LazyInitializationException`. Fetch what the application operation needs inside its transaction.
@@ -287,6 +289,18 @@ Do not use `docker compose down -v` unless you deliberately want to delete the l
 5. Transactions are on application services. The default propagation is `REQUIRED`: join an existing transaction or start one.
 6. Flyway produces versioned, reviewable SQL; Hibernate only validates. Automatic update is not a safe deployment process.
 7. At very large scale, retain bounded queries, partition telemetry by time, use appropriate composite/covering or BRIN indexes, archive old data, and select only needed columns.
+
+### Interview evidence checklist
+
+- Open Session in View: explain the transaction boundary and why serialization must not issue hidden SQL.
+- N+1: identify the service/team/allowlist example and compare entity graphs, fetch joins, projections, and batching.
+- Lazy loading: explain when the persistence context closes and why EAGER is not a general repair.
+- Enum storage: explain how ORDINAL can silently reinterpret existing rows after source reordering.
+- Transactions: identify the service layer, `readOnly = true`, and default `REQUIRED` propagation.
+- Schema ownership: distinguish Flyway migration from Hibernate validation and reject `ddl-auto: update`.
+- Scale: begin with bounded service/time access, then discuss indexes, projections, partitioning, retention, and BRIN.
+
+All seven decisions have a project-specific answer, a failure mode, and a tradeoff. The formal Phase 1 learning/defense review is complete. Continue rehearsing the answers without this page; closing the project gate does not replace future interview practice.
 
 ## 16. Pen-and-paper exercises
 

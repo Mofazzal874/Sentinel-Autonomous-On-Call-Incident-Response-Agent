@@ -82,9 +82,9 @@ Execution checkpoints (complete in order):
 - [x] Add repository/service unit tests for mapping and query boundaries.
 - [x] Add a PostgreSQL Testcontainers integration test proving the bad deployment correlation query.
 - [x] Run all tests and inspect query behavior for accidental N+1 access.
-- [ ] Review every Phase 1 “Defend This” question before marking the phase complete.
+- [x] Review every Phase 1 “Defend This” question before marking the phase complete.
 
-Phase 1 engineering gate: **passed**. Learning/defense gate: **awaiting user review**.
+Phase 1 gate: **complete** — engineering evidence and the seven-question learning/defense review both passed.
 
 ## Phase 2 — Alert ingestion, suppression, and durable delivery
 
