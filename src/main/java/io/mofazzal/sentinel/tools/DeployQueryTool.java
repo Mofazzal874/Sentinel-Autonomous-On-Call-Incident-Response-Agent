@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ai.tool.annotation.Tool;
 
 import java.time.Instant;
 import java.util.List;
@@ -25,6 +26,7 @@ public class DeployQueryTool extends FleetToolSupport {
 
     @PreAuthorize("hasAnyRole('VIEWER','SRE_APPROVER','ADMIN','AGENT')")
     @Transactional(readOnly = true)
+    @Tool(description = "Return at most three deployments for a service before an incident time.")
     public List<DeploySummary> recentDeploys(String service, Instant before) {
         if (before == null) {
             throw new ToolInputException("before must not be null");

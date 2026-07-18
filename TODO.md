@@ -193,23 +193,23 @@ Execution checkpoints:
 
 ### 2. Grounded retrieval and model adapters
 
-- [ ] Select chat and embedding models after a disk/RAM/GPU audit; store Ollama runtime/model data on `E:` and never auto-pull.
-- [ ] Add the dimension-specific runbook embedding migration and idempotent indexing job.
-- [ ] Replace lexical runbook candidates with top-k semantic hits and an explicit similarity threshold.
-- [ ] Adapt the router and proposal/evaluator roles to Spring AI structured output with validation.
-- [ ] Adapt the existing bounded read tools to the sequential evidence-gathering workflow.
-- [ ] Add a Redis per-incident model-call budget and recoverable tool-input failure handling.
-- [ ] Wire lifecycle begin/complete/fail around the workflow without holding a transaction over network calls.
+- [x] Select Qwen3 4B chat and nomic-embed-text 768-dimension embeddings after the hardware/disk audit; defer installation, keep future Ollama data on `E:`, and never auto-pull.
+- [x] Add the dimension-specific runbook embedding migration and idempotent indexing job.
+- [x] Replace lexical runbook candidates with top-k semantic hits and an explicit similarity threshold.
+- [x] Adapt the router and proposal/evaluator roles to Spring AI structured output with validation.
+- [x] Adapt the existing bounded read tools to the sequential evidence-gathering workflow and expose Spring AI read-only tool definitions.
+- [x] Add a Redis per-incident model-call budget and fail-safe escalation for invalid/tool/model failures.
+- [x] Wire lifecycle begin/complete/fail around the workflow without holding a transaction over network calls.
 
 ### 3. Verification and learning gate
 
-- [ ] Prove a seeded bad deploy produces a grounded proposal without executing it.
-- [ ] Prove an unmatched symptom escalates without inventing a runbook.
-- [ ] Prove duplicate concurrent delivery cannot create two active agent runs.
-- [ ] Inspect the persisted classification, evidence, proposals, critiques, and outcome.
-- [ ] Run the complete suite and complete all seven Phase 4 Defend This answers.
+- [x] Prove a seeded bad deploy produces a grounded proposal without executing it.
+- [x] Prove an unmatched symptom escalates without inventing a runbook.
+- [x] Prove duplicate concurrent delivery cannot create two active agent runs.
+- [x] Inspect the persisted classification, evidence, proposals, critiques, and outcome.
+- [x] Run the complete suite and complete all seven Phase 4 Defend This answers.
 
-Phase 4 gate: **open** — the model-independent workflow and transcript checkpoint passes; semantic RAG, Spring AI adapters, end-to-end scenarios, and the learning defense remain.
+Phase 4 gate: **complete** — semantic RAG, structured Spring AI roles, bounded tool orchestration, Redis call limits, durable transcripts, end-to-end scenarios, full regression evidence, and the seven-question learning defense all pass. A live Ollama demo remains an optional later deployment task, not a correctness dependency.
 
 ## Later phases
 

@@ -1,6 +1,6 @@
 # Phase 4: Bounded Agent Orchestration and Audit Memory
 
-This lesson grows with the implementation. The workflow skeleton and transcript are complete; semantic retrieval and live-model adapters are still open.
+The grounded proposal workflow is complete. A live Ollama download is intentionally deferred because deterministic and scripted-model tests prove correctness without consuming several gigabytes or coupling tests to probabilistic output.
 
 ## 1. Prerequisites
 
@@ -31,8 +31,13 @@ incident -> router -> bounded evidence -> proposal -> evaluator
 - `agent/application/*` ports: model/provider-independent role contracts.
 - `agent/persistence`: durable run and transcript entities plus ordered short writes.
 - `V3__agent_run_transcript.sql`: constraints, indexes, and one-running-workflow uniqueness.
+- `agent/retrieval` and `V4__runbook_embeddings.sql`: explicit indexing, 768-dimension vectors, HNSW cosine search, and the `0.60` grounding threshold.
+- `agent/model`: Spring AI structured-output adapters for router, generator, and evaluator.
+- `RedisModelCallBudget`: atomic per-incident model-call ceiling.
 
 Spring AI is an adapter dependency, not the owner of business policy. Chat, embedding, and vector-store integrations default to disabled, so normal application work and tests do not require Ollama.
+
+The selected later live-demo models are Qwen3 4B (about 2.5 GB) and `nomic-embed-text` (about 274 MB, 768 dimensions). The machine has 16 GB RAM and integrated graphics, so this smaller pair is more appropriate than an 8B+ chat model. Ollama remains uninstalled; automatic pulling is disabled and future binaries/models must use `E:`.
 
 ## 4. Transaction and concurrency design
 
@@ -78,7 +83,31 @@ If the generator cites “Invented emergency runbook,” Java rejects it even wh
 
 Sequential workers cost latency but are easier to reason about. Parallelism can be introduced only after correct aggregation, per-worker budgets, and transcript ordering are proven.
 
-## 8. Verification
+## 8. How semantic retrieval works
+
+Indexing converts each runbook's title, symptoms, and procedure into one 768-number embedding. PostgreSQL stores that vector beside the runbook ID. A query is embedded with the same model, then pgvector calculates cosine distance:
+
+```text
+similarity = 1 - cosine_distance(query_vector, document_vector)
+```
+
+Only hits at or above `0.60` are returned. HNSW is a graph index: it uses more memory and slower index construction than IVFFlat, but gives a strong speed/recall tradeoff and does not require a training step. Flyway creates the table and index because schema changes must be reviewable and reproducible; Spring auto-initialization is disabled.
+
+Embedding calls run before the short read transaction that performs vector SQL. This prevents a database connection from being held while waiting for a local or remote model.
+
+Embedding dimension is a database contract. `nomic-embed-text` produces 768 values, so `VECTOR(768)` rejects a mismatched model instead of silently storing incomparable data.
+
+## 9. How tool calling works
+
+1. Spring sends tool names, descriptions, and JSON input schemas with the prompt.
+2. The model may return a tool-call request instead of final prose.
+3. `ToolCallingManager` resolves the callback and invokes the annotated Java method.
+4. The Java result becomes a `ToolResponseMessage` in conversation history.
+5. The updated history returns to the model, which continues.
+
+The test suite proves this exact two-call loop. Sentinel's primary workflow is stricter: structured router output selects evidence categories, while Java supplies the trusted service and incident time to the bounded tools. This prevents a hallucinated service argument from replacing the incident's real identity. The same four read methods remain valid Spring AI tools; no mutation is exposed.
+
+## 10. Verification
 
 ```powershell
 $env:JAVA_HOME='E:\DevTools\temurin-25\jdk-25.0.3+9'
@@ -87,9 +116,9 @@ $env:GRADLE_USER_HOME='E:\DevCaches\gradle'
 .\gradlew.bat clean test
 ```
 
-Current evidence: 54 tests pass. Unit tests prove refinement, empty-retrieval escalation, invented-runbook rejection, and the three-attempt cap. PostgreSQL evidence proves V3 migration, ordered transcript writes, and incident/run state transitions.
+Current evidence: 62 tests pass. Unit/scripted-model tests prove structured conversion, tool callback schemas, the complete tool-call loop, refinement, empty-retrieval escalation, invented-runbook rejection, and the three-attempt cap. Redis proves the atomic call budget. PostgreSQL/pgvector proves idempotent indexing, threshold retrieval, grounded/ungrounded end-to-end outcomes, ordered transcripts, and concurrent run exclusion.
 
-## 9. Pen-and-paper exercises
+## 11. Pen-and-paper exercises
 
 1. Draw the transaction boundaries and circle every network call. No network call should sit inside a transaction.
 2. Write the exact transcript sequence for a proposal that fails twice and passes on attempt three.
@@ -97,6 +126,34 @@ Current evidence: 54 tests pass. Unit tests prove refinement, empty-retrieval es
 4. Calculate the maximum number of generator and evaluator calls when the attempt limit is three.
 5. Describe the race when two consumers begin the same incident and name both protections.
 
-## 10. Interview defense checkpoint
+## 12. Defend This — completed answers
 
-The current implementation can defend structured ports, sequential orchestration, bounded evaluation, deterministic grounding, and transcript transaction design. The complete seven-question gate remains open until Spring AI tool calling, pgvector similarity retrieval, call-rate limiting, and both end-to-end scenarios pass.
+### 1. Why router, orchestrator–workers, and evaluator–optimizer?
+
+The router cheaply narrows the incident and evidence categories. The orchestrator owns deterministic order, bounds, and tool inputs. Workers gather specialized evidence. The evaluator critiques a proposal against explicit criteria. One giant prompt would mix classification, retrieval, and refinement into an opaque operation that is harder to test, budget, and replay.
+
+### 2. How does tool calling work end to end?
+
+The model emits a named call with JSON arguments; Spring resolves a registered `ToolCallback`, invokes the annotated Java method, appends its result as a tool-response message, and asks the model to continue. `SpringAiToolCallingLoopTest` proves that sequence. Sentinel exposes only the four bounded read operations; the main path supplies trusted incident identifiers through Java.
+
+### 3. How is an infinite or expensive evaluator loop prevented?
+
+Java caps proposals at three. Every model role first acquires an atomic Redis budget; the total is twelve calls per incident per hour. Every attempt is recorded. Passing needs explicit evaluation plus deterministic grounding. Exhaustion or failure escalates.
+
+### 4. What prevents hallucinated remediation?
+
+Semantic search returns only runbooks with similarity at least `0.60`. Empty retrieval escalates before generation. Java then checks that the proposal's exact runbook title belongs to the retrieved set, even if the model evaluator approves it. Nothing here executes infrastructure.
+
+### 5. Why structured output instead of parsing strings?
+
+`.entity()` converts model JSON into validated Java records with enums and required fields. Schema mismatch fails immediately. Free-text parsing would depend on formatting, punctuation, or brittle regular expressions and could silently reinterpret an invalid decision.
+
+### 6. HNSW versus IVFFlat, and why is schema initialization off?
+
+HNSW provides strong query speed/recall and can be built before data, fitting this small corpus; it costs more memory/build work. IVFFlat is cheaper to build but needs representative training data and usually has a weaker speed/recall tradeoff. Flyway owns `VECTOR(768)` and the HNSW index so every environment applies the same reviewed schema.
+
+### 7. What if the model invents a service name?
+
+The primary workflow does not accept a model-selected service name: the service comes from the persisted incident and Java passes it to tools. Direct tool calls still validate format and existence; an invalid call becomes a controlled failure and the coordinator records failure/escalates. No wrong service is silently queried or mutated.
+
+Phase 4 learning gate: **complete**.

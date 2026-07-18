@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ai.tool.annotation.Tool;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,6 +32,7 @@ public class MetricsQueryTool extends FleetToolSupport {
 
     @PreAuthorize("hasAnyRole('VIEWER','SRE_APPROVER','ADMIN','AGENT')")
     @Transactional(readOnly = true)
+    @Tool(description = "Return a bounded metric window with baseline, current average, and percentage delta.")
     public MetricWindow window(String service, String metric, Instant from, Instant to) {
         ToolInputs.timeWindow(from, to, MAX_WINDOW);
         String metricName = ToolInputs.metricName(metric);

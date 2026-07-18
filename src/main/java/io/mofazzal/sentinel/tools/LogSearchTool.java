@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ai.tool.annotation.Tool;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -34,6 +35,7 @@ public class LogSearchTool extends FleetToolSupport {
 
     @PreAuthorize("hasAnyRole('VIEWER','SRE_APPROVER','ADMIN','AGENT')")
     @Transactional(readOnly = true)
+    @Tool(description = "Return bounded clusters of ERROR logs around an incident time.")
     public List<ErrorCluster> errorsAround(String service, Instant at, Duration halfWindow) {
         if (at == null || halfWindow == null || halfWindow.isZero() || halfWindow.isNegative()
                 || halfWindow.compareTo(MAX_HALF_WINDOW) > 0) {

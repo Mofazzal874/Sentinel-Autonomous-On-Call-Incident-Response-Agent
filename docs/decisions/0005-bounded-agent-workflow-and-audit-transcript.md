@@ -17,6 +17,11 @@ Sentinel is ready to add model-driven triage, but models are nondeterministic, s
 - Every run and transcript entry is persisted through Flyway-owned tables. A partial unique index permits at most one `RUNNING` workflow per incident.
 - Transcript sequence allocation uses a pessimistic row lock and a short `REQUIRES_NEW` transaction. Model/network calls occur outside persistence transactions.
 - Spring AI and pgvector libraries are present, while chat, embedding, and vector-store auto-configuration default to `none`. Model weights are never pulled automatically.
+- Flyway owns a 768-dimension runbook vector table and HNSW cosine index. Indexing is explicit and idempotent; semantic queries require similarity of at least `0.60`.
+- The audited local targets are Qwen3 4B for chat and `nomic-embed-text` for 768-dimension embeddings. Installation is deferred until a live demo needs it; runtime and model data will be placed on `E:`.
+- Router output selects evidence categories, then Java invokes bounded tools with the incident's trusted service/time context. Read methods also expose Spring AI `@Tool` definitions, but the main workflow does not let a model invent core incident identifiers.
+- A Redis counter allows at most twelve model calls per incident per hour. Budget exhaustion and adapter/tool failures fail safe by completing the run as failed and escalating the incident.
+- Orchestration is disabled by default and requires an explicit `sentinel.agent.enabled=true`; retrieval independently defaults to lexical unless `semantic` is selected.
 
 ## Consequences
 
@@ -32,7 +37,7 @@ Costs:
 
 - More adapter code is required between Spring AI and domain ports.
 - Text transcript payloads are currently human-inspectable but will need stable structured serialization before external APIs consume them.
-- Semantic retrieval remains unavailable until an embedding model and its fixed vector dimension are deliberately selected.
+- Changing embedding models to a different dimension requires a new migration and complete re-index; vector dimensions are schema, not a casual runtime toggle.
 
 ## Rejected alternatives
 

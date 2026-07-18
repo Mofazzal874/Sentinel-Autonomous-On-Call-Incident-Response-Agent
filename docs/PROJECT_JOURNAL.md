@@ -571,3 +571,65 @@ The earlier deterministic tools now form the evidence boundary for model adapter
 ### Next action
 
 Audit RAM/GPU and current small model options, choose E:-hosted chat and embedding models, then implement Flyway-owned dimension-specific pgvector retrieval and Spring AI adapters. No user action is required for the completed checkpoint; model installation will be presented with exact E: storage impact before it occurs.
+
+---
+
+## Session 11 — Grounded proposal workflow completion
+
+### Goal
+
+Iteratively verify the existing agent skeleton, complete semantic retrieval and Spring AI integration, prove both safe outcomes end to end, finish the learning-defense gate, and only then permit work on deterministic safety/execution.
+
+### Prerequisites audit
+
+- Re-read the open checklist and complete private plans for agent orchestration and guardrails.
+- Re-ran the existing workflow and PostgreSQL transcript tests before adding code.
+- Reused Java, Gradle, Docker, PostgreSQL, Redis, and RabbitMQ. Installed no application, Ollama runtime, model, or host package.
+- Hardware audit selected Qwen3 4B and `nomic-embed-text` for a later live demo. Automatic model pulls remain disabled; future Ollama binaries/models must use `E:`.
+
+### Changes
+
+- Added V4 with a Flyway-owned `VECTOR(768)` runbook table and HNSW cosine index.
+- Added explicit, idempotent runbook indexing with embeddings outside write transactions and dimension validation.
+- Added semantic retrieval capped at five hits with a `0.60` threshold; lexical mode remains the safe default.
+- Added Spring AI structured-output adapters for router, generator, and evaluator at temperature `0.1`.
+- Exposed only the four bounded read methods as Spring AI tools and retained trusted incident identifiers in the main Java-controlled evidence flow.
+- Added atomic Redis model-call budgeting: twelve calls per incident per hour.
+- Added an internal `ROLE_AGENT` security scope for message-driven tool calls and restored the previous context after use.
+- Added lifecycle coordination that starts/finishes in short transactions, escalates failures, and never wraps model calls in a database transaction.
+- Made orchestration an explicit opt-in property so ordinary application contexts never require models or embeddings.
+
+### Iterative defects found and corrected
+
+1. Raw JDBC could not infer a PostgreSQL type for `Instant`; vector upserts now pass an explicit SQL `Timestamp`.
+2. Component-level bean conditions depended on scan/test ordering and polluted unrelated contexts. Optional workflow and indexing now use explicit enable/retrieval properties.
+3. A hand-built `ChatClient` did not represent Boot's auto-configured advisor chain. The framework-mechanics test now drives the documented user-controlled `ToolCallingManager` loop directly and proves tool-result continuation.
+4. The first full suite exposed optional indexer construction in lexical contexts; tying it to semantic mode restored ingestion/security/persistence isolation.
+5. Transaction review found semantic embedding under an outer read transaction; vector generation and SQL querying are now separate, and the integration test asserts no transaction is active during embedding.
+
+### Verification
+
+- Real pgvector/PostgreSQL proves three runbooks index idempotently, a bad-release symptom retrieves rollback above `0.60`, and an unrelated dependency symptom returns no hit.
+- Scripted Spring AI tests prove JSON-to-record conversion for all three roles and charge the model budget for every call.
+- Tool tests prove exactly four read callbacks and the full request → Java invocation → tool-response → continued model response sequence.
+- Redis Testcontainers proves the per-incident limit is atomic, expiring, and isolated between incidents.
+- End-to-end PostgreSQL tests prove the seeded bad deploy gathers deploy/metric/log/runbook evidence, produces a proposal without execution, persists five transcript stages, and reaches `AWAITING_APPROVAL`.
+- The unmatched scenario escalates before proposal generation.
+- Two simultaneous starts produce exactly one running agent row.
+- After iterative fixes, `clean test` passed 62 tests with zero failures/errors. The final run is recorded in the commit checkpoint.
+
+### Architectural connection
+
+The agent now ends at an auditable proposal. The next safety layer can consume the proposal, retrieved similarity, incident service/tier, and transcript, but the model still has no risk-scoring, approval, ledger, or execution authority. Those responsibilities must enter through one deterministic gate.
+
+### Insights to retain
+
+- Vector dimension is schema: changing embedding models requires migration and re-indexing.
+- A similarity threshold narrows candidates; Java membership verification establishes proposal grounding.
+- Optional AI components need explicit activation, not accidental bean-presence inference.
+- Test model integration at two layers: scripted structured responses for domain adapters and real framework tool execution for callback mechanics.
+- Concurrency safety needs both transaction locking and a database uniqueness backstop.
+
+### Next action
+
+The Phase 4 engineering and defense gates are complete. Begin Phase 5 by decomposing the single gate, deterministic risk, dry-run/kill switch, append-only ledger, approval, and idempotent execution boundaries. No user action or installation is required.

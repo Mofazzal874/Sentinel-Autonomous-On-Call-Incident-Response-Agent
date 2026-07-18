@@ -30,10 +30,12 @@ class TriageWorkflowTest {
             List.of(EvidenceSignal.DEPLOYMENTS, EvidenceSignal.METRICS, EvidenceSignal.RUNBOOKS),
             "The error increase immediately follows a deployment");
     private static final RunbookSummary ROLLBACK_RUNBOOK = new RunbookSummary(
+            UUID.fromString("30000000-0000-0000-0000-000000000001"),
             "Rollback a faulty service deployment",
             "Error rate or latency rises immediately after a deployment.",
             "Confirm correlation; roll back; verify recovery.",
-            RemediationActionType.ROLLBACK_DEPLOYMENT);
+            RemediationActionType.ROLLBACK_DEPLOYMENT,
+            0.91);
 
     @Test
     void refinesProposalWithinBoundAndReturnsGroundedProposal() {

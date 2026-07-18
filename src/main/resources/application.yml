@@ -58,6 +58,12 @@ spring:
         distance-type: COSINE_DISTANCE
 
 sentinel:
+  agent:
+    enabled: "${SENTINEL_AGENT_ENABLED:false}"
+    retrieval-mode: "${SENTINEL_AGENT_RETRIEVAL_MODE:lexical}"
+    max-proposal-attempts: 3
+    max-model-calls: 12
+    model-call-window: 1h
   alerts:
     dedup-window: 10m
   messaging:

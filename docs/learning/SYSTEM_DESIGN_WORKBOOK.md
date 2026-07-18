@@ -318,3 +318,32 @@ The workflow is deliberately sequential. It is easier to replay and explain, and
 - Model integrations and vector storage default off, preventing surprise downloads and ordinary-test coupling.
 - Short transactions protect the connection pool from slow external calls.
 - A partial unique index prevents two active workflows for one incident.
+
+### Grounded retrieval plane
+
+```text
+runbook rows --explicit index job--> embedding gateway --> VECTOR(768)
+                                                          |
+incident symptom --> same embedding gateway --> cosine/HNSW search
+                                                          |
+                                               similarity >= 0.60 only
+```
+
+The vector table stores the runbook ID rather than duplicating domain ownership. Re-indexing uses `ON CONFLICT` and therefore replaces the vector for the same source document instead of creating duplicates. Embedding happens outside the short write transaction; each upsert owns only its PostgreSQL work.
+
+The local live-demo target is Qwen3 4B plus `nomic-embed-text`, but test correctness does not depend on those downloads. Deterministic 768-dimensional test embeddings exercise real pgvector distance/index behavior, while scripted `ChatModel` responses exercise Spring AI structured conversion and tool loops.
+
+### Model capacity and blast-radius controls
+
+| Boundary | Limit |
+|---|---|
+| Proposal attempts | 3 |
+| Model calls | 12 per incident per hour in Redis |
+| Semantic runbooks | 5 maximum, similarity at least 0.60 |
+| Deploy evidence | 3 |
+| Metric evidence | 30-minute query here, still below the tool's 6-hour hard ceiling |
+| Error evidence | ±15 minutes, within the tool's 1-hour hard ceiling |
+| Transcript entry | 32,000 characters |
+| Concurrent runs | 1 `RUNNING` row per incident |
+
+Orchestration and semantic retrieval are separate switches. Ordinary application/security/messaging tests use disabled orchestration and lexical retrieval; an intentional agent profile enables the model and semantic components. This prevents surprise model calls, downloads, or startup coupling.

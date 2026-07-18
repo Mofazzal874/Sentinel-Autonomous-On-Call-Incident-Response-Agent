@@ -1,8 +1,7 @@
 package io.mofazzal.sentinel.tools;
 
 import io.mofazzal.sentinel.fleet.domain.RemediationActionType;
-import io.mofazzal.sentinel.fleet.domain.Runbook;
-import io.mofazzal.sentinel.fleet.repository.RunbookRepository;
+import io.mofazzal.sentinel.agent.retrieval.RunbookSearchEngine;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -15,17 +14,16 @@ import static org.mockito.Mockito.when;
 
 class RunbookRetrieveToolTest {
 
-    private final RunbookRepository runbooks = mock(RunbookRepository.class);
+    private final RunbookSearchEngine runbooks = mock(RunbookSearchEngine.class);
     private final RunbookRetrieveTool tool = new RunbookRetrieveTool(runbooks);
 
     @Test
     void returnsStableDtoWithoutEntityLeak() {
-        Runbook runbook = mock(Runbook.class);
-        when(runbook.getTitle()).thenReturn("Rollback a faulty service deployment");
-        when(runbook.getSymptomDescription()).thenReturn("Errors rise after deployment");
-        when(runbook.getSteps()).thenReturn("Verify correlation, then roll back safely");
-        when(runbook.getActionType()).thenReturn(RemediationActionType.ROLLBACK_DEPLOYMENT);
-        when(runbooks.searchLexical(any(), any())).thenReturn(List.of(runbook));
+        var runbook = new RunbookSearchEngine.RunbookMatch(
+                java.util.UUID.randomUUID(), "Rollback a faulty service deployment",
+                "Errors rise after deployment", "Verify correlation, then roll back safely",
+                RemediationActionType.ROLLBACK_DEPLOYMENT, 0.91);
+        when(runbooks.search(any(), org.mockito.ArgumentMatchers.anyInt())).thenReturn(List.of(runbook));
 
         List<RunbookRetrieveTool.RunbookSummary> result = tool.search(" faulty deployment ");
 
