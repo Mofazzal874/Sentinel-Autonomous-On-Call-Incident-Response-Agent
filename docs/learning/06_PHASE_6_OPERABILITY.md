@@ -123,3 +123,25 @@ Locally, the image carries the application and runtime without carrying source c
 The first smoke test ran against the real local dependency network, used a read-only root filesystem, reached `UP`, and still rejected anonymous Prometheus access. The container was temporary and removed; the image remains because it is the next deployment input.
 
 Pen-and-paper exercise: draw what happens when PostgreSQL is unavailable during startup. Flyway cannot complete, readiness never becomes healthy, and the platform must not send traffic. Explain why restarting forever is not the same as recovery and where an operator would inspect the failure.
+
+## 10. Complete asynchronous handoff
+
+```text
+signed alert -> Redis first-seen -> RabbitMQ command
+                                      |
+                         commit unique incident
+                                      |
+                     optional enabled agent dispatch
+                                      |
+             classify -> bounded tools -> retrieve -> evaluate
+                                      |
+                    deterministic GuardrailGate
+                                      |
+                     dry-run/approval/execution ledger
+                                      |
+                         RabbitMQ acknowledgement
+```
+
+The incident commit happens before model work, so no database transaction stays open during a slow network call. The message acknowledgement happens after the durable outcome, so a process crash causes redelivery rather than pretending the work finished. Redelivery checks the incident state: terminal work is safe to acknowledge, concurrent triage receives a bounded retry, and stale uncertain triage eventually escalates for manual review.
+
+In an interview, do not call this exactly-once processing. It is at-least-once delivery plus idempotent persistence, explicit states, and fail-closed recovery. Pen-and-paper exercise: mark every crash point between publish, incident commit, triage start, proposal commit, gate decision, and acknowledgement; state what redelivery observes at each point.

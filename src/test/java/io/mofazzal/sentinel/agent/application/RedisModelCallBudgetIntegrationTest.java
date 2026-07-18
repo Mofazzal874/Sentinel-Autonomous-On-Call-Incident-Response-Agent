@@ -35,7 +35,7 @@ class RedisModelCallBudgetIntegrationTest {
         redis = new StringRedisTemplate(connectionFactory);
         redis.afterPropertiesSet();
         budget = new RedisModelCallBudget(redis,
-                new AgentProperties(3, 3, Duration.ofMinutes(10)));
+                new AgentProperties(3, 3, Duration.ofMinutes(10), Duration.ofMinutes(10)));
     }
 
     @AfterAll

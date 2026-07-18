@@ -4,6 +4,8 @@ import com.rabbitmq.client.Channel;
 import io.mofazzal.sentinel.alert.config.AlertMessagingProperties;
 import io.mofazzal.sentinel.alert.config.AlertMessagingTopology;
 import io.mofazzal.sentinel.incident.application.IncidentCreationService;
+import io.mofazzal.sentinel.agent.application.AgentDispatchInProgressException;
+import io.mofazzal.sentinel.agent.application.IncidentAgentDispatcher;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.dao.TransientDataAccessException;
@@ -16,13 +18,16 @@ import java.io.IOException;
 public class TriageCommandConsumer {
 
     private final IncidentCreationService incidentCreationService;
+    private final IncidentAgentDispatcher agentDispatcher;
     private final TriageCommandPublisher publisher;
     private final int maxAttempts;
 
     public TriageCommandConsumer(IncidentCreationService incidentCreationService,
+                                 IncidentAgentDispatcher agentDispatcher,
                                  TriageCommandPublisher publisher,
                                  AlertMessagingProperties properties) {
         this.incidentCreationService = incidentCreationService;
+        this.agentDispatcher = agentDispatcher;
         this.publisher = publisher;
         this.maxAttempts = properties.maxConsumerAttempts();
     }
@@ -32,8 +37,10 @@ public class TriageCommandConsumer {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
         try {
             incidentCreationService.createIfAbsent(command);
+            agentDispatcher.dispatchIfEnabled(command);
             channel.basicAck(deliveryTag, false);
-        } catch (TransientDataAccessException | CannotCreateTransactionException exception) {
+        } catch (TransientDataAccessException | CannotCreateTransactionException
+                 | AgentDispatchInProgressException exception) {
             retryOrDeadLetter(command, message, channel, deliveryTag);
         } catch (RuntimeException exception) {
             channel.basicNack(deliveryTag, false, false);

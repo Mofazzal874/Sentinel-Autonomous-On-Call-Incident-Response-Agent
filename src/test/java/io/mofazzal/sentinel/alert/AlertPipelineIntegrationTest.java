@@ -1,5 +1,15 @@
 package io.mofazzal.sentinel.alert;
 
+import io.mofazzal.sentinel.agent.application.IncidentRouter;
+import io.mofazzal.sentinel.agent.application.ProposalEvaluator;
+import io.mofazzal.sentinel.agent.application.ProposalGenerator;
+import io.mofazzal.sentinel.agent.domain.Classification;
+import io.mofazzal.sentinel.agent.domain.EvidenceSignal;
+import io.mofazzal.sentinel.agent.domain.IncidentType;
+import io.mofazzal.sentinel.agent.domain.ProposalEvaluation;
+import io.mofazzal.sentinel.agent.domain.RemediationProposal;
+import io.mofazzal.sentinel.agent.retrieval.RunbookEmbeddingIndexer;
+import io.mofazzal.sentinel.agent.retrieval.TextEmbeddingGateway;
 import io.mofazzal.sentinel.alert.api.AlertAcknowledgement;
 import io.mofazzal.sentinel.alert.api.AlertPayload;
 import io.mofazzal.sentinel.alert.config.AlertMessagingTopology;
@@ -14,6 +24,10 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,6 +47,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.List;
+import java.util.Locale;
 import java.util.function.BooleanSupplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -43,7 +59,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Testcontainers
-@SpringBootTest
+@Import(AlertPipelineIntegrationTest.AgentPipelineConfiguration.class)
+@SpringBootTest(properties = {
+        "spring.profiles.active=seed",
+        "sentinel.agent.enabled=true",
+        "sentinel.agent.retrieval-mode=semantic",
+        "sentinel.remediation.dry-run=true"
+})
 class AlertPipelineIntegrationTest {
 
     private static final String TEST_SECRET =
@@ -95,11 +117,63 @@ class AlertPipelineIntegrationTest {
     @Autowired
     private RabbitListenerEndpointRegistry listenerRegistry;
 
+    @Autowired
+    private RunbookEmbeddingIndexer embeddingIndexer;
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void createMockMvc() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webContext).build();
+        embeddingIndexer.indexAll();
+    }
+
+    @Test
+    void signedAlertReachesGroundedAgentGateAndDryRunLedger() throws Exception {
+        String body = """
+                {
+                  "service": "payments-api",
+                  "alertName": "CompleteGuardedPipeline",
+                  "severity": "SEV2",
+                  "firedAt": "2026-07-15T12:05:00Z",
+                  "summary": "Error rate spiked immediately after a bad release",
+                  "labels": {"environment": "complete-pipeline"}
+                }
+                """;
+        String timestamp = Long.toString(Instant.now().getEpochSecond());
+        String response = mockMvc.perform(post("/api/v1/alerts")
+                        .contentType(APPLICATION_JSON)
+                        .header("X-Sentinel-Timestamp", timestamp)
+                        .header("X-Sentinel-Signature", signature(timestamp, body))
+                        .content(body))
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        String fingerprint = jsonMapper.readValue(response, AlertAcknowledgement.class).fingerprint();
+
+        await(Duration.ofSeconds(15), () -> jdbc.queryForObject("""
+                select count(*) from action_ledger ledger
+                join incident on incident.id = ledger.incident_id
+                where incident.fingerprint = ? and ledger.event_type = 'DRY_RUN'
+                """, Integer.class, fingerprint) == 1);
+
+        assertThat(jdbc.queryForObject("""
+                select count(*) from agent_run run
+                join incident on incident.id = run.incident_id
+                where incident.fingerprint = ? and run.status = 'PROPOSED'
+                """, Integer.class, fingerprint)).isOne();
+        assertThat(jdbc.queryForObject("""
+                select count(*) from remediation_request request
+                join incident on incident.id = request.incident_id
+                where incident.fingerprint = ? and request.status = 'DRY_RUN'
+                """, Integer.class, fingerprint)).isOne();
+        assertThat(jdbc.queryForObject("""
+                select count(*) from action_claim claim
+                join incident on incident.id = claim.incident_id
+                where incident.fingerprint = ?
+                """, Integer.class, fingerprint)).isZero();
     }
 
     @Test
@@ -248,6 +322,65 @@ class AlertPipelineIntegrationTest {
                     mac.doFinal(body.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
+        }
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class AgentPipelineConfiguration {
+
+        @Bean
+        IncidentRouter pipelineRouter() {
+            return request -> new Classification(IncidentType.BAD_DEPLOY,
+                    List.of(EvidenceSignal.DEPLOYMENTS, EvidenceSignal.METRICS,
+                            EvidenceSignal.LOGS, EvidenceSignal.RUNBOOKS),
+                    "Pipeline fixture routes the known bad-release symptom");
+        }
+
+        @Bean
+        ProposalGenerator pipelineGenerator() {
+            return (request, classification, evidence, feedback) -> {
+                var runbook = evidence.runbooks().getFirst();
+                return new RemediationProposal(runbook.actionType(), runbook.title(),
+                        List.of("Confirm correlation", "Propose guarded rollback"),
+                        "The release and error spike correlate",
+                        "Deterministic policy must decide whether this can run");
+            };
+        }
+
+        @Bean
+        ProposalEvaluator pipelineEvaluator() {
+            return (request, evidence, proposal) ->
+                    new ProposalEvaluation(true, "Grounded and bounded");
+        }
+
+        @Bean
+        TextEmbeddingGateway pipelineEmbeddingGateway() {
+            return new TextEmbeddingGateway() {
+                @Override
+                public float[] embed(String text) {
+                    String normalized = text.toLowerCase(Locale.ROOT);
+                    int axis;
+                    if (normalized.contains("saturat") || normalized.contains("scale")
+                            || normalized.contains("cpu")) {
+                        axis = 2;
+                    } else if (normalized.contains("restart") || normalized.contains("unhealthy")) {
+                        axis = 1;
+                    } else if (normalized.contains("rollback") || normalized.contains("bad release")
+                            || normalized.contains("error rate") || normalized.contains("deployment")) {
+                        axis = 0;
+                    } else {
+                        axis = 7;
+                    }
+                    float[] vector = new float[768];
+                    vector[axis] = 1.0f;
+                    return vector;
+                }
+
+                @Override
+                public int dimensions() {
+                    return 768;
+                }
+            };
         }
     }
 }

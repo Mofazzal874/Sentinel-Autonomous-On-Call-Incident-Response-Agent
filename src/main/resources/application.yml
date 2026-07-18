@@ -73,6 +73,8 @@ sentinel:
     max-proposal-attempts: 3
     max-model-calls: 12
     model-call-window: 1h
+    run-recovery-timeout: 10m
+    run-recovery-scan-delay: 1m
   alerts:
     dedup-window: 10m
   messaging:

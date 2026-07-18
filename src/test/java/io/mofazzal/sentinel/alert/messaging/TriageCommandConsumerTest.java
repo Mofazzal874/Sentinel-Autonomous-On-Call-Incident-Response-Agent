@@ -5,6 +5,7 @@ import io.mofazzal.sentinel.alert.api.AlertPayload;
 import io.mofazzal.sentinel.alert.config.AlertMessagingProperties;
 import io.mofazzal.sentinel.alert.config.AlertMessagingTopology;
 import io.mofazzal.sentinel.incident.application.IncidentCreationService;
+import io.mofazzal.sentinel.agent.application.IncidentAgentDispatcher;
 import io.mofazzal.sentinel.incident.domain.IncidentSeverity;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
@@ -24,9 +25,10 @@ class TriageCommandConsumerTest {
 
     private final IncidentCreationService incidents = mock(IncidentCreationService.class);
     private final TriageCommandPublisher publisher = mock(TriageCommandPublisher.class);
+    private final IncidentAgentDispatcher dispatcher = mock(IncidentAgentDispatcher.class);
     private final Channel channel = mock(Channel.class);
     private final TriageCommandConsumer consumer = new TriageCommandConsumer(
-            incidents, publisher,
+            incidents, dispatcher, publisher,
             new AlertMessagingProperties(Duration.ofSeconds(1), 3, Duration.ofSeconds(2)));
 
     @Test
@@ -36,8 +38,9 @@ class TriageCommandConsumerTest {
 
         consumer.consume(command, message, channel);
 
-        var ordered = org.mockito.Mockito.inOrder(incidents, channel);
+        var ordered = org.mockito.Mockito.inOrder(incidents, dispatcher, channel);
         ordered.verify(incidents).createIfAbsent(command);
+        ordered.verify(dispatcher).dispatchIfEnabled(command);
         ordered.verify(channel).basicAck(41L, false);
     }
 

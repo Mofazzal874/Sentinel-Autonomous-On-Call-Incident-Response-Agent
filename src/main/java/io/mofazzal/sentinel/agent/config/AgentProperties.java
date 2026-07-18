@@ -8,7 +8,8 @@ import java.time.Duration;
 public record AgentProperties(
         int maxProposalAttempts,
         int maxModelCalls,
-        Duration modelCallWindow
+        Duration modelCallWindow,
+        Duration runRecoveryTimeout
 ) {
     public AgentProperties {
         if (maxProposalAttempts < 1 || maxProposalAttempts > 3) {
@@ -19,6 +20,9 @@ public record AgentProperties(
         }
         if (modelCallWindow == null || modelCallWindow.isZero() || modelCallWindow.isNegative()) {
             throw new IllegalArgumentException("sentinel.agent.model-call-window must be positive");
+        }
+        if (runRecoveryTimeout == null || runRecoveryTimeout.isZero() || runRecoveryTimeout.isNegative()) {
+            throw new IllegalArgumentException("sentinel.agent.run-recovery-timeout must be positive");
         }
     }
 }

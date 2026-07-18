@@ -272,8 +272,8 @@ Execution checkpoints:
 ### 2. Layered verification and evaluation
 
 - [ ] Review deterministic safety/core coverage and add missing boundary regressions.
-- [ ] Prove mocked model routing, tool order, transcript, gate invocation, and outcome without asserting prose.
-- [ ] Add one complete PostgreSQL/Redis/RabbitMQ pipeline scenario from alert burst through guarded result.
+- [x] Prove mocked model routing, bounded tools, transcript, gate invocation, and outcome without asserting generated prose.
+- [x] Add one complete PostgreSQL/Redis/RabbitMQ pipeline scenario from signed alert through guarded dry-run result.
 - [x] Add a fixed train/validation/holdout ground-truth corpus and deterministic scorer with explicit quality gates.
 - [ ] Run the fixed corpus against the selected live chat and embedding models, record latency/quality, inspect mismatches, and iterate without tuning on holdout.
 - [ ] Keep optional live-model evaluation separate, explicitly invoked, rate-limited, and non-gating for the build.

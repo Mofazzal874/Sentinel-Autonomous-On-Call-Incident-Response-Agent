@@ -859,3 +859,32 @@ An image is the immutable program artifact; environment variables and secret sto
 ### Regression evidence
 
 The final uncached packaging checkpoint passed 95 tests with zero failures, errors, or skips in 2 minutes 37 seconds. The run included all PostgreSQL/pgvector, Redis, RabbitMQ, agent, guardrail, evaluation-contract, security, and probe tests and made no OTLP connection attempt.
+
+---
+
+## Session 17 — Closing the real alert-to-agent handoff
+
+### Gap found during start-to-finish review
+
+The RabbitMQ consumer committed an incident and acknowledged the message but never invoked the enabled agent. Direct agent integration tests passed, yet real webhook traffic stopped at persistence. This was a cross-slice integration gap rather than a failing local component.
+
+### Fix and safety reasoning
+
+- Added a dispatcher that is a no-op when the agent is disabled.
+- With the agent enabled, it resolves the already committed incident and invokes triage with the durable ID and original alert facts.
+- The broker acknowledges only after a durable agent/gate outcome. Terminal redelivery skips a second run; concurrent `TRIAGING` delivery enters bounded retry rather than being silently acknowledged.
+- Added stale-run recovery: after ten minutes an abandoned `RUNNING` run becomes `FAILED` and its incident becomes `ESCALATED`. Uncertain work is never replayed automatically.
+- Kept the database insert transaction short and outside model/tool execution.
+
+### Evidence
+
+- Dispatcher and consumer unit tests prove disabled, open, terminal-redelivery, active-triage retry, permanent poison, transient retry, retry-publish failure, and acknowledgement order.
+- Recovery unit evidence proves stale work fails closed.
+- A real PostgreSQL/pgvector + Redis + RabbitMQ test now posts a correctly HMAC-signed bad-release alert and waits for one `PROPOSED` run, one `DRY_RUN` remediation request/ledger event, and zero action claims.
+- The same integration class still proves 50-to-1 storm suppression, durable broker restart delivery, poison DLQ behavior, and PostgreSQL redelivery idempotency.
+- Focused complete-pipeline tests pass. No model/provider or cloud resource was used; structured roles and embeddings are deterministic test doubles.
+- The final uncached connected-pipeline checkpoint passed 101 tests with zero failures, errors, or skips in 2 minutes 28 seconds.
+
+### Next action
+
+Run the complete regression suite for this newly connected pipeline, then checkpoint it. Live model evaluation remains a separate accuracy measurement.
