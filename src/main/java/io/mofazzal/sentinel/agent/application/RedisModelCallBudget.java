@@ -1,6 +1,8 @@
 package io.mofazzal.sentinel.agent.application;
 
 import io.mofazzal.sentinel.agent.config.AgentProperties;
+import io.mofazzal.sentinel.observability.SentinelMetrics;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
@@ -26,17 +28,29 @@ public class RedisModelCallBudget implements ModelCallBudget {
     private final StringRedisTemplate redis;
     private final int maximumCalls;
     private final long windowMillis;
+    private final SentinelMetrics metrics;
 
     public RedisModelCallBudget(StringRedisTemplate redis, AgentProperties properties) {
+        this(redis, properties, null);
+    }
+
+    @Autowired
+    public RedisModelCallBudget(StringRedisTemplate redis,
+                                AgentProperties properties,
+                                SentinelMetrics metrics) {
         this.redis = redis;
         this.maximumCalls = properties.maxModelCalls();
         this.windowMillis = properties.modelCallWindow().toMillis();
+        this.metrics = metrics;
     }
 
     @Override
     public void acquire(UUID incidentId, String role) {
         if (incidentId == null || role == null || role.isBlank()) {
             throw new IllegalArgumentException("incidentId and role are required");
+        }
+        if (metrics != null) {
+            metrics.recordModelCall(role);
         }
         Long result = redis.execute(ACQUIRE_SCRIPT, List.of(KEY_PREFIX + incidentId),
                 Integer.toString(maximumCalls), Long.toString(windowMillis));

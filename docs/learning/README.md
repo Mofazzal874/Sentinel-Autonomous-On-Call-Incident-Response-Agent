@@ -58,6 +58,7 @@ The AI is not the backend. It is one decision-producing component inside a backe
 - [Phase 3: JWT security, RBAC, and deterministic tools](03_PHASE_3_SECURITY_TOOLS.md)
 - [Phase 4: bounded agent orchestration and audit memory](04_PHASE_4_AGENT_CORE.md)
 - [Phase 5: deterministic guardrails and safe execution](05_PHASE_5_GUARDRAILS.md)
+- [Phase 6: operability, evaluation, packaging, and deployment](06_PHASE_6_OPERABILITY.md)
 - [System Design Workbook](SYSTEM_DESIGN_WORKBOOK.md)
 - [Living Glossary](GLOSSARY.md)
 

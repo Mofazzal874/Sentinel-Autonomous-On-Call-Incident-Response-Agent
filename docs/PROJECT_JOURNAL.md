@@ -747,3 +747,43 @@ The database cannot atomically commit an external side effect. Correct design do
 ### Next action
 
 Review diffs/authorship/ignored files and checkpoint the completed safety gate. Then begin the observability/testing checklist only; deployment remains later and requires an explicit user handoff before cloud actions or model/provider provisioning.
+
+---
+
+## Session 14 — Protected metrics foundation
+
+### Goal
+
+After the safety gate passed and was pushed, begin operability in dependency order without starting packaging or deployment: verify current official observability guidance, decompose the remaining work, expose protected Prometheus metrics, and add bounded domain measurements.
+
+### Prerequisite and environment audit
+
+- Re-read the complete private operability/deployment plan after commit `bc3d93d`.
+- Verified Spring Boot 4.1 Actuator/Prometheus and Micrometer Observation guidance from current official Spring and Micrometer documentation.
+- Added only Gradle-managed application dependencies. No Prometheus, Grafana, collector, CLI, model, or host package was installed.
+- Gradle downloads remained under `E:\DevCaches\gradle`; Docker and unrelated projects were untouched.
+
+### Changes
+
+- Replaced the single future item with observability, layered verification, packaging, explicit deployment handoff, and portfolio checkpoints.
+- Added Actuator and the Prometheus registry under Spring Boot dependency management.
+- Exposed only health, info, metrics, and Prometheus, all still protected by the existing stateless JWT rules.
+- Added `SentinelMetrics` with bounded tag normalization.
+- Instrumented successful durable incident creation, total triage duration, evaluator attempts, known evidence tools, bounded model roles, and remediation decision outcomes.
+- Kept provider tokens/cost open until a live provider supplies authoritative usage metadata; tests do not fabricate cost from prompt text.
+- Recorded the observability decision in ADR 0008 and began the operability lesson/glossary.
+
+### Verification
+
+- `SentinelMetricsTest` proves counter, timer, distribution-summary, and unknown-tag behavior with an in-memory registry.
+- A real application/PostgreSQL test proves unauthenticated Prometheus access is rejected and an authenticated scrape contains JVM metrics plus `application="sentinel"`.
+- Focused agent/Redis tests prove the new tool/model instrumentation composes with grounded triage and the existing call budget.
+- The final uncached suite passed 91 tests with zero failures, errors, or skips in 2 minutes 29 seconds.
+
+### System-design lesson
+
+Metrics are aggregated operational signals, not an audit ledger. Keep their tags low-cardinality and non-sensitive; use the transcript/ledger for exact incident facts. Observability must describe the safety system without becoming another authority path.
+
+### Next action
+
+Checkpoint the metrics foundation. Then add Observation spans and in-memory propagation tests; do not start deployment or cloud provisioning.

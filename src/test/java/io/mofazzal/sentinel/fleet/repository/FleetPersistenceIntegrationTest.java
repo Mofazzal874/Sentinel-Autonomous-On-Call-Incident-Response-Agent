@@ -179,6 +179,18 @@ class FleetPersistenceIntegrationTest {
     }
 
     @Test
+    void prometheusEndpointIsExposedButRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/actuator/prometheus")
+                        .with(jwt().authorities(() -> "ROLE_VIEWER")))
+                .andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("jvm_memory_used_bytes", "application=\"sentinel\""));
+    }
+
+    @Test
     void authenticatedViewerReadsBoundedIncidentDtos() throws Exception {
         Instant receivedAt = Instant.parse("2030-01-01T00:00:00Z");
         AlertPayload payload = new AlertPayload(

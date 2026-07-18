@@ -86,3 +86,12 @@ sentinel:
     webhook-secret: "${SENTINEL_WEBHOOK_SECRET}"
     webhook-tolerance: 5m
     max-webhook-body-size: 64KB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: sentinel

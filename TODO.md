@@ -248,6 +248,48 @@ Execution checkpoints:
 
 Safety/execution gate: **complete** — all mutation eligibility flows through the deterministic gate, execution requires its matching capability, database reservation survives Redis loss and races, the event ledger is database-enforced append-only, approval re-enters policy, recovery is fail-closed, and the full learning defense is recorded. Final uncached evidence: 89 tests, zero failures, errors, or skips.
 
-## Later work
+## Operability, evaluation, packaging, and deployment
 
-- [ ] Phase 6 — observations/metrics, layered testing, offline evaluation, and Azure deployment.
+Execution checkpoints:
+
+- **P6.1 Observability:** protected Actuator/Prometheus endpoint, bounded custom metrics, incident-stage observations, trace export profile, and dashboard assets.
+- **P6.2 Verification:** deterministic coverage review, mocked-agent composition, complete Testcontainers pipeline, and fixed offline evaluation corpus/report.
+- **P6.3 Packaging:** reproducible application artifact, OCI image, non-root runtime, health/readiness probes, configuration/secrets review, and local image smoke test.
+- **P6.4 Deployment handoff:** compare current Azure options/costs, ask the user before provisioning, then deploy only with explicit approval and budget controls.
+- **P6.5 Portfolio gate:** production README, architecture and safety narrative, demo evidence, learning lesson, journal, ADRs, and seven-question defense.
+
+### 1. Observability
+
+- [x] Re-read the operability/deployment plan and verify current Spring Boot/Micrometer guidance from primary documentation.
+- [x] Add Actuator and Prometheus registry without installing a host monitoring system.
+- [x] Keep management endpoints authenticated and expose only health, info, metrics, and Prometheus.
+- [x] Add bounded-cardinality incident, triage, evaluator, tool, model-call-capacity, and remediation metrics.
+- [ ] Record provider-reported input/output tokens and estimated cost when the live provider adapter exposes usage metadata; never estimate from prompt text in correctness tests.
+- [ ] Add Micrometer observations for the incident path and verify trace-parent continuity with an in-memory handler.
+- [ ] Add an opt-in OTLP export profile; ordinary tests/local startup must not require a collector.
+- [ ] Add a versioned dashboard/alert-rule asset and explain which signals should page a human.
+
+### 2. Layered verification and evaluation
+
+- [ ] Review deterministic safety/core coverage and add missing boundary regressions.
+- [ ] Prove mocked model routing, tool order, transcript, gate invocation, and outcome without asserting prose.
+- [ ] Add one complete PostgreSQL/Redis/RabbitMQ pipeline scenario from alert burst through guarded result.
+- [ ] Add a fixed offline classification/retrieval/grounding corpus with deterministic scoring and a versioned report.
+- [ ] Keep optional live-model evaluation separate, explicitly invoked, rate-limited, and non-gating for the build.
+
+### 3. Packaging and deployment readiness
+
+- [ ] Produce and smoke-test the executable application artifact.
+- [ ] Choose buildpacks or a multi-stage image after current official review; run as non-root and add health/readiness probes.
+- [ ] Build and smoke-test the image locally while keeping Docker data on `E:`.
+- [ ] Document environment variables, secret injection, resource limits, migrations, rollback, recovery, and cost controls.
+- [ ] Compare current Azure Container Apps and AKS tradeoffs/costs using official sources.
+
+### 4. Deployment and portfolio gate
+
+- [ ] Stop and ask the user before creating any Azure resource, registry, paid model deployment, DNS entry, or public endpoint.
+- [ ] After approval, provision the chosen minimal-cost target and verify health, metrics, migrations, secrets, and end-to-end behavior.
+- [ ] Add the recruiter-facing README, architecture diagram, safety model, evaluation result, demo instructions/evidence, and future work.
+- [ ] Complete all seven operability/deployment Defend This answers and run the final suite.
+
+Operability/deployment gate: **open** — the protected Prometheus endpoint and first bounded custom metrics pass focused tests. Traces, dashboard/alerts, layered evaluation, packaging, and deployment remain. No deployment or cloud provisioning has started.

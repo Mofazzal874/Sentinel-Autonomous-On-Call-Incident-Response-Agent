@@ -58,6 +58,10 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **Append-only ledger:** An event history that accepts new facts but rejects changing or deleting existing facts.
 - **Saga:** A sequence of local transactions whose completed steps are reversed with compensating actions when a later step fails.
 - **Uncertain execution:** A reserved action whose external outcome is unknown after a crash; it must be reconciled rather than blindly retried.
+- **Actuator:** Spring Boot production endpoints for health, metrics, and operational inspection.
+- **Metric cardinality:** The number of unique time series created by a metric's name and tag-value combinations.
+- **Prometheus scrape:** A pull request that reads metrics from an application's Prometheus-format endpoint.
+- **Observation:** Micrometer's lifecycle abstraction for instrumenting work so handlers can produce metrics and traces.
 - **RBAC:** Role-based access control, where permissions are assigned through roles such as `VIEWER` or `ADMIN`.
 - **Resource server:** An API that validates access tokens and protects resources; it does not necessarily issue tokens.
 - **Stateless authentication:** Reconstructing authentication from each request instead of storing it in a server-side login session.

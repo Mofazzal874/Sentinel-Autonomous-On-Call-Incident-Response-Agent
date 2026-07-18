@@ -9,6 +9,7 @@ import io.mofazzal.sentinel.agent.application.ProposalGenerator;
 import io.mofazzal.sentinel.agent.application.TranscriptRecorder;
 import io.mofazzal.sentinel.agent.application.TriageWorkflow;
 import io.mofazzal.sentinel.guardrail.RemediationDecisionCoordinator;
+import io.mofazzal.sentinel.observability.SentinelMetrics;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +29,8 @@ public class AgentWorkflowConfiguration {
     @Bean
     AgentTriageCoordinator agentTriageCoordinator(TriageWorkflow workflow,
                                                    AgentRunLifecycleService lifecycle,
-                                                   RemediationDecisionCoordinator remediationDecisions) {
-        return new AgentTriageCoordinator(workflow, lifecycle, remediationDecisions);
+                                                   RemediationDecisionCoordinator remediationDecisions,
+                                                   SentinelMetrics metrics) {
+        return new AgentTriageCoordinator(workflow, lifecycle, remediationDecisions, metrics);
     }
 }

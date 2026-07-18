@@ -4,6 +4,7 @@ import io.mofazzal.sentinel.execution.RemediationExecutor;
 import io.mofazzal.sentinel.incident.application.IncidentRemediationStateService;
 import io.mofazzal.sentinel.ledger.ActionDecisionRecorder;
 import io.mofazzal.sentinel.ledger.ActionExecutionRequest;
+import io.mofazzal.sentinel.observability.SentinelMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -18,17 +19,20 @@ public class RemediationDecisionCoordinator {
     private final ActionDecisionRecorder decisions;
     private final RemediationExecutor executor;
     private final IncidentRemediationStateService incidentStates;
+    private final SentinelMetrics metrics;
 
     public RemediationDecisionCoordinator(RemediationRequestStore requests,
                                           GuardrailGate gate,
                                           ActionDecisionRecorder decisions,
                                           RemediationExecutor executor,
-                                          IncidentRemediationStateService incidentStates) {
+                                          IncidentRemediationStateService incidentStates,
+                                          SentinelMetrics metrics) {
         this.requests = requests;
         this.gate = gate;
         this.decisions = decisions;
         this.executor = executor;
         this.incidentStates = incidentStates;
+        this.metrics = metrics;
     }
 
     public GateDecision processProposal(UUID incidentId) {
@@ -61,18 +65,25 @@ public class RemediationDecisionCoordinator {
         }
         decisions.record(executionRequest);
 
-        return switch (decision.type()) {
-            case REQUIRE_APPROVAL -> awaitingApproval(snapshot, decision);
-            case AUTO_EXECUTE, APPROVED_EXECUTE -> execute(snapshot, decision, executionRequest, expected,
-                    evaluation.executionAuthorization().orElseThrow());
-            case SKIP -> skipped(snapshot, decision, actor, expected);
-            case DRY_RUN -> terminal(snapshot, decision, actor, expected,
-                    RemediationRequestStatus.DRY_RUN);
-            case REFUSE -> terminal(snapshot, decision, actor, expected,
-                    RemediationRequestStatus.REFUSED);
-            case ESCALATE -> terminal(snapshot, decision, actor, expected,
-                    RemediationRequestStatus.ESCALATED);
-        };
+        try {
+            GateDecision result = switch (decision.type()) {
+                case REQUIRE_APPROVAL -> awaitingApproval(snapshot, decision);
+                case AUTO_EXECUTE, APPROVED_EXECUTE -> execute(snapshot, decision, executionRequest, expected,
+                        evaluation.executionAuthorization().orElseThrow());
+                case SKIP -> skipped(snapshot, decision, actor, expected);
+                case DRY_RUN -> terminal(snapshot, decision, actor, expected,
+                        RemediationRequestStatus.DRY_RUN);
+                case REFUSE -> terminal(snapshot, decision, actor, expected,
+                        RemediationRequestStatus.REFUSED);
+                case ESCALATE -> terminal(snapshot, decision, actor, expected,
+                        RemediationRequestStatus.ESCALATED);
+            };
+            metrics.recordRemediation(decision.type(), "SUCCESS");
+            return result;
+        } catch (RuntimeException failure) {
+            metrics.recordRemediation(decision.type(), "FAILED");
+            throw failure;
+        }
     }
 
     private GateDecision awaitingApproval(RemediationRequestSnapshot snapshot, GateDecision decision) {
