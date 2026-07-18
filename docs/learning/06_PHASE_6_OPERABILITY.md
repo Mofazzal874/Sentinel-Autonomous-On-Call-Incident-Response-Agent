@@ -100,4 +100,8 @@ $env:GRADLE_USER_HOME='E:\DevCaches\gradle'
 
 ## 8. Next dependency-ordered step
 
-Create the fixed ground-truth corpus and evaluation scorer. Keep deterministic workflow verification separate from optional live-model quality measurements. Container images and Azure remain later; the user must be told before deployment begins.
+The fixed corpus now separates development, validation, and holdout scenarios and scores classification, required evidence, retrieval, grounded outcome, and hallucination count. The live baseline remains deliberately marked `NOT_RUN` until Qwen3 4B and `nomic-embed-text` are enabled on `E:` or a paid provider is explicitly approved.
+
+On paper, classify this example and list the minimum evidence you would request: “CPU is saturated, there was no recent deployment, dependencies are healthy, and latency keeps rising.” Then explain why seeing the words “deployment” in the negative statement must not turn it into a bad-deploy incident.
+
+Next, run the model baseline and preserve raw per-scenario mismatches. Change one variable at a time, validate, and touch holdout only after choosing the candidate. Packaging and Azure provisioning remain separate and require the user handoff.

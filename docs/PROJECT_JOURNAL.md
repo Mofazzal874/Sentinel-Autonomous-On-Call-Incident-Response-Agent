@@ -819,3 +819,12 @@ A trace proves causal continuity and latency across stages; it does not prove th
 ### Next action
 
 Create train/validation/holdout incident scenarios and a deterministic scoring harness, establish a non-live baseline, then run the same corpus against a live provider only when model access is deliberately enabled.
+
+### Ground-truth checkpoint
+
+- Added 12 balanced, immutable scenario IDs across development, validation, and holdout.
+- Ground truth covers bad deploy, resource exhaustion, dependency outage, and unknown, with required signals and exact grounded action or escalation.
+- Added separate classification, signal-coverage, retrieval-recall, outcome, and hallucination measurements. Scorer regression deliberately injects one bad classification and an invented runbook to prove errors remain visible.
+- Corpus structure tests reject duplicate IDs, missing splits, duplicate signals, and incoherent action/escalation labels.
+- Recorded the current live baseline as `NOT_RUN`. The PC audit found no Ollama installation or model image, 16 GB RAM, integrated AMD graphics, and 13.1 GB free on `E:`. Installing the current official Windows binary plus Qwen3 4B and embeddings would consume a material share of that space, so it is not being hidden inside this scorer checkpoint.
+- Focused corpus/scorer tests pass. No model, package, cloud resource, or unrelated database was changed.

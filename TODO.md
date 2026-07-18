@@ -274,7 +274,8 @@ Execution checkpoints:
 - [ ] Review deterministic safety/core coverage and add missing boundary regressions.
 - [ ] Prove mocked model routing, tool order, transcript, gate invocation, and outcome without asserting prose.
 - [ ] Add one complete PostgreSQL/Redis/RabbitMQ pipeline scenario from alert burst through guarded result.
-- [ ] Add a fixed offline classification/retrieval/grounding corpus with deterministic scoring and a versioned report.
+- [x] Add a fixed train/validation/holdout ground-truth corpus and deterministic scorer with explicit quality gates.
+- [ ] Run the fixed corpus against the selected live chat and embedding models, record latency/quality, inspect mismatches, and iterate without tuning on holdout.
 - [ ] Keep optional live-model evaluation separate, explicitly invoked, rate-limited, and non-gating for the build.
 
 ### 3. Packaging and deployment readiness

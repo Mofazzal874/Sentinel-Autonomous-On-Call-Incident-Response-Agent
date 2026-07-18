@@ -1,0 +1,134 @@
+[
+  {
+    "id": "dev-bad-deploy-01",
+    "split": "DEVELOPMENT",
+    "service": "payments-api",
+    "summary": "Error rate jumped immediately after version 2026.07.19 was deployed",
+    "expectedType": "BAD_DEPLOY",
+    "requiredSignals": ["DEPLOYMENTS", "METRICS", "RUNBOOKS"],
+    "expectedRunbookTitle": "Rollback a faulty service deployment",
+    "expectedAction": "ROLLBACK_DEPLOYMENT",
+    "expectedEscalation": false
+  },
+  {
+    "id": "dev-resource-01",
+    "split": "DEVELOPMENT",
+    "service": "payments-api",
+    "summary": "CPU and request concurrency have remained saturated with no recent release",
+    "expectedType": "RESOURCE_EXHAUSTION",
+    "requiredSignals": ["METRICS", "LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": "Scale out a saturated service",
+    "expectedAction": "SCALE_OUT",
+    "expectedEscalation": false
+  },
+  {
+    "id": "dev-dependency-01",
+    "split": "DEVELOPMENT",
+    "service": "checkout-web",
+    "summary": "Checkout requests fail because the external payment gateway is timing out",
+    "expectedType": "DEPENDENCY_OUTAGE",
+    "requiredSignals": ["METRICS", "LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": null,
+    "expectedAction": null,
+    "expectedEscalation": true
+  },
+  {
+    "id": "dev-unknown-01",
+    "split": "DEVELOPMENT",
+    "service": "catalog-api",
+    "summary": "A customer reports intermittent wrong colors in product thumbnails",
+    "expectedType": "UNKNOWN",
+    "requiredSignals": ["LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": null,
+    "expectedAction": null,
+    "expectedEscalation": true
+  },
+  {
+    "id": "validation-bad-deploy-01",
+    "split": "VALIDATION",
+    "service": "checkout-web",
+    "summary": "P95 latency regressed within two minutes of the latest rollout",
+    "expectedType": "BAD_DEPLOY",
+    "requiredSignals": ["DEPLOYMENTS", "METRICS", "RUNBOOKS"],
+    "expectedRunbookTitle": "Rollback a faulty service deployment",
+    "expectedAction": "ROLLBACK_DEPLOYMENT",
+    "expectedEscalation": false
+  },
+  {
+    "id": "validation-resource-01",
+    "split": "VALIDATION",
+    "service": "payments-api",
+    "summary": "Worker CPU is pinned and queue depth keeps rising while dependencies are healthy",
+    "expectedType": "RESOURCE_EXHAUSTION",
+    "requiredSignals": ["METRICS", "LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": "Scale out a saturated service",
+    "expectedAction": "SCALE_OUT",
+    "expectedEscalation": false
+  },
+  {
+    "id": "validation-dependency-01",
+    "split": "VALIDATION",
+    "service": "catalog-api",
+    "summary": "The upstream inventory API returns 503 while this service remains healthy",
+    "expectedType": "DEPENDENCY_OUTAGE",
+    "requiredSignals": ["METRICS", "LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": null,
+    "expectedAction": null,
+    "expectedEscalation": true
+  },
+  {
+    "id": "validation-unknown-01",
+    "split": "VALIDATION",
+    "service": "catalog-api",
+    "summary": "The symptom is vague and no metric, log, deploy, or dependency evidence is available",
+    "expectedType": "UNKNOWN",
+    "requiredSignals": ["LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": null,
+    "expectedAction": null,
+    "expectedEscalation": true
+  },
+  {
+    "id": "holdout-bad-deploy-01",
+    "split": "HOLDOUT",
+    "service": "payments-api",
+    "summary": "The service was stable until the canary became the active release, then errors climbed",
+    "expectedType": "BAD_DEPLOY",
+    "requiredSignals": ["DEPLOYMENTS", "METRICS", "RUNBOOKS"],
+    "expectedRunbookTitle": "Rollback a faulty service deployment",
+    "expectedAction": "ROLLBACK_DEPLOYMENT",
+    "expectedEscalation": false
+  },
+  {
+    "id": "holdout-resource-01",
+    "split": "HOLDOUT",
+    "service": "checkout-web",
+    "summary": "Traffic is normal but all replicas are CPU throttled and latency is steadily increasing",
+    "expectedType": "RESOURCE_EXHAUSTION",
+    "requiredSignals": ["METRICS", "LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": "Scale out a saturated service",
+    "expectedAction": "SCALE_OUT",
+    "expectedEscalation": false
+  },
+  {
+    "id": "holdout-dependency-01",
+    "split": "HOLDOUT",
+    "service": "payments-api",
+    "summary": "DNS lookup failures to the bank connector coincide with otherwise normal local metrics",
+    "expectedType": "DEPENDENCY_OUTAGE",
+    "requiredSignals": ["METRICS", "LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": null,
+    "expectedAction": null,
+    "expectedEscalation": true
+  },
+  {
+    "id": "holdout-unknown-01",
+    "split": "HOLDOUT",
+    "service": "checkout-web",
+    "summary": "The page feels unusual but monitoring and recent changes show no corroborating signal",
+    "expectedType": "UNKNOWN",
+    "requiredSignals": ["LOGS", "RUNBOOKS"],
+    "expectedRunbookTitle": null,
+    "expectedAction": null,
+    "expectedEscalation": true
+  }
+]
