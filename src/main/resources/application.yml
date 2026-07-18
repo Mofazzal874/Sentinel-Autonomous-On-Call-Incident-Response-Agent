@@ -48,3 +48,10 @@ sentinel:
     publisher-confirm-timeout: 5s
     max-consumer-attempts: 3
     retry-delay: 2s
+  security:
+    jwt-secret: "${SENTINEL_JWT_SECRET}"
+    jwt-issuer: "${SENTINEL_JWT_ISSUER:sentinel-local}"
+    jwt-audience: "${SENTINEL_JWT_AUDIENCE:sentinel-api}"
+    webhook-secret: "${SENTINEL_WEBHOOK_SECRET}"
+    webhook-tolerance: 5m
+    max-webhook-body-size: 64KB

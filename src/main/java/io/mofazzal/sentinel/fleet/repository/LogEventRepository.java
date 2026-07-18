@@ -1,6 +1,7 @@
 package io.mofazzal.sentinel.fleet.repository;
 
 import io.mofazzal.sentinel.fleet.domain.LogEvent;
+import io.mofazzal.sentinel.fleet.domain.LogLevel;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,6 +24,20 @@ public interface LogEventRepository extends JpaRepository<LogEvent, UUID> {
                                 @Param("from") Instant from,
                                 @Param("to") Instant to,
                                 Pageable page);
+
+    @Query("""
+            select event
+            from LogEvent event
+            where event.service.id = :serviceId
+              and event.level = :level
+              and event.occurredAt between :from and :to
+            order by event.occurredAt desc
+            """)
+    List<LogEvent> recentWindowByLevel(@Param("serviceId") UUID serviceId,
+                                       @Param("level") LogLevel level,
+                                       @Param("from") Instant from,
+                                       @Param("to") Instant to,
+                                       Pageable page);
 
     @Query("""
             select event

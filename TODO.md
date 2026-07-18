@@ -135,9 +135,43 @@ Execution checkpoints:
 
 Phase 2 gate: **complete** — engineering evidence and the seven-question learning/defense review both passed.
 
+## Phase 3 — Security and deterministic read tools
+
+Execution checkpoints:
+
+- **P3.1 Security boundary:** stateless JWT validation, role mapping, URL/method authorization, and timestamped HMAC alert intake.
+- **P3.2 Deterministic tools:** bounded typed deploy, metric, log, and runbook read contracts with no Spring AI dependency.
+- **P3.3 Evidence:** JWT role matrix, HMAC failure paths, tool unit/PostgreSQL tests, full build, ADR/journal/lesson, and Defend This review.
+
+### 1. Security
+
+- [x] Add only the Spring Security and OAuth2 resource-server production starters plus security test support.
+- [x] Validate HS256 JWT signature, issuer, audience, time claims, and a `roles` claim mapped to `ROLE_*`.
+- [x] Enforce stateless sessions, authenticated default access, `ADMIN` URL rules, and method-level authorization.
+- [x] Prove `VIEWER`, `SRE_APPROVER`, `ADMIN`, and under-privileged `AGENT` access boundaries.
+- [x] Protect the public alert route with a bounded, timestamped, constant-time HMAC verification filter.
+- [x] Keep secrets external; generate local-only secrets under ignored project storage on `E:`.
+
+### 2. Deterministic read tools
+
+- [x] Implement a three-result deployment lookup before an incident time.
+- [x] Implement a bounded/downsampled metric window with baseline and percentage delta.
+- [x] Implement bounded ERROR-log clustering around an incident time.
+- [x] Implement bounded lexical runbook retrieval now; defer pgvector semantic retrieval to Phase 4.
+- [x] Return immutable DTOs, validate every argument, use read-only service transactions, and expose no mutation.
+
+### 3. Verification and phase gate
+
+- [x] Add focused unit tests for validation, bounds, mapping, computations, authorization, and HMAC failure paths.
+- [x] Add real PostgreSQL seeded-scenario evidence for all four tool contracts.
+- [ ] Run the complete test suite and review query/transaction/security behavior.
+- [ ] Add ADR, project journal, beginner lesson, glossary, and system-design updates.
+- [ ] Review all seven Phase 3 “Defend This” questions before marking the phase complete.
+
+Phase 3 gate: **in progress**.
+
 ## Later phases
 
-- [ ] Phase 3 — JWT/RBAC, under-privileged agent account, and deterministic bounded tools.
 - [ ] Phase 4 — structured agent router/workers/evaluator and grounded pgvector RAG.
 - [ ] Phase 5 — deterministic guardrails, risk scoring, action ledger, approval, and compensation.
 - [ ] Phase 6 — observations/metrics, layered testing, offline evaluation, and Azure deployment.

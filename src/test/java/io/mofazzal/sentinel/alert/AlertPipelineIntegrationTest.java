@@ -29,8 +29,13 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -40,6 +45,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 @SpringBootTest
 class AlertPipelineIntegrationTest {
+
+    private static final String TEST_SECRET =
+            "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
 
     @Container
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
@@ -65,6 +73,8 @@ class AlertPipelineIntegrationTest {
         registry.add("spring.rabbitmq.username", () -> "guest");
         registry.add("spring.rabbitmq.password", () -> "guest");
         registry.add("sentinel.messaging.retry-delay", () -> "100ms");
+        registry.add("sentinel.security.jwt-secret", () -> TEST_SECRET);
+        registry.add("sentinel.security.webhook-secret", () -> TEST_SECRET);
     }
 
     @Autowired
@@ -109,8 +119,11 @@ class AlertPipelineIntegrationTest {
         int suppressed = 0;
         String fingerprint = null;
         for (int request = 0; request < 50; request++) {
+            String timestamp = Long.toString(Instant.now().getEpochSecond());
             String response = mockMvc.perform(post("/api/v1/alerts")
                             .contentType(APPLICATION_JSON)
+                            .header("X-Sentinel-Timestamp", timestamp)
+                            .header("X-Sentinel-Signature", signature(timestamp, body))
                             .content(body))
                     .andExpect(status().isAccepted())
                     .andReturn().getResponse().getContentAsString();
@@ -222,6 +235,19 @@ class AlertPipelineIntegrationTest {
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new AssertionError("Interrupted while awaiting asynchronous delivery", exception);
+        }
+    }
+
+    private static String signature(String timestamp, String body) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(Base64.getDecoder().decode(TEST_SECRET), "HmacSHA256"));
+            mac.update(timestamp.getBytes(StandardCharsets.US_ASCII));
+            mac.update((byte) '.');
+            return "sha256=" + HexFormat.of().formatHex(
+                    mac.doFinal(body.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
         }
     }
 }

@@ -8,6 +8,7 @@ build/
 
 # Java
 *.class
+/bin/
 hs_err_pid*
 
 # IDEs and editors
@@ -29,6 +30,7 @@ CLAUDE.local.md
 !.env.example
 application-local.yml
 application-local.yaml
+/.sentinel/
 *.jks
 *.p12
 *.pem
