@@ -1,6 +1,6 @@
 # Operability, Evaluation, Packaging, and Deployment
 
-This chapter has started with protected metrics. Tracing, dashboard rules, offline evaluation, packaging, and deployment are still open. No cloud resource has been created.
+This chapter now includes protected metrics, nested workflow observations, opt-in trace export, and versioned dashboard/alert assets. Offline evaluation, packaging, and deployment are still open. No cloud resource has been created.
 
 ## 1. Prerequisites
 
@@ -15,6 +15,7 @@ Review dependency injection, application configuration, JWT authorization, timer
 - **Prometheus scrape:** Prometheus pulls the text-format measurements from an HTTP endpoint.
 - **Observation:** Micrometer's lifecycle abstraction that can feed metrics and traces.
 - **Trace/span:** a trace follows one request; spans represent timed stages inside it.
+- **OTLP:** the vendor-neutral protocol used to send traces to a compatible collector or backend.
 
 ## 3. Current flow
 
@@ -28,6 +29,14 @@ incident / agent / gate events
  authenticated /actuator/prometheus
             |
  future Prometheus/dashboard
+
+triage observation
+   +-- classify
+   +-- gather
+   +-- propose
+   `-- evaluate
+            |
+    optional `otlp` profile -> collector
 ```
 
 Locally, `SentinelMetrics` records cheap measurements without changing decisions. In system design, the measurements reveal throughput, latency, repeated evaluator loops, model-call pressure, tool selection, and remediation outcomes. In an interview, emphasize that observability watches safety behavior but never grants safety authority.
@@ -37,12 +46,15 @@ Locally, `SentinelMetrics` records cheap measurements without changing decisions
 - `build.gradle.kts`: Actuator and Prometheus registry dependencies managed by Spring Boot.
 - `application.yml`: allowlisted management endpoints and application tag.
 - `observability/SentinelMetrics`: bounded metric names and tag normalization.
+- `observability/SentinelObservations`: fixed-name observation wrapper with paired, low-cardinality dimensions.
 - `AgentTriageCoordinator`: end-to-end triage timer and attempt distribution.
 - `DeterministicEvidenceCollector`: records only the four known tool categories.
 - `RedisModelCallBudget`: records bounded model roles alongside its capacity enforcement.
 - `IncidentCreationService`: increments only for a successful durable insert.
 - `RemediationDecisionCoordinator`: records deterministic decision success/failure.
 - ADR 0008: endpoint security, cardinality, and authoritative token/cost policy.
+- `application-otlp.yml`: opt-in OTLP endpoint and sample rate; the default profile disables trace export.
+- `observability/grafana-dashboard.json` and `prometheus-alerts.yml`: versioned operations views and human-response rules.
 
 ## 5. Example and failure modes
 
@@ -59,15 +71,18 @@ Never tag metrics with incident UUID, fingerprint, service supplied by arbitrary
 
 A public Prometheus endpoint leaks internal runtime data. Sentinel leaves the endpoint behind JWT authentication. A future deployment must either configure authenticated scraping or put the management interface on a private network.
 
+The remediation-failure rule pages immediately because an external effect may be partially complete and the ledger may require human review. Escalation surges and missing incidents create tickets rather than immediate pages because they usually indicate degraded assistance or intake, not proof of an unsafe mutation. The missing-incident rule should only be enabled in an environment where steady alerts are expected.
+
 ## 6. Verification
 
-Focused tests prove fixed/unknown tag normalization, timers/counters/distributions, model/tool call wiring, and an authenticated Prometheus scrape containing JVM metrics plus the `application="sentinel"` tag. The first complete uncached operability checkpoint passed 91 tests with zero failures, errors, or skips.
+Focused tests prove fixed/unknown tag normalization, timers/counters/distributions, model/tool call wiring, and an authenticated Prometheus scrape containing JVM metrics plus the `application="sentinel"` tag. A separate in-memory observation handler proves that a stage sees the triage observation as its parent. No test starts an exporter or needs a collector.
 
 Official references used for this slice:
 
 - [Spring Boot metrics and Prometheus endpoint](https://docs.spring.io/spring-boot/reference/actuator/metrics.html)
 - [Spring Boot observability and Micrometer Observation](https://docs.spring.io/spring-boot/reference/actuator/observability.html)
 - [Micrometer meter concepts](https://docs.micrometer.io/micrometer/reference/concepts/meters.html)
+- [Spring Boot tracing and OpenTelemetry/OTLP](https://docs.spring.io/spring-boot/reference/actuator/tracing.html)
 
 ```powershell
 $env:JAVA_HOME='E:\DevTools\temurin-25\jdk-25.0.3+9'
@@ -85,4 +100,4 @@ $env:GRADLE_USER_HOME='E:\DevCaches\gradle'
 
 ## 8. Next dependency-ordered step
 
-Add Micrometer observations and an in-memory trace-continuity test without requiring an external collector. Then add an opt-in OTLP profile and operational dashboard/alert rules. Container images and Azure remain later; the user must be told before deployment begins.
+Create the fixed ground-truth corpus and evaluation scorer. Keep deterministic workflow verification separate from optional live-model quality measurements. Container images and Azure remain later; the user must be told before deployment begins.

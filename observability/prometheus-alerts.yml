@@ -1,0 +1,27 @@
+groups:
+  - name: sentinel-safety
+    rules:
+      - alert: SentinelRemediationFailures
+        expr: increase(sentinel_remediation_outcome_total{status="FAILED"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: "A guarded remediation failed"
+          description: "Inspect the action ledger and compensation events before retrying."
+      - alert: SentinelTriageEscalationSurge
+        expr: sum(increase(sentinel_triage_duration_seconds_count{decision="ESCALATED"}[15m])) > 5
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Agent escalation volume is elevated"
+          description: "Check retrieval grounding, model availability, and the incident corpus."
+      - alert: SentinelNoIncidentsCreated
+        expr: sum(increase(sentinel_incidents_created_total[30m])) == 0
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Sentinel has not persisted an incident"
+          description: "Useful only where alerts are expected continuously; inspect webhook and broker health."

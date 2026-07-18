@@ -4,6 +4,7 @@ import io.mofazzal.sentinel.agent.domain.TriageOutcome;
 import io.mofazzal.sentinel.agent.domain.TriageRequest;
 import io.mofazzal.sentinel.guardrail.RemediationDecisionCoordinator;
 import io.mofazzal.sentinel.observability.SentinelMetrics;
+import io.mofazzal.sentinel.observability.SentinelObservations;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -13,18 +14,25 @@ public class AgentTriageCoordinator {
     private final AgentRunLifecycleService lifecycle;
     private final RemediationDecisionCoordinator remediationDecisions;
     private final SentinelMetrics metrics;
+    private final SentinelObservations observations;
 
     public AgentTriageCoordinator(TriageWorkflow workflow,
                                   AgentRunLifecycleService lifecycle,
                                   RemediationDecisionCoordinator remediationDecisions,
-                                  SentinelMetrics metrics) {
+                                  SentinelMetrics metrics,
+                                  SentinelObservations observations) {
         this.workflow = workflow;
         this.lifecycle = lifecycle;
         this.remediationDecisions = remediationDecisions;
         this.metrics = metrics;
+        this.observations = observations;
     }
 
     public TriageOutcome triage(TriageRequest request) {
+        return observations.observe("sentinel.incident.triage", () -> triageObserved(request));
+    }
+
+    private TriageOutcome triageObserved(TriageRequest request) {
         UUID runId = lifecycle.begin(request.incidentId());
         long startedAt = System.nanoTime();
         TriageOutcome outcome = null;

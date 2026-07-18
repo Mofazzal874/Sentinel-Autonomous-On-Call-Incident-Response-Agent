@@ -787,3 +787,35 @@ Metrics are aggregated operational signals, not an audit ledger. Keep their tags
 ### Next action
 
 Checkpoint the metrics foundation. Then add Observation spans and in-memory propagation tests; do not start deployment or cloud provisioning.
+
+---
+
+## Session 15 — Trace continuity and deployment feasibility
+
+### Goal
+
+Extend the operational evidence into traceable agent stages, research the fastest current Azure deployment route, and keep model accuracy separate from scripted workflow correctness.
+
+### Changes and decisions
+
+- Added fixed Micrometer observations for the triage root and classify, gather, propose, and evaluate children.
+- Proved nested parent continuity with an in-memory observation handler; this test needs no collector or network.
+- Added Spring Boot's current OpenTelemetry starter. Trace export is disabled in the normal profile and enabled only with the explicit `otlp` profile.
+- Added a small Grafana dashboard and Prometheus rules using the actual exported metric names. A remediation failure pages; elevated escalations and unexpected intake silence create tickets.
+- Corrected initial dashboard queries after comparing them with `SentinelMetrics`: the timer is `sentinel_triage_duration_seconds` and remediation uses `status`, not an invented `result` tag.
+- Confirmed from current Microsoft documentation that Azure Container Apps can deploy an existing image in minutes, PostgreSQL Flexible Server supports PostgreSQL 17 plus `vector`, and new Redis work should target Azure Managed Redis rather than the retiring Azure Cache for Redis service.
+- No Azure resource, public endpoint, collector, model, or host package was created or installed.
+
+### Verification
+
+- Focused workflow and observation tests pass after adding the OpenTelemetry starter.
+- The default application configuration explicitly disables tracing export, so ordinary tests and startup cannot silently contact an OTLP endpoint.
+- The first full run revealed that the OpenTelemetry starter separately enabled OTLP metric export. Assertions passed, but shutdown attempted `localhost:4318`; the default now explicitly disables that registry as well, and Prometheus remains the metric export path.
+
+### Learning insight
+
+A trace proves causal continuity and latency across stages; it does not prove that a model answer is correct. Model quality requires a separately versioned ground-truth corpus and scoring rules. Scripted model tests protect orchestration contracts but must never be reported as model accuracy.
+
+### Next action
+
+Create train/validation/holdout incident scenarios and a deterministic scoring harness, establish a non-live baseline, then run the same corpus against a live provider only when model access is deliberately enabled.

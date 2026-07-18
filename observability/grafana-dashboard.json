@@ -1,0 +1,33 @@
+{
+  "title": "Sentinel Safety and Agent Operations",
+  "uid": "sentinel-operations",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Incidents created by severity",
+      "targets": [{"expr": "sum by (severity) (rate(sentinel_incidents_created_total[5m]))"}]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Triage p95 latency",
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(sentinel_triage_duration_seconds_bucket[5m])))"}]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Remediation decisions and failures",
+      "targets": [{"expr": "sum by (decision, status) (rate(sentinel_remediation_outcome_total[5m]))"}]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Model call rate by role",
+      "targets": [{"expr": "sum by (role) (rate(sentinel_agent_model_calls_total[5m]))"}]
+    }
+  ]
+}

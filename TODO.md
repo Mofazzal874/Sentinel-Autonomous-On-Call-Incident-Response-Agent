@@ -265,9 +265,9 @@ Execution checkpoints:
 - [x] Keep management endpoints authenticated and expose only health, info, metrics, and Prometheus.
 - [x] Add bounded-cardinality incident, triage, evaluator, tool, model-call-capacity, and remediation metrics.
 - [ ] Record provider-reported input/output tokens and estimated cost when the live provider adapter exposes usage metadata; never estimate from prompt text in correctness tests.
-- [ ] Add Micrometer observations for the incident path and verify trace-parent continuity with an in-memory handler.
-- [ ] Add an opt-in OTLP export profile; ordinary tests/local startup must not require a collector.
-- [ ] Add a versioned dashboard/alert-rule asset and explain which signals should page a human.
+- [x] Add Micrometer observations for the incident path and verify trace-parent continuity with an in-memory handler.
+- [x] Add an opt-in OTLP export profile; ordinary tests/local startup must not require a collector.
+- [x] Add a versioned dashboard/alert-rule asset and explain which signals should page a human.
 
 ### 2. Layered verification and evaluation
 

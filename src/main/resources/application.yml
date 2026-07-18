@@ -88,6 +88,15 @@ sentinel:
     max-webhook-body-size: 64KB
 
 management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  tracing:
+    export:
+      enabled: false
+      otlp:
+        enabled: false
   endpoints:
     web:
       exposure:

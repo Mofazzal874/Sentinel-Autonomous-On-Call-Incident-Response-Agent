@@ -1,0 +1,13 @@
+management:
+  tracing:
+    export:
+      enabled: true
+      otlp:
+        enabled: true
+    sampling:
+      probability: "${SENTINEL_TRACE_SAMPLE_PROBABILITY:0.1}"
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: "${SENTINEL_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}"
