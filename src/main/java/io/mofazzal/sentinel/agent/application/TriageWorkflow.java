@@ -60,7 +60,12 @@ public final class TriageWorkflow {
             ProposalEvaluation evaluation = proposalEvaluator.evaluate(request, evidence, proposal);
             transcript.record(request.incidentId(), EntryType.CRITIQUE, attempt, evaluation.toString());
             if (evaluation.passed()) {
+                var groundedRunbook = evidence.runbooks().stream()
+                        .filter(runbook -> runbook.title().equals(proposal.runbookTitle()))
+                        .findFirst()
+                        .orElseThrow();
                 TriageOutcome outcome = new TriageOutcome(TriageOutcome.Decision.PROPOSED, proposal,
+                        groundedRunbook.id(), groundedRunbook.similarity(),
                         "Grounded proposal passed evaluation", attempt);
                 transcript.record(request.incidentId(), EntryType.OUTCOME, attempt, outcome.toString());
                 return outcome;
@@ -71,7 +76,8 @@ public final class TriageWorkflow {
     }
 
     private TriageOutcome escalate(TriageRequest request, String reason, int attempts) {
-        TriageOutcome outcome = new TriageOutcome(TriageOutcome.Decision.ESCALATED, null, reason, attempts);
+        TriageOutcome outcome = new TriageOutcome(
+                TriageOutcome.Decision.ESCALATED, null, null, 0.0, reason, attempts);
         transcript.record(request.incidentId(), EntryType.OUTCOME, attempts, outcome.toString());
         return outcome;
     }

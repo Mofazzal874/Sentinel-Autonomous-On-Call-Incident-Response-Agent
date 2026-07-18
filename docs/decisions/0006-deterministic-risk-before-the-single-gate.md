@@ -13,7 +13,7 @@ Compute authoritative risk in plain Java from five validated facts: action type,
 
 Use the private plan's relative weights. Restart, scale, cache clear, and rollback contribute 1, 2, 3, and 4. Critical and standard tiers contribute 4 and 1. Each affected dependent contributes one point, capped at 10. Similarity below `0.75` contributes 3, and a peak window contributes 2.
 
-This scorer makes no execution decision. A later `GuardrailGate` will combine the breakdown with kill-switch, allowlist, idempotency, approval, and dry-run policy. No executor may call a strategy without passing that gate.
+This scorer makes no execution decision. `GuardrailGate` combines the breakdown with kill-switch, allowlist, idempotency, approval, and dry-run policy. An eligible decision includes an opaque, matching `ExecutionAuthorization`; the executor and reservation/result writers reject calls without it. Strategy types are package-private and no mutating method is an LLM tool.
 
 ## Consequences
 
@@ -22,3 +22,4 @@ This scorer makes no execution decision. A later `GuardrailGate` will combine th
 - Invalid similarity or blast-radius facts fail before policy evaluation.
 - Capping the blast-radius contribution keeps the scale bounded while still making unknown or broad impact more conservative.
 - Weight or threshold changes are policy changes and require tests plus an ADR update; they are not prompt changes.
+- Similarity below `0.60`, or a mismatch among persisted runbook ID, title, and action, is rejected again at the remediation-request persistence boundary. Approval cannot revive an ungrounded proposal.

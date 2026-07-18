@@ -61,6 +61,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -99,6 +100,9 @@ class FleetPersistenceIntegrationTest {
 
     @Autowired
     private LogEventRepository logRepository;
+
+    @Autowired
+    private RunbookRepository runbookRepository;
 
     @Autowired
     private IncidentCreationService incidentCreationService;
@@ -158,7 +162,11 @@ class FleetPersistenceIntegrationTest {
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(post("/api/v1/incidents/00000000-0000-0000-0000-000000000001/approve")
-                        .with(jwt().authorities(() -> "ROLE_SRE_APPROVER")))
+                        .with(jwt().authorities(() -> "ROLE_SRE_APPROVER"))
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"decision":"APPROVE","note":"Reviewed evidence"}
+                                """))
                 .andExpect(status().isNotFound());
 
         mockMvc.perform(get("/api/v1/admin/security-check")
@@ -367,6 +375,7 @@ class FleetPersistenceIntegrationTest {
                 "Requires deterministic risk scoring in the guardrail layer");
         agentRunLifecycle.complete(runId, new TriageOutcome(
                 TriageOutcome.Decision.PROPOSED, proposal,
+                runbookRepository.findByTitle("Rollback a faulty service deployment").orElseThrow().getId(), 1.0,
                 "Grounded proposal passed evaluation", 1));
 
         assertThat(jdbcTemplate.queryForObject(

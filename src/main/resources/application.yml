@@ -58,6 +58,15 @@ spring:
         distance-type: COSINE_DISTANCE
 
 sentinel:
+  remediation:
+    dry-run: "${SENTINEL_REMEDIATION_DRY_RUN:true}"
+    auto-execution-max-risk: 6
+    approval-timeout: 30m
+    execution-recovery-timeout: 5m
+    business-zone: UTC
+    peak-traffic-start: "09:00"
+    peak-traffic-end: "17:00"
+    recovery-scan-delay: 1m
   agent:
     enabled: "${SENTINEL_AGENT_ENABLED:false}"
     retrieval-mode: "${SENTINEL_AGENT_RETRIEVAL_MODE:lexical}"

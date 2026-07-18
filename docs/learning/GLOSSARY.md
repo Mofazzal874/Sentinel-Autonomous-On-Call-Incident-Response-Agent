@@ -53,6 +53,11 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **Kill switch:** An operator-controlled mechanism that stops all remediation execution regardless of other decisions.
 - **Dry-run:** A mode that records the action and decision without performing the side effect.
 - **Compensation:** A separately recorded action that counteracts an earlier side effect without erasing its history.
+- **Capability:** An unforgeable or construction-restricted object that conveys narrowly scoped authority to perform one operation.
+- **Action claim:** Durable mutable coordination state that reserves an incident fingerprint/action pair before a side effect.
+- **Append-only ledger:** An event history that accepts new facts but rejects changing or deleting existing facts.
+- **Saga:** A sequence of local transactions whose completed steps are reversed with compensating actions when a later step fails.
+- **Uncertain execution:** A reserved action whose external outcome is unknown after a crash; it must be reconciled rather than blindly retried.
 - **RBAC:** Role-based access control, where permissions are assigned through roles such as `VIEWER` or `ADMIN`.
 - **Resource server:** An API that validates access tokens and protects resources; it does not necessarily issue tokens.
 - **Stateless authentication:** Reconstructing authentication from each request instead of storing it in a server-side login session.

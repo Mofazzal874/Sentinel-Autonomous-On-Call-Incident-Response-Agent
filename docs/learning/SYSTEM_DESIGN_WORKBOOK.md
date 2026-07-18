@@ -352,3 +352,9 @@ Orchestration and semantic retrieval are separate switches. Ordinary application
 For a critical-service rollback affecting three dependents at similarity `0.60` during peak traffic, write the five risk components and total. Then draw the future gate around the score and add kill-switch, allowlist, idempotency, approval, and dry-run checks. Circle the reason the score cannot itself be an execution capability.
 
 Defend the design in one sentence: the model supplies a grounded proposal, while validated Java facts produce an inspectable score that only the single gate may use.
+
+## Exercise 12 — The unavoidable side-effect gap
+
+Draw four boxes: claim transaction, external/simulated side effect, result transaction, and recovery scanner. Mark every possible crash boundary. For each boundary, write whether retry is safe, whether a claim exists, and what an operator sees in the ledger.
+
+Then explain why putting the external call inside one database transaction does not make the two systems atomic, and why a stale `IN_PROGRESS` claim is safer than an automatic retry.

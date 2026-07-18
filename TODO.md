@@ -224,29 +224,29 @@ Execution checkpoints:
 
 - [x] Decompose the safety work before implementation and preserve the single-gate invariant.
 - [x] Compute risk only from validated Java facts and return an inspectable component breakdown.
-- [ ] Implement a DB-backed global kill switch with a Redis acceleration layer and fail-closed behavior.
-- [ ] Enforce the service action allowlist from persisted fleet ownership data.
-- [ ] Check durable action idempotency before any execution path.
-- [ ] Keep local remediation in dry-run by default.
-- [ ] Route every proposed or human-approved action through one `GuardrailGate` in the documented order.
+- [x] Implement a DB-backed global kill switch with a Redis engaged-state acceleration key and fail-closed behavior.
+- [x] Enforce the service action allowlist from persisted fleet ownership data.
+- [x] Check durable action idempotency before any execution path and reserve with a unique database claim.
+- [x] Keep local remediation in dry-run by default.
+- [x] Route every proposed or human-approved action through one `GuardrailGate` and require its unforgeable package-scoped execution authorization.
 
 ### 2. Durable execution
 
-- [ ] Add a forward-only append-only action-ledger migration and immutable persistence model.
-- [ ] Commit `IN_PROGRESS` before an external/simulated side effect and record the outcome in a separate transaction.
-- [ ] Add an idempotent strategy registry for the simulated remediation actions.
-- [ ] Make duplicate and crash-recovery behavior safe through database constraints plus strategy idempotency.
-- [ ] Record compensation as a new linked fact and compensate completed steps in reverse order.
+- [x] Add a forward-only migration with mutable correctness claims and a trigger-enforced append-only action ledger.
+- [x] Commit `IN_PROGRESS` before an external/simulated side effect and record the outcome in a separate transaction.
+- [x] Add an idempotent, package-private strategy registry for all simulated remediation actions.
+- [x] Make duplicate and crash-recovery behavior safe through database constraints, per-claim effect idempotency, pending recovery, and fail-closed stale-execution escalation.
+- [x] Record compensation as new linked ledger facts and compensate completed work after an induced later-step failure.
 
 ### 3. Human control and verification
 
-- [ ] Add approve/reject handling for `SRE_APPROVER`; reject agent self-approval.
-- [ ] Re-check kill switch, allowlist, and idempotency after approval rather than bypassing the gate.
-- [ ] Escalate expired approvals instead of executing silently.
-- [ ] Prove low-risk, high-risk, duplicate, dry-run, kill-switch, and compensation scenarios.
-- [ ] Run the complete suite and complete all seven safety Defend This answers.
+- [x] Add typed review plus approve/reject handling for `SRE_APPROVER`; reject agent self-approval.
+- [x] Re-check kill switch, allowlist, risk, idempotency, and dry-run after approval rather than bypassing the gate.
+- [x] Escalate expired approvals instead of executing silently.
+- [x] Prove low-risk, high-risk, duplicate, dry-run, kill-switch, refusal, recovery, ungrounded rejection, and compensation scenarios.
+- [x] Run the complete suite and complete all seven safety Defend This answers.
 
-Safety/execution gate: **open** — the work is decomposed and deterministic risk scoring passes its boundary tests; the single decision gate and all mutation paths remain unimplemented.
+Safety/execution gate: **complete** — all mutation eligibility flows through the deterministic gate, execution requires its matching capability, database reservation survives Redis loss and races, the event ledger is database-enforced append-only, approval re-enters policy, recovery is fail-closed, and the full learning defense is recorded. Final uncached evidence: 89 tests, zero failures, errors, or skips.
 
 ## Later work
 

@@ -7,6 +7,7 @@ import io.mofazzal.sentinel.agent.persistence.AgentRunStatus;
 import io.mofazzal.sentinel.incident.domain.Incident;
 import io.mofazzal.sentinel.incident.domain.IncidentStatus;
 import io.mofazzal.sentinel.incident.repository.IncidentRepository;
+import io.mofazzal.sentinel.guardrail.RemediationRequestStore;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,11 +20,16 @@ public class AgentRunLifecycleService {
     private final IncidentRepository incidents;
     private final AgentRunRepository runs;
     private final Clock clock;
+    private final RemediationRequestStore remediationRequests;
 
-    public AgentRunLifecycleService(IncidentRepository incidents, AgentRunRepository runs, Clock clock) {
+    public AgentRunLifecycleService(IncidentRepository incidents,
+                                    AgentRunRepository runs,
+                                    Clock clock,
+                                    RemediationRequestStore remediationRequests) {
         this.incidents = incidents;
         this.runs = runs;
         this.clock = clock;
+        this.remediationRequests = remediationRequests;
     }
 
     @Transactional
@@ -56,6 +62,9 @@ public class AgentRunLifecycleService {
         }
         run.complete(runStatus, outcome.reason(), outcome.attempts(), clock.instant());
         incident.transitionTo(incidentStatus, clock.instant());
+        if (outcome.decision() == TriageOutcome.Decision.PROPOSED) {
+            remediationRequests.create(incident.getId(), outcome);
+        }
     }
 
     @Transactional

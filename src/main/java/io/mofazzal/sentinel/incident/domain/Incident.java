@@ -111,6 +111,10 @@ public class Incident {
         return createdAt;
     }
 
+    public BigDecimal getRiskScore() {
+        return riskScore;
+    }
+
     public void transitionTo(IncidentStatus nextStatus, Instant changedAt) {
         Objects.requireNonNull(nextStatus, "nextStatus");
         Objects.requireNonNull(changedAt, "changedAt");

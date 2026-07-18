@@ -675,3 +675,75 @@ An explainable number is still not permission. The safety boundary is the combin
 ### Next action
 
 Checkpoint this model-free scorer, then implement a decision-only gate with ordering tests before adding any execution mutation. No user action or installation is required.
+
+---
+
+## Session 13 — Single-gate execution and human control
+
+### Goal
+
+Complete the safety-critical implementation without beginning deployment work: one deterministic gate, durable idempotency, dry-run, kill switch, immutable audit history, transactionally separated execution, compensation, human approval, crash recovery, full tests, and the learning defense.
+
+### State reconstruction and environment
+
+- Reconstructed the open work from `AGENTS.md`, `TODO.md`, the private safety plan, journal, Git history, and clean working tree.
+- Reused Java, Gradle, Docker, PostgreSQL/pgvector, Redis, and RabbitMQ. Installed or downloaded nothing.
+- Kept test PostgreSQL/Redis isolated in Testcontainers and did not touch other projects or the unmanaged Windows PostgreSQL instance.
+- Kept local remediation dry-run as the default configuration.
+
+### Decision boundary
+
+- Added explicit gate decisions for escalation, refusal, skip, dry-run, automatic execution, approval, and approved execution.
+- Enforced order: fail-closed kill switch, persisted service allowlist, deterministic score, durable action history, dry-run, then threshold/approval.
+- Added a PostgreSQL-authoritative global kill switch. Redis stores only the engaged shortcut; absence never means safe without checking PostgreSQL.
+- Added an admin-only kill-switch endpoint and commit-after Redis synchronization.
+- Closed an API loophole discovered during review: the gate now issues a construction-restricted `ExecutionAuthorization`, and the executor plus reservation/result writers reject missing or mismatched authorization. Gate authorization issuance is package-scoped, and strategy types are package-private.
+
+### Durable request, claim, ledger, and execution
+
+- Extended grounded triage outcomes with the retrieved runbook ID and similarity.
+- Persisted a remediation request in the same short transaction that completes triage, then evaluated/executed only after commit.
+- Revalidated similarity `>= 0.60` and exact runbook ID/title/action at the persistence boundary so approval cannot revive an ungrounded proposal.
+- Added V5 tables for safety control, remediation request, action claim, immutable ledger, simulated service state, and per-claim effect.
+- Separated mutable correctness state (`action_claim`) from immutable audit events (`action_ledger`). A PostgreSQL trigger rejects ledger updates/deletes.
+- Committed `IN_PROGRESS` plus its event in `REQUIRES_NEW`, ran the internal strategy without an outer coordinator transaction, and committed result in another `REQUIRES_NEW` transaction.
+- Added four idempotent simulated strategies keyed by claim. Concurrent duplicate execution produces one claim and one effect.
+- On induced later-step failure, recorded failure and compensation events and restored the completed simulated change.
+
+### Human control and recovery
+
+- Added a typed review view containing service, action, grounded runbook, steps, rationale, advisory model risk notes, similarity, authoritative score/breakdown, status, and expiry.
+- Added `SRE_APPROVER`-only approve/reject handling; the `AGENT` role cannot self-approve.
+- Recorded approval intent, then re-entered every gate policy before execution.
+- Added approval expiry scanning; timeout records rejection and escalates without execution.
+- Added pending-decision recovery for the crash window after durable triage completion.
+- Added fail-closed stale-execution recovery: uncertain work escalates and its permanent claim continues blocking automatic repetition.
+
+### Iterative defects and loopholes corrected
+
+1. A concurrent-test lambda inferred `Object`; explicit `Callable<ExecutionOutcome>` made the harness type-safe.
+2. The new approval route changed an old placeholder security expectation from missing route to malformed body; the test now sends valid JSON and API exceptions map to `404`/`409`.
+3. A timeout fixture violated V5 time-order constraints; the fixture now represents a genuinely older request, demonstrating the constraint works.
+4. Database/JVM clock skew could reject a valid kill-switch update; safety-control audit time now remains monotonic by keeping the later instant.
+5. Making the internal strategy final prevented Spring transaction proxying; package visibility, rather than `final`, now closes its API while preserving interception.
+6. Direct executor construction could previously forge an `AUTO_EXECUTE` decision; the opaque matching gate authorization closes that path.
+7. Recovery fixtures initially violated incident/request time checks; corrected fixtures preserve the same invariants as production.
+8. `@Repository` translated deliberate grounding-policy errors into data-access errors; a component stereotype preserves domain validation while `JdbcTemplate` still translates SQL failures.
+
+### Verification evidence
+
+- Gate unit tests cover every short circuit, inclusive threshold, human re-entry order, and fail-closed kill-switch error.
+- Real PostgreSQL tests prove one result under concurrent execution, committed reservation visibility, per-claim strategy idempotency, compensation, and trigger-enforced ledger immutability.
+- Real PostgreSQL plus isolated Redis tests prove automatic low-risk execution, high-risk approval, agent self-approval denial, allowlist refusal, engaged kill switch, expired approval, pending recovery, stale-execution escalation, and approver review.
+- The existing grounded-agent integration now proves default dry-run records a decision but creates no action claim or effect.
+- Persistence-boundary regression proves similarity below `0.60` and mismatched runbook/action cannot create a remediation request.
+- An uncached full run passed 88 tests in 2 minutes 20 seconds before the final grounding regression.
+- The final uncached checkpoint passed 89 tests with zero failures, errors, or skips in 2 minutes 27 seconds.
+
+### System-design lesson
+
+The database cannot atomically commit an external side effect. Correct design does not hide that gap inside a long transaction; it records intent before, makes the effect idempotent, records result after, and escalates uncertain outcomes without automatic replay. Sentinel uses effectively-once mutation semantics rather than making a false exactly-once claim.
+
+### Next action
+
+Review diffs/authorship/ignored files and checkpoint the completed safety gate. Then begin the observability/testing checklist only; deployment remains later and requires an explicit user handoff before cloud actions or model/provider provisioning.

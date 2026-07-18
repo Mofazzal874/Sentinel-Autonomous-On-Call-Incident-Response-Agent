@@ -101,7 +101,13 @@ class AgentTriageIntegrationTest {
                 .extracting(RemediationProposal::runbookTitle)
                 .isEqualTo("Rollback a faulty service deployment");
         assertThat(incidents.findById(incident.getId()).orElseThrow().getStatus())
-                .isEqualTo(IncidentStatus.AWAITING_APPROVAL);
+                .isEqualTo(IncidentStatus.ESCALATED);
+        assertThat(jdbc.queryForObject("""
+                select count(*) from action_ledger
+                where incident_id = ? and event_type = 'DRY_RUN'
+                """, Integer.class, incident.getId())).isOne();
+        assertThat(jdbc.queryForObject("select count(*) from action_claim where incident_id = ?",
+                Integer.class, incident.getId())).isZero();
         assertThat(jdbc.queryForObject(
                 "select count(*) from agent_run where incident_id = ? and status = 'PROPOSED'",
                 Integer.class, incident.getId())).isOne();
