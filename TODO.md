@@ -131,9 +131,9 @@ Execution checkpoints:
 - [x] Verify durable queued delivery across a controlled broker restart.
 - [x] Verify a poison command lands in the DLQ without looping.
 - [x] Run all unit and PostgreSQL/Redis/RabbitMQ Testcontainers tests.
-- [ ] Review every Phase 2 “Defend This” question before marking the phase complete.
+- [x] Review every Phase 2 “Defend This” question before marking the phase complete.
 
-Phase 2 engineering gate: **passed**. Learning/defense gate: **awaiting user review**.
+Phase 2 gate: **complete** — engineering evidence and the seven-question learning/defense review both passed.
 
 ## Later phases
 

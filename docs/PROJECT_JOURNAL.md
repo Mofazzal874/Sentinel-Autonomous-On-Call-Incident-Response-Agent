@@ -381,3 +381,42 @@ Phase 2 relies on the Phase 1 transaction, schema, query, and PostgreSQL correct
 ### Next action
 
 Continue from Phase 2. Its engineering work is complete; its seven-question learning/defense review remains the next gate before Phase 3.
+
+---
+
+## Session 7 — Phase 2 learning-gate completion
+
+### Goal
+
+Apply the corrected phase policy consistently by completing the Phase 2 design-defense review after its engineering evidence passed.
+
+### Prerequisites audit
+
+- Compared all seven Phase 2 plan questions with the implemented Redis, RabbitMQ, and PostgreSQL boundaries.
+- Reused the already passing burst, redelivery, poison-message, and broker-restart evidence.
+- No code, infrastructure, dependency, or local data change was required.
+
+### Changes
+
+- Added project-specific model answers for atomic Redis claims, manual acknowledgements, delivery semantics, poison handling, layered deduplication, capacity controls, and virtual threads.
+- Marked Phase 2 fully complete instead of leaving a split engineering/learning status.
+
+### Architectural connection
+
+Phase 3 may rely on a durable incident existing exactly once at the database-effect boundary. The Phase 2 review explains why that guarantee comes from layered idempotency rather than from Redis or a fictional distributed exactly-once transaction.
+
+### Verification
+
+- Each answer names the implemented mechanism, the failure it prevents, and its tradeoff.
+- `TODO.md` records both Phase 1 and Phase 2 as complete.
+- Phase 3 remains unopened and requires a separate plan review before implementation.
+
+### Insights to retain
+
+- Publisher confirms and consumer acknowledgements protect different handoffs.
+- Redis protects cost, RabbitMQ protects delivery, and PostgreSQL protects durable truth.
+- Virtual threads reduce thread cost but do not replace explicit concurrency and downstream capacity bounds.
+
+### Next action
+
+Begin Phase 3 only after re-reading its security/tooling plan, auditing prerequisites, and breaking the work into ordered checkpoints.

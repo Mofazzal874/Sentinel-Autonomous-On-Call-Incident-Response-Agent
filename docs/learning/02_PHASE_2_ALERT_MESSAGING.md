@@ -139,12 +139,36 @@ Draw the flow for one alert and mark every durable state. Then answer:
 
 ## Defend This review
 
-Answer these without reading the hints before closing the learning gate:
+Review status: **completed on 2026-07-18**. Rehearse these answers without the page before an interview.
 
-1. Why must claim and TTL be one atomic Redis operation? What if Redis evicts early?
-2. Why is manual acknowledgement used instead of automatic acknowledgement?
-3. Which part is at-least-once, and which effect is effectively once?
-4. What is a poison message, and why does it go to a DLQ?
-5. Why use Redis when PostgreSQL already has a unique constraint?
-6. How do prefetch and concurrency affect throughput, memory, and ordering?
-7. Why are virtual threads useful for these blocking listeners?
+### 1. Why must the Redis claim and TTL be atomic?
+
+A separate check, set, and expiration has race and crash windows: two requests can both observe absence, or a crash can leave a key without expiry. Sentinel executes the claim, TTL, optional client-key claim, and duplicate count in one Redis Lua operation. If Redis evicts or loses the key early, another command may be published, but PostgreSQL's unique fingerprint still prevents a second incident. Redis protects capacity; it does not own correctness.
+
+### 2. Why manual acknowledgement instead of automatic acknowledgement?
+
+Automatic acknowledgement can remove a message before the durable database effect finishes. A crash in that window loses work. Sentinel acknowledges manually only after `IncidentCreationService.createIfAbsent` returns and its transaction has committed. A crash before acknowledgement causes redelivery rather than loss.
+
+### 3. At-least-once versus exactly-once
+
+RabbitMQ provides at-least-once delivery: a command may arrive more than once. Sentinel does not claim a distributed exactly-once transaction across RabbitMQ and PostgreSQL. Instead, the consumer is idempotent and PostgreSQL enforces a unique fingerprint with `ON CONFLICT DO NOTHING`. Delivery is at-least-once; the durable incident effect is effectively once.
+
+### 4. What is a poison message, and how does the DLQ help?
+
+A poison message cannot succeed through repetition, for example a command naming an unknown service. Requeueing it forever would consume workers and obscure healthy traffic. Sentinel rejects permanent failures and exhausted transient failures without requeue, so RabbitMQ routes the original persistent message to `triage.dlq` and adds `x-death` diagnostic history.
+
+### 5. Why Redis deduplication when PostgreSQL is already unique?
+
+The database constraint prevents incorrect final state but does not prevent wasted HTTP, broker, consumer, database, and future agent work. Redis suppresses 49 copies of an alert storm near intake. If Redis fails, Sentinel accepts the efficiency loss and continues because the PostgreSQL boundary still protects correctness.
+
+### 6. How do prefetch and concurrency affect throughput and ordering?
+
+Concurrency allows several messages to block on I/O at once, increasing throughput, but global completion order is no longer guaranteed. Prefetch bounds how many unacknowledged messages each consumer can hold; too high can increase memory use and unfairly concentrate work, while too low can leave capacity idle. Sentinel uses prefetch 10, initial concurrency 4, and a bounded maximum of 16. Operations must not rely on global queue ordering.
+
+### 7. Why virtual threads for the listener?
+
+The listener performs blocking RabbitMQ and database I/O. Virtual threads make each blocking task cheap compared with a large platform-thread pool, improving concurrency without one heavy operating-system thread per delivery. They do not remove downstream limits: database connections, broker channels, prefetch, and listener concurrency remain deliberately bounded.
+
+### Review result
+
+All seven Phase 2 decisions now have a project-specific answer, an identified failure mode, and an operational tradeoff. The Phase 2 learning/defense gate is complete.
