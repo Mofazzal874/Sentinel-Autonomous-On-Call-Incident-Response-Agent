@@ -17,6 +17,7 @@ Each scenario fixes the expected type, minimum evidence signals, relevant runboo
 - Classification accuracy: exact incident-type match; target at least 80% on validation.
 - Required-signal coverage: prediction includes every required evidence source; target at least 90%.
 - Retrieval recall@3: expected runbook appears in the first three results; target at least 90% on eligible cases.
+- Retrieval ground-truth match: a positive contains its expected runbook and a negative returns no runbooks; report this beside recall so false positives remain visible.
 - Outcome accuracy: exact grounded runbook/action, or correct fail-safe escalation; target at least 80%.
 - Grounding violations: proposed runbook absent from retrieval; hard gate is zero.
 - Latency: report median and p95 per role and end-to-end. Establish hardware/provider baselines before choosing a latency gate.
@@ -34,4 +35,4 @@ The initial corpus is useful for regression mechanics but too small to claim pro
 
 ## Current baseline
 
-As of 2026-07-19, corpus integrity and scorer arithmetic pass deterministically. The live-model baseline is `NOT_RUN`: Ollama and model weights were audited and are not installed, and no paid provider has been enabled. This is an honest missing measurement, not a zero score. The next live run requires Qwen3 4B for structured roles and `nomic-embed-text` for 768-dimensional retrieval, both stored on `E:`.
+The local baseline is recorded in [2026-07-19-qwen3-4b-baseline.md](2026-07-19-qwen3-4b-baseline.md). The frozen holdout routing/RAG run scored 4/4 on classification, required evidence, recall@3, and retrieval ground-truth match. A two-case full-loop sample scored 2/2 outcomes with zero grounding violations. These are engineering smoke results over a tiny synthetic corpus, not production accuracy claims.

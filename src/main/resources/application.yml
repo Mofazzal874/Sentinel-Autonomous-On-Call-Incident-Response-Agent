@@ -46,6 +46,8 @@ spring:
       embedding: "${SENTINEL_AI_EMBEDDING_MODEL:none}"
     ollama:
       base-url: "${SENTINEL_OLLAMA_BASE_URL:http://localhost:11434}"
+      chat:
+        num-predict: "${SENTINEL_AI_MAX_OUTPUT_TOKENS:256}"
       init:
         pull-model-strategy: never
     vectorstore:

@@ -24,7 +24,7 @@ class AgentEvaluationScorerTest {
                 grounded.requiredSignals(), List.of("Rollback"), "Rollback",
                 RemediationActionType.ROLLBACK_DEPLOYMENT, false);
         EvaluationPrediction hallucinated = new EvaluationPrediction(IncidentType.DEPENDENCY_OUTAGE,
-                List.of(EvidenceSignal.LOGS), List.of(), "Invented runbook",
+                List.of(EvidenceSignal.LOGS), List.of("Irrelevant"), "Invented runbook",
                 RemediationActionType.RESTART_SERVICE, false);
 
         var score = new AgentEvaluationScorer().score(
@@ -33,6 +33,7 @@ class AgentEvaluationScorerTest {
         assertThat(score.classificationAccuracy()).isEqualTo(0.5);
         assertThat(score.requiredSignalCoverage()).isEqualTo(0.5);
         assertThat(score.retrievalRecall()).isEqualTo(1.0);
+        assertThat(score.retrievalGroundTruthMatch()).isEqualTo(0.5);
         assertThat(score.outcomeAccuracy()).isEqualTo(0.5);
         assertThat(score.hallucinations()).isEqualTo(1);
     }

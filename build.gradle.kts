@@ -48,3 +48,20 @@ dependencies {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
+
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("live-evaluation")
+    }
+}
+
+tasks.register<Test>("liveAgentEvaluation") {
+    description = "Runs the explicitly invoked local-model ground-truth evaluation."
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("live-evaluation")
+    }
+    outputs.upToDateWhen { false }
+}

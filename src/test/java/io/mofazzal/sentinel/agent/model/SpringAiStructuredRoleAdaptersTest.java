@@ -29,8 +29,7 @@ class SpringAiStructuredRoleAdaptersTest {
     void mapsScriptedModelJsonIntoTypedRoleOutputsAndChargesEveryCall() {
         ScriptedChatModel model = new ScriptedChatModel(List.of(
                 """
-                {"type":"BAD_DEPLOY","relevantSignals":["DEPLOYMENTS","METRICS","RUNBOOKS"],
-                 "rationale":"The degradation follows a release"}
+                {"type":"BAD_DEPLOY","rationale":"The degradation follows a release"}
                 """,
                 """
                 {"actionType":"ROLLBACK_DEPLOYMENT","runbookTitle":"Rollback a faulty service deployment",
@@ -55,7 +54,8 @@ class SpringAiStructuredRoleAdaptersTest {
                 new EvidenceBundle(List.of(), List.of(), List.of(), List.of()), proposal);
 
         assertThat(classification.type()).isEqualTo(IncidentType.BAD_DEPLOY);
-        assertThat(classification.relevantSignals()).contains(EvidenceSignal.RUNBOOKS);
+        assertThat(classification.relevantSignals()).containsExactly(
+                EvidenceSignal.DEPLOYMENTS, EvidenceSignal.METRICS, EvidenceSignal.RUNBOOKS);
         assertThat(proposal.runbookTitle()).contains("Rollback");
         assertThat(evaluation.passed()).isTrue();
         assertThat(charged).hasValue(3);

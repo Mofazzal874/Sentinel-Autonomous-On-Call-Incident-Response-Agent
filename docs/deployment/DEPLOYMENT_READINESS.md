@@ -2,8 +2,8 @@
 
 ## Verified local artifact
 
-- `clean bootJar --no-build-cache` produced the same SHA-256 twice: `69117635C45BDB99ECDFD243973A6D4DAF08AE3F67C2A4A05BAB0DA447F7C69E`.
-- `sentinel:local` is 200,453,664 bytes and runs as `10001:10001` with a read-only root filesystem.
+- Two clean `bootJar --no-build-cache` runs produced the same SHA-256: `5A1B87B51234FF465F21E3CA816A358DEF6A120CACB10F4612F6B03870F7DD61`.
+- Final `sentinel:local` image ID is `fdbfe1198c88759141f2d45b9771386a0e48016f27e8d74d2036779f25322295`, 200,461,161 bytes, and runs as `10001:10001` with a read-only root filesystem.
 - A real container reached both liveness and readiness against the isolated Compose PostgreSQL/pgvector, Redis, and RabbitMQ services.
 - Anonymous Prometheus access returned `401`; only status-only platform probes are public.
 - The scratch smoke container was stopped and automatically removed. Docker application/image data remains on `E:`.
@@ -23,8 +23,8 @@ AKS is not recommended for this deadline. It adds cluster, ingress, identity, st
 1. Azure CLI is not installed and no Azure login/subscription has been verified.
 2. The user must choose a region, maximum demo budget, and private SSH-tunnel versus public TLS endpoint.
 3. No registry or cloud resource may be created until the user explicitly approves provisioning.
-4. Live agent quality is not yet measured. Ollama and model weights are not installed; the application currently has an Ollama adapter, not an Azure OpenAI adapter.
-5. A full-agent VM therefore needs local Qwen3 4B plus `nomic-embed-text` and enough memory, or a separately implemented/approved paid model provider. An agent-disabled platform demo can deploy sooner but should not be presented as the full product.
+4. The local agent baseline is measured, but CPU-only grounded triage took about 100 seconds. A cloud demo must accept that latency or use a separately implemented and approved accelerated/managed provider.
+5. Ollama 0.32.1, Qwen3 4B, and `nomic-embed-text` are installed on `E:` locally. A full-agent VM must install/pull those models on the VM; local Windows model files are not automatically available inside Azure.
 
 ## Required secret/configuration set
 

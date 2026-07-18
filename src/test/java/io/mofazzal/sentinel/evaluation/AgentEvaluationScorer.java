@@ -12,6 +12,7 @@ final class AgentEvaluationScorer {
         int signalCoverageHits = 0;
         int retrievalEligible = 0;
         int retrievalHits = 0;
+        int retrievalGroundTruthHits = 0;
         int outcomeHits = 0;
         int hallucinations = 0;
         for (int index = 0; index < truth.size(); index++) {
@@ -23,6 +24,10 @@ final class AgentEvaluationScorer {
                 retrievalEligible++;
                 retrievalHits += actual.retrievedRunbookTitles().contains(expected.expectedRunbookTitle()) ? 1 : 0;
             }
+            boolean retrievalMatchesTruth = expected.expectedRunbookTitle() == null
+                    ? actual.retrievedRunbookTitles().isEmpty()
+                    : actual.retrievedRunbookTitles().contains(expected.expectedRunbookTitle());
+            retrievalGroundTruthHits += retrievalMatchesTruth ? 1 : 0;
             if (actual.proposedRunbookTitle() != null
                     && !actual.retrievedRunbookTitles().contains(actual.proposedRunbookTitle())) {
                 hallucinations++;
@@ -35,7 +40,7 @@ final class AgentEvaluationScorer {
             outcomeHits += outcomeCorrect ? 1 : 0;
         }
         return new EvaluationScore(truth.size(), classificationHits, signalCoverageHits,
-                retrievalEligible, retrievalHits, outcomeHits, hallucinations);
+                retrievalEligible, retrievalHits, retrievalGroundTruthHits, outcomeHits, hallucinations);
     }
 
     record EvaluationScore(
@@ -44,6 +49,7 @@ final class AgentEvaluationScorer {
             int signalCoverageHits,
             int retrievalEligible,
             int retrievalHits,
+            int retrievalGroundTruthHits,
             int outcomeHits,
             int hallucinations
     ) {
@@ -57,6 +63,10 @@ final class AgentEvaluationScorer {
 
         double retrievalRecall() {
             return ratio(retrievalHits, retrievalEligible);
+        }
+
+        double retrievalGroundTruthMatch() {
+            return ratio(retrievalGroundTruthHits, scenarios);
         }
 
         double outcomeAccuracy() {

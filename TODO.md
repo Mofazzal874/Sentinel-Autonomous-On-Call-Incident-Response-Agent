@@ -271,12 +271,12 @@ Execution checkpoints:
 
 ### 2. Layered verification and evaluation
 
-- [ ] Review deterministic safety/core coverage and add missing boundary regressions.
+- [x] Review deterministic safety/core coverage and add missing boundary regressions, including evidence-policy and semantic-wiring regressions.
 - [x] Prove mocked model routing, bounded tools, transcript, gate invocation, and outcome without asserting generated prose.
 - [x] Add one complete PostgreSQL/Redis/RabbitMQ pipeline scenario from signed alert through guarded dry-run result.
 - [x] Add a fixed train/validation/holdout ground-truth corpus and deterministic scorer with explicit quality gates.
-- [ ] Run the fixed corpus against the selected live chat and embedding models, record latency/quality, inspect mismatches, and iterate without tuning on holdout.
-- [ ] Keep optional live-model evaluation separate, explicitly invoked, rate-limited, and non-gating for the build.
+- [x] Run the fixed corpus against the selected live chat and embedding models, record latency/quality, inspect mismatches, and iterate without tuning on holdout.
+- [x] Keep optional live-model evaluation separate, explicitly invoked, bounded, and non-gating for the build.
 
 ### 3. Packaging and deployment readiness
 
@@ -290,7 +290,8 @@ Execution checkpoints:
 
 - [ ] Stop and ask the user before creating any Azure resource, registry, paid model deployment, DNS entry, or public endpoint.
 - [ ] After approval, provision the chosen minimal-cost target and verify health, metrics, migrations, secrets, and end-to-end behavior.
-- [ ] Add the recruiter-facing README, architecture diagram, safety model, evaluation result, demo instructions/evidence, and future work.
-- [ ] Complete all seven operability/deployment Defend This answers and run the final suite.
+- [x] Add the recruiter-facing README, architecture flow, safety model, evaluation result, demo instructions/evidence, and future work.
+- [x] Complete the final uncached suite after the live-adapter wiring regression fix: 102 tests, zero failures/errors/skips.
+- [x] Complete all seven operability/deployment Defend This answers.
 
-Operability/deployment gate: **open** — the protected Prometheus endpoint and first bounded custom metrics pass focused tests. Traces, dashboard/alerts, layered evaluation, packaging, and deployment remain. No deployment or cloud provisioning has started.
+Operability/deployment gate: **deployment handoff open** — local observability, layered evaluation, packaging, learning defense, and smoke evidence are complete. Cloud provisioning, public access, and paid resources remain intentionally unstarted pending the user's subscription, region, budget, and access approval.

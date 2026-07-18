@@ -888,3 +888,43 @@ The RabbitMQ consumer committed an incident and acknowledged the message but nev
 ### Next action
 
 Run the complete regression suite for this newly connected pipeline, then checkpoint it. Live model evaluation remains a separate accuracy measurement.
+
+---
+
+## Session 18 — Live ground truth, deterministic evidence, and final handoff
+
+### Goal
+
+Reverify the application from intake through guarded outcome, establish a real local-model baseline, iterate against versioned ground truth without tuning on holdout, and determine whether a deadline Azure demo is realistic.
+
+### Environment and installation discipline
+
+- Audited first: Ollama was absent; Docker and Java were reused.
+- Downloaded official Ollama 0.32.1 to `E:`, verified its published SHA-256 and valid Ollama Inc. Authenticode signature, then installed under `E:\DevTools\Ollama`.
+- Set model storage to `E:\DevModels\ollama`; installed only `qwen3:4b` and `nomic-embed-text` (2.58 GB measured).
+- Deleted installer/checksum scratch after verification. No unrelated project, Windows PostgreSQL, cache, or user data was modified.
+- The installer command exceeded its wait window, but registration, version, files, and API health proved success; it was not installed twice.
+
+### Iterative findings and fixes
+
+1. The first real-model run returned prose while the adapter expected JSON. Native Ollama JSON format fixed the transport contract.
+2. The repaired development baseline classified 3/4 but selected none of the complete evidence sets. Explicit class boundaries fixed the ambiguous false deploy.
+3. Qwen3 4B still omitted tool signals. Evidence selection moved to deterministic Java, leaving the model responsible only for type and rationale.
+4. Validation found that an empty model signal list could fail domain construction before normalization. The router response was reduced to `{type, rationale}`.
+5. Recall hid irrelevant results on a negative scenario. The scorer now reports ground-truth retrieval matching and similarity values.
+6. The frozen holdout scored 4/4 classification, signal coverage, recall@3, and negative matching. No tuning followed.
+7. A two-case full loop correctly proposed the grounded rollback and escalated the ambiguous case with zero grounding violations.
+
+### Performance insight
+
+On local CPU, holdout classification took 14.5–16.0 seconds and semantic retrieval 155–189 ms. The grounded full loop took 100.5 seconds: generation and evaluation each took about 41 seconds. The no-runbook fail-safe path took 14.8 seconds. The bottleneck is model inference, not pgvector.
+
+### Start-to-finish regression finding
+
+The first final clean suite exposed nine context failures: `@ConditionalOnBean` on semantic search was evaluated before imported deterministic gateway beans. The semantic profile now creates the engine directly and constructor injection fails fast if no gateway exists. The three affected integration suites passed after repair, followed by an uncached clean run of 102 tests across 34 suites with zero failures, errors, or skips.
+
+Two clean application builds produced identical SHA-256 `5A1B87B51234FF465F21E3CA816A358DEF6A120CACB10F4612F6B03870F7DD61`. The final image was rebuilt and ran as `10001:10001` with a read-only root filesystem; readiness and liveness returned `200`, anonymous Prometheus returned `401`, and the temporary smoke container was removed.
+
+### Deployment conclusion
+
+A one-VM Azure demo is realistic by tomorrow once the user supplies an active subscription, region, maximum budget, and private-tunnel versus public-TLS choice. The current image and Compose topology are locally smoke-tested. Full-agent latency will be slow on CPU; a paid/accelerated provider is a separate implementation and approval. No Azure CLI, cloud resource, registry, DNS record, or public endpoint was created.

@@ -1,11 +1,11 @@
 package io.mofazzal.sentinel.agent.retrieval;
 
 import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnBean(EmbeddingModel.class)
+@ConditionalOnProperty(name = "spring.ai.model.embedding", havingValue = "ollama")
 public class SpringAiTextEmbeddingGateway implements TextEmbeddingGateway {
 
     private final EmbeddingModel model;

@@ -1,6 +1,6 @@
 # Operability, Evaluation, Packaging, and Deployment
 
-This chapter now includes protected metrics, nested workflow observations, opt-in trace export, and versioned dashboard/alert assets. Offline evaluation, packaging, and deployment are still open. No cloud resource has been created.
+This chapter includes protected metrics, nested workflow observations, opt-in trace export, versioned dashboard/alert assets, a live local-model baseline, and verified non-root packaging. Cloud provisioning remains open and requires explicit approval.
 
 ## 1. Prerequisites
 
@@ -98,13 +98,13 @@ $env:GRADLE_USER_HOME='E:\DevCaches\gradle'
 4. Draw how one future Observation can feed both a timer and a trace span.
 5. List which management endpoints could be public, authenticated, or network-private in a production design and defend each choice.
 
-## 8. Next dependency-ordered step
+## 8. Evaluation lesson
 
-The fixed corpus now separates development, validation, and holdout scenarios and scores classification, required evidence, retrieval, grounded outcome, and hallucination count. The live baseline remains deliberately marked `NOT_RUN` until Qwen3 4B and `nomic-embed-text` are enabled on `E:` or a paid provider is explicitly approved.
+The fixed corpus separates development, validation, and holdout scenarios and scores classification, required evidence, retrieval, grounded outcome, and hallucination count. The local Qwen3 4B baseline proved why these layers must be separated: JSON transport failed first, classification failed next, and evidence selection failed even when classification was correct. Each required a different repair.
 
 On paper, classify this example and list the minimum evidence you would request: “CPU is saturated, there was no recent deployment, dependencies are healthy, and latency keeps rising.” Then explain why seeing the words “deployment” in the negative statement must not turn it into a bad-deploy incident.
 
-Next, run the model baseline and preserve raw per-scenario mismatches. Change one variable at a time, validate, and touch holdout only after choosing the candidate. Packaging and Azure provisioning remain separate and require the user handoff.
+The final design gives the model classification and rationale only. Java chooses bounded evidence tools. Use probabilistic judgment where ambiguity exists, then narrow its output through deterministic policy before it touches operational capabilities. See the versioned baseline under `docs/evaluation/`.
 
 ## 9. Packaging flow
 
@@ -145,3 +145,13 @@ signed alert -> Redis first-seen -> RabbitMQ command
 The incident commit happens before model work, so no database transaction stays open during a slow network call. The message acknowledgement happens after the durable outcome, so a process crash causes redelivery rather than pretending the work finished. Redelivery checks the incident state: terminal work is safe to acknowledge, concurrent triage receives a bounded retry, and stale uncertain triage eventually escalates for manual review.
 
 In an interview, do not call this exactly-once processing. It is at-least-once delivery plus idempotent persistence, explicit states, and fail-closed recovery. Pen-and-paper exercise: mark every crash point between publish, incident commit, triage start, proposal commit, gate decision, and acknowledgement; state what redelivery observes at each point.
+
+## 11. Defend This
+
+1. **Why are model tests separate from normal tests?** Live models are slow, variable, and environment-dependent. Deterministic tests protect contracts; explicit evaluation measures quality.
+2. **Why is evidence selection Java, not prompt text?** A small model repeatedly ignored the requested signal set. A deterministic map bounds read scope and is exhaustively testable.
+3. **Why report recall and negative matching?** Recall can be perfect while irrelevant runbooks are returned for every negative. Both false negatives and false positives matter.
+4. **Why is dry-run still enabled after good scores?** A tiny synthetic benchmark cannot authorize infrastructure mutation. The independent gate remains authoritative.
+5. **Why not deploy directly to AKS?** The deadline benefits from the tested Compose topology; AKS adds cluster, ingress, identity, and storage work without validating the product better.
+6. **Why separate liveness from readiness?** Liveness decides restart; readiness decides traffic. A process can be alive while a migration or dependency is unavailable.
+7. **What is the current performance bottleneck?** CPU model generation: the grounded loop took about 100 seconds while semantic retrieval took about 0.16 seconds.

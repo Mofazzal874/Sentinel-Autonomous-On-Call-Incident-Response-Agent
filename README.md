@@ -4,7 +4,27 @@ Sentinel is an autonomous on-call and incident-response system. It combines a tr
 
 ## Current status
 
-Phases 0–3 are complete. Sentinel now has the reproducible build and Docker baseline, Flyway-owned fleet/evidence persistence, idempotent Redis/RabbitMQ alert ingestion, stateless JWT/RBAC security, HMAC-authenticated alert intake, and four bounded deterministic read tools. All engineering and Defend This gates through Phase 3 are recorded in [TODO.md](TODO.md).
+The complete local system is implemented and verified through alert intake, durable triage, grounded proposal, deterministic guardrails, dry-run/human approval, observability, evaluation, and non-root container packaging. Cloud provisioning is the remaining user-approved handoff. Detailed evidence is recorded in [TODO.md](TODO.md) and [the project journal](docs/PROJECT_JOURNAL.md).
+
+## Architecture
+
+```text
+signed alert -> Redis suppression -> RabbitMQ (at-least-once)
+                                      |
+                              unique PostgreSQL incident
+                                      |
+                       classify -> bounded evidence -> RAG
+                                      |
+                             grounded proposal/evaluator
+                                      |
+                         deterministic GuardrailGate
+                                      |
+                 dry-run / human approval / idempotent strategy
+                                      |
+                      append-only action ledger + metrics/traces
+```
+
+The model proposes; it never decides whether a mutation is safe. PostgreSQL uniqueness is the correctness boundary, Redis is an efficiency layer, RabbitMQ acknowledges only after durable processing, and every mutation path passes through one deterministic gate.
 
 ## Prerequisites
 
@@ -39,6 +59,8 @@ Sentinel's PostgreSQL is published on `localhost:55432` because another local Po
 .\gradlew.bat clean test
 ```
 
+Live-model evaluation is opt-in and excluded from that command. See [the evaluation method](docs/evaluation/README.md) and [the measured Qwen3 4B baseline](docs/evaluation/2026-07-19-qwen3-4b-baseline.md).
+
 Run the application with the repeatable synthetic incident evidence:
 
 ```powershell
@@ -72,11 +94,8 @@ The durable architecture, safety invariants, phase gates, environment policy, an
 - Layer Redis suppression with database idempotency rather than treating Redis as the correctness boundary.
 - Never commit secrets or the private planning directory.
 
-## Phase roadmap
+## Safety and deployment
 
-1. Simulated-fleet JPA domain and Flyway migrations.
-2. Alert intake, Redis deduplication, and RabbitMQ processing.
-3. JWT/RBAC security and deterministic read tools.
-4. Structured agent orchestration and grounded runbook retrieval.
-5. Guardrails, risk scoring, action ledger, approval, and compensation.
-6. Observability, test harnesses, and Azure deployment.
+Local remediation defaults to dry-run. High-risk actions require an `SRE_APPROVER`, approval re-enters the same gate, and neither a human nor the agent can bypass kill-switch, allowlist, grounding, or idempotency checks. Compensation appends a new fact rather than rewriting history.
+
+The fastest deadline demo is the verified image plus pinned Compose dependencies on one Azure Linux VM, initially accessed through an SSH tunnel. It is a demo topology, not a highly available production topology. See [deployment readiness](docs/deployment/DEPLOYMENT_READINESS.md) for prerequisites, secret handling, rollback, cost controls, and the production-shaped alternative.

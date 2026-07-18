@@ -7,19 +7,21 @@ import io.mofazzal.sentinel.agent.domain.EvidenceBundle;
 import io.mofazzal.sentinel.agent.domain.RemediationProposal;
 import io.mofazzal.sentinel.agent.domain.TriageRequest;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.prompt.ChatOptions;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnBean(ChatClient.Builder.class)
+@ConditionalOnProperty(name = "spring.ai.model.chat", havingValue = "ollama")
 public class SpringAiProposalGenerator implements ProposalGenerator {
 
     private final ChatClient chat;
     private final ModelCallBudget budget;
 
     public SpringAiProposalGenerator(ChatClient.Builder builder, ModelCallBudget budget) {
-        this.chat = builder.clone().defaultOptions(ChatOptions.builder().temperature(0.1)).build();
+        this.chat = builder.clone().defaultOptions(OllamaChatOptions.builder()
+                .temperature(0.1)
+                .format("json")).build();
         this.budget = budget;
     }
 

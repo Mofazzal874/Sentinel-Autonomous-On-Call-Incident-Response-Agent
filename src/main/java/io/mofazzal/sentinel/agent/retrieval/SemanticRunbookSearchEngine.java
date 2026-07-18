@@ -1,13 +1,11 @@
 package io.mofazzal.sentinel.agent.retrieval;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
-@ConditionalOnBean(TextEmbeddingGateway.class)
 @ConditionalOnProperty(name = "sentinel.agent.retrieval-mode", havingValue = "semantic")
 public class SemanticRunbookSearchEngine implements RunbookSearchEngine {
 
