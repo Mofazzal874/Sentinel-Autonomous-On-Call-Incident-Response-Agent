@@ -62,5 +62,12 @@ The AI is not the backend. It is one decision-producing component inside a backe
 - [Azure deployment and GitHub CI/CD: start-to-finish beginner guide](../deployment/AZURE_BEGINNER_DEPLOYMENT_GUIDE.md)
 - [System Design Workbook](SYSTEM_DESIGN_WORKBOOK.md)
 - [Living Glossary](GLOSSARY.md)
+- [Operations digital twin](OPERATIONS_DIGITAL_TWIN.md)
+- [Public operator demo and data boundaries](OPERATOR_DEMO_DIGITAL_TWIN.md)
+- [Catalog CRUD and optimistic locking](CATALOG_CRUD_AND_OPTIMISTIC_LOCKING.md)
+- [Live scenario sandbox](LIVE_SCENARIO_SANDBOX.md)
+- [Next.js operator console](NEXTJS_OPERATOR_CONSOLE.md)
+- [Live product navigation guide](../DEMO_GUIDE.md)
+- [Incident-investigation product research](../research/2026_INCIDENT_INVESTIGATION_PRODUCT_RESEARCH.md)
 
-Phase-specific files will be added and expanded as their code is implemented.
+The implementation course is complete through the current public workbench. New notes should be added when a new integration or architectural boundary is implemented, not speculatively.

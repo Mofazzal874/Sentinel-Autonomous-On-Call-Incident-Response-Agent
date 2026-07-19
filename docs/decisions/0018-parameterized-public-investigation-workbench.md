@@ -1,4 +1,4 @@
-# ADR 0012: Parameterized public investigation workbench
+# ADR 0018: Parameterized public investigation workbench
 
 - Status: Accepted
 - Date: 2026-07-20

@@ -1334,7 +1334,7 @@ Turn the attractive but fixed portfolio walkthrough into a tool a real reviewer 
 
 ### Product research and decision
 
-Current primary documentation from Google Cloud Assist, AWS DevOps Agent, Azure SRE Agent, and Datadog Bits was compared in `docs/research/2026_INCIDENT_INVESTIGATION_PRODUCT_RESEARCH.md`. Their useful common loop is scoped incident context, visible observations and queries, hypotheses, recommended verification or mitigation, permissions separate from intelligence, and a durable/shareable record. ADR 0012 applies that loop without granting a public visitor arbitrary prompts, commands, targets, or mutations.
+Current primary documentation from Google Cloud Assist, AWS DevOps Agent, Azure SRE Agent, and Datadog Bits was compared in `docs/research/2026_INCIDENT_INVESTIGATION_PRODUCT_RESEARCH.md`. Their useful common loop is scoped incident context, visible observations and queries, hypotheses, recommended verification or mitigation, permissions separate from intelligence, and a durable/shareable record. ADR 0018 applies that loop without granting a public visitor arbitrary prompts, commands, targets, or mutations.
 
 ### Real workflow implemented
 
@@ -1370,3 +1370,47 @@ Commit `36ee313` deployed through green GitHub workflow run `29702502669`; both 
 A real public configured investigation, `9ebdd036-2787-4d29-9cf6-aa58e2b6c5b4`, completed for `payments-api`. The stored result contains five metric series/60 points, eight logs, one deployment, one runbook, five transcript entries, and one `DRY_RUN` ledger event. Production timestamps exposed the true CPU-model latency: classification about 28 seconds after submission, proposal about 2 minutes 42 seconds after submission, and critique/outcome about five minutes after submission. The consumer was healthy; the first acceptance script's 60-second limit was incorrect.
 
 That measurement also found a frontend defect: its three-minute polling window could stop before the real model completed. The launcher now observes for 14 minutes—inside the server's 15-minute sandbox lease—and adds an honest elapsed-time line every 30 seconds. It no longer implies that real AI inference will finish in a few seconds.
+
+The observation fix was committed as `c3ca33a` and deployed by workflow run `29702923174`. Both `verify-and-publish` and `deploy` completed successfully. Final independent checks returned readiness `UP`, homepage HTTP `200`, 12 services, four symptoms, five evidence series, eight log rows, and `DRY_RUN` mode from the persisted acceptance run.
+
+---
+
+## Session 31 — Repository front door and guided product narrative
+
+### Goal
+
+Rewrite the repository documentation now that the system is substantial enough to explain as a product, a system-design case study, a reproducible build, and a chronological engineering journey. A new visitor should understand the problem before encountering setup commands and should have one obvious path into the live system.
+
+### Documentation gap found
+
+The previous `README.md` was technically accurate but only 78 lines long. It described the control plane and local commands but did not explain the user journey, distinguish roles, expose the complete architecture, show the end-to-end incident sequence, explain why the product is not a chatbot, summarize the digital twin, connect technologies to responsibilities, preserve the build history, or state limitations and future direction prominently.
+
+The in-product Learn workspace explained many of these ideas, but a reviewer should not need to discover the interface before understanding the repository. The public demo also lacked one shareable document that said exactly where to click, what to wait for, what each tab proves, and which behavior is real versus synthetic.
+
+### Repository homepage rebuilt
+
+- Reframed Sentinel as an evidence-grounded incident-response control plane where investigation intelligence and execution authority are separate.
+- Put the stable live deployment, guided demo, and engineering journal at the top.
+- Added editable GitHub-native Mermaid diagrams for the component architecture, complete incident sequence, and immutable Azure delivery path.
+- Added user-role journeys for public visitors, on-call viewers, SRE approvers, and platform administrators.
+- Documented retry/crash correctness, the deterministic gate result space, the production-shaped digital twin, technology ownership, repository map, local startup, protected JWT calls, complete verification commands, security boundaries, OIDC deployment, cost accuracy, limitations, and ambitious direction.
+- Added a ten-chapter journal table that tells the implementation story in dependency order without presenting the codebase as a pile of frameworks.
+- Linked the README into the existing journal, learning curriculum, ADRs, evaluation method, deployment guides, delivery checklist, and contributor memory.
+
+### Guided demo delivered
+
+`docs/DEMO_GUIDE.md` is now the shareable user manual for the public résumé link. It gives a concrete first investigation, explains every navigation destination and report tab, lists what each interaction proves, records the approximately five-minute CPU inference expectation, distinguishes real infrastructure behavior from safe synthetic inputs, and supplies technical-review questions plus direct links.
+
+### Learning index corrected
+
+The learning index previously stopped at the original six implementation lessons and still said later notes would be added. It now links the completed digital-twin, CRUD, live-sandbox, operator-console, product-research, and demo-navigation material, and states that future notes should follow implemented boundaries rather than speculative work.
+
+The documentation audit also found two accepted ADRs numbered `0012`. The newer parameterized-workbench decision is now ADR 0018, preserving the older stable-deployment ADR 0012 and restoring an unambiguous sequence.
+
+### Documentation principle
+
+Ambitious documentation should make the engineering depth legible without inflating claims. Sentinel now says what is real, what is synthetic, what is deliberately disabled, what has been measured, and what remains a production-scale direction. A system is easier to defend when its limitations are part of the architecture narrative rather than hidden at the bottom.
+
+### Verification and next action
+
+Verify relative links, Markdown structure, Mermaid fences, commands, current GitHub/Azure URLs, current dependency versions, clean diff, and repository authorship rules. Then commit and push the documentation update and confirm the GitHub README renders from the new main commit. Because the README is packaged in the Docker build context but not served by the application, the normal workflow will still prove the repository and deployment path without changing runtime behavior.

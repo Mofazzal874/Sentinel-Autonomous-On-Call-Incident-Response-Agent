@@ -4,6 +4,8 @@ This is the active, phase-gated task list. Complete and verify each phase before
 
 ## Recruiter operator console
 
+- [x] Rewrite the repository homepage around the problem, live product journey, architecture, safety case, reproducible setup, verification evidence, delivery path, build journal, limitations, and roadmap.
+- [x] Add a shareable beginner demo guide that explains every public screen, what each interaction proves, expected CPU-model latency, and the real-versus-synthetic boundary.
 - [x] Define three coherent reviewer journeys: grounded dry-run, ungrounded escalation, and human approval required.
 - [x] Add a forward-only public run registry and profile-gated, idempotent synthetic incident histories.
 - [x] Prove the records use authoritative incident/transcript/remediation/ledger tables and retain append-only enforcement.
