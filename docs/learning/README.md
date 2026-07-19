@@ -59,6 +59,7 @@ The AI is not the backend. It is one decision-producing component inside a backe
 - [Phase 4: bounded agent orchestration and audit memory](04_PHASE_4_AGENT_CORE.md)
 - [Phase 5: deterministic guardrails and safe execution](05_PHASE_5_GUARDRAILS.md)
 - [Phase 6: operability, evaluation, packaging, and deployment](06_PHASE_6_OPERABILITY.md)
+- [Azure deployment and GitHub CI/CD: start-to-finish beginner guide](../deployment/AZURE_BEGINNER_DEPLOYMENT_GUIDE.md)
 - [System Design Workbook](SYSTEM_DESIGN_WORKBOOK.md)
 - [Living Glossary](GLOSSARY.md)
 

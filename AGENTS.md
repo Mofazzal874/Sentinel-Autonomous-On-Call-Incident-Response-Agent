@@ -95,6 +95,12 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Public UI content comes from bounded Spring DTOs. Do not hard-code duplicate incident records into the frontend.
 - Operational CRUD follows domain semantics: catalog/configuration resources may be edited; incidents, transcripts, and ledger facts are archived or append-only, never erased.
 
+## Deployment continuity
+
+- `docs/deployment/AZURE_BEGINNER_DEPLOYMENT_GUIDE.md` is the start-to-finish Azure and GitHub CI/CD learning source of truth. Update it whenever resource names, commands, workflow identity, topology, release verification, rollback, or cost-control behavior changes.
+- Keep three states explicit: source committed, immutable image verified/published, and Azure environment activated. Never report a Git push or green CI run as a deployed website unless the stable public endpoint was verified against that exact image SHA.
+- Current CI publishes SHA-tagged GHCR images. Azure activation is manual until the disabled SSH job is replaced and rehearsed with repository/environment-bound OIDC plus VM Run Command; do not broaden port 22 for GitHub-hosted runners.
+
 ## Demo dataset baseline
 
 - The `demo` profile owns a versioned, deterministic operations digital twin: 4 teams, 12 services, 18 dependencies, at least 60 deployments, 10 runbooks, 30 incidents, 10,800 metric samples, and 1,080 structured logs.

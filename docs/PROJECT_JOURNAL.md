@@ -1154,3 +1154,41 @@ An interactive demo should exercise the real system without granting the public 
 ### Next action
 
 Run the complete regression suite, then build the approval/safety/topology views. Deployment remains deferred until those operator journeys and final browser rehearsal pass.
+
+---
+
+## Session 26 — Azure deployment and CI/CD learning reconstruction
+
+### Goal
+
+Turn the scattered deployment scripts, architecture notes, command history, and troubleshooting discoveries into one beginner-safe start-to-finish guide. The user must be able to reproduce and explain the deployment rather than depend on chat history.
+
+The durable tutorial is [`docs/deployment/AZURE_BEGINNER_DEPLOYMENT_GUIDE.md`](deployment/AZURE_BEGINNER_DEPLOYMENT_GUIDE.md). Future deployment sessions must update that guide when commands, identity, topology, or operational evidence changes.
+
+### Documentation audit
+
+The repository already described the single-VM topology, local rehearsal, provisioning script, stable hostname, pinned Compose services, GHCR publishing, and an opt-in SSH job. It did not clearly distinguish a green CI publication from an updated Azure site, did not reconstruct the subscription/provider/quota commands already used, and did not provide one reviewed release, verification, rollback, lifecycle, and troubleshooting sequence.
+
+The audit also exposed a current-state mismatch: CI is active, but CD is not. `verify-and-publish` tests and publishes each `main` commit. The `deploy` job remains disabled behind `AZURE_DEPLOY_ENABLED` and uses SSH, while the Azure NSG permits SSH only from the user's recorded `/32`. Opening SSH broadly to GitHub-hosted runners would weaken the reviewed network boundary.
+
+### What was documented
+
+- The four execution locations—local PowerShell, GitHub runner, Azure Cloud Shell, and commands executed inside the VM—and why mixing them caused earlier quoting and working-directory errors.
+- Subscription selection, provider registration, quota/SKU interpretation, budget semantics, DNS choice, repository preparation, confirmation-gated provisioning, cloud-init, public-IP verification, and the exact resources created.
+- The CI stages from Next.js/Java verification through commit-SHA GHCR publication, including why `:main` is not rollback evidence.
+- A current manual immutable-release procedure using the full verified SHA and Azure VM Run Command loaded from a reviewed temporary file.
+- Post-deployment API/container/browser checks, common failure diagnosis, forward-only migration constraints, rollback, VM deallocation/start, cost implications, and destructive final teardown.
+- The target OIDC design, its least-privilege rationale, required GitHub environment/identity work, and the explicit warning that the repository's actual post-15-July-2026 OIDC subject must be verified before federation is configured.
+- A system-design/interview explanation and pen-and-paper exercises.
+
+### Important lesson
+
+Deployment has three separate claims: source was committed, an artifact was verified/published, and a particular environment activated that artifact. Only the third changes the website. Stable DNS identifies the service; an immutable SHA identifies the software. Treating those as separate facts makes updates, audit, and rollback understandable.
+
+### Sources and accuracy
+
+The commands and security model were checked against current primary Microsoft Azure, GitHub Actions, Docker, and Caddy documentation on 20 July 2026. GitHub now documents changed immutable default OIDC subject behavior for repositories created, renamed, or transferred after 15 July 2026; Sentinel's OIDC setup therefore remains a separately verified implementation task rather than an invented credential string in the guide.
+
+### Next action
+
+Use the guide for the next manual immutable Azure release. Then implement and rehearse OIDC plus VM Run Command before enabling automatic CD or deleting the old SSH secrets.

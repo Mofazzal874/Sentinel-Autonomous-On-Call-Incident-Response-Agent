@@ -15,6 +15,7 @@ This is the active, phase-gated task list. Complete and verify each phase before
 - [x] Add generated-ID catalog/runbook/scenario CRUD with optimistic locking and safe archive rules.
 - [ ] Prove concurrency limits, redaction, dry-run, and end-to-end browser behavior.
 - [ ] Replace runner-IP SSH deployment with Azure OIDC plus VM Run Command, then deploy and verify the stable URL.
+- [x] Consolidate the complete Azure provisioning, manual release, CI/GHCR, verification, rollback, troubleshooting, cost, and future OIDC process into a beginner learning guide.
 
 Detailed delivery and dataset contract: `docs/OPERATOR_CONSOLE_IMPLEMENTATION_PLAN.md`.
 

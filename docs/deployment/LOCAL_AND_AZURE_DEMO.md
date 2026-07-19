@@ -2,6 +2,8 @@
 
 This is the deployment runbook. Local rehearsal is safe to run now. Azure creation remains a separate, explicit action.
 
+For a beginner-oriented start-to-finish explanation, the exact historical commands, current manual release procedure, troubleshooting, rollback, cost control, and the SSH-to-OIDC migration boundary, read [Sentinel on Azure: beginner deployment and CI/CD guide](AZURE_BEGINNER_DEPLOYMENT_GUIDE.md). This shorter runbook is the operator reference; the beginner guide is the learning source of truth.
+
 ## What the bundle deploys
 
 ```text
@@ -95,6 +97,8 @@ bash deployment/azure-demo/new-env.sh
 Do not prefix the hostname with `http://`; that prefix deliberately disables Caddy automatic HTTPS.
 
 ## GitHub CI/CD setup
+
+Current-state warning: verification and GHCR publication are active, but automatic Azure delivery is not. The existing deploy job is disabled and still uses SSH, while the VM NSG permits SSH only from the user's fixed `/32`. Follow the beginner guide's reviewed manual immutable-release procedure until the workflow is replaced with Azure OIDC plus VM Run Command.
 
 `.github/workflows/deploy-azure-demo.yml` does two jobs:
 
