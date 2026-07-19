@@ -963,6 +963,8 @@ The corrected GitHub run `29679568345` completed successfully: Linux regression,
 
 The user has no custom domain. The Azure DNS label still produces a qualifying public hostname. Caddy can validate control through the hostname's public A record and externally reachable ports 80/443, obtain a publicly trusted certificate, redirect HTTP to HTTPS, and renew the certificate using its persistent data volume. Deployment configuration now uses the bare Azure FQDN; adding `http://` would deliberately disable automatic HTTPS. A purchased domain is therefore optional branding rather than a deployment prerequisite.
 
+The user confirmed `sentinel-mofazzal874` is available in Central India, made the GHCR package public, privately recorded the SSH source IPv4 address, and explicitly approved the reviewed Azure resource scope and spend. That authorization covers only `sentinel-demo-rg`, one non-zonal `Standard_B4as_v2` Ubuntu VM, 64 GB Standard SSD, static IP/DNS, VNet/subnet/NIC/NSG, public TCP 80/443, and SSH from the user's `/32`. It does not authorize AKS, ACR, Azure OpenAI, managed data services, a custom domain, or changes to unrelated resources. Resource creation still requires the user to execute the confirmation-gated script inside their authenticated Azure Cloud Shell.
+
 ### Durable lesson
 
 The service identity and release artifact must be separate. DNS/static IP is the durable address; an image tagged by commit SHA is replaceable software. A budget is an alert rather than an automatic shutdown. Continuous résumé availability therefore costs money even when no release occurs, while deallocation preserves the address but takes the demo offline.
