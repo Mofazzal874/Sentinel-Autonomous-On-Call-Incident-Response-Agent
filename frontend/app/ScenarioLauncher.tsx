@@ -41,14 +41,15 @@ export default function ScenarioLauncher({ onCompleted }: { onCompleted: (public
       let current = await submitDemoInvestigation(form, crypto.randomUUID());
       setSubmission(current); setStage(2); setConsoleLines(lines => [...lines, `[accepted] public_id=${current.publicId}`, "[queue] durable submission is QUEUED; awaiting consumer acknowledgement"]);
       let lastState = current.state;
-      for (let attempt = 0; attempt < 90 && !["COMPLETED", "FAILED"].includes(current.state); attempt++) {
+      for (let attempt = 0; attempt < 420 && !["COMPLETED", "FAILED"].includes(current.state); attempt++) {
         await delay(2000); current = await getDemoSubmission(current.publicId); setSubmission(current);
         if (current.state !== lastState) { setConsoleLines(lines => [...lines, `[state] ${lastState} -> ${current.state}`]); lastState = current.state; }
+        if (attempt > 0 && attempt % 15 === 0) setConsoleLines(lines => [...lines, `[agent] CPU-hosted model is still evaluating · elapsed=${Math.round((attempt * 2) / 60)}m · durable_id=${current.publicId}`]);
       }
       if (current.state === "COMPLETED") {
         setStage(5); setConsoleLines(lines => [...lines, `[database] incident_status=${current.incidentStatus}`, "[guardrail] execution_mode=DRY_RUN", "[done] Open the persisted report to inspect every evidence row."]);
       } else if (current.state === "FAILED") setError(current.failureReason ?? "The bounded investigation failed safely.");
-      else setError("The investigation is still running. Its durable ID remains available in the incident queue.");
+      else setError("The investigation exceeded the public 14-minute observation window. Its durable ID remains available for later inspection.");
     } catch (failure) { setError((failure as Error).message); }
     finally { setBusy(false); }
   }
@@ -71,7 +72,7 @@ export default function ScenarioLauncher({ onCompleted }: { onCompleted: (public
       <div className="stageTrack">{stages.map(([label,Icon],index) => <div className={stage > index || (!busy && submission?.state === "COMPLETED") ? "done" : stage === index && busy ? "current" : ""} key={label}><span><Icon /></span><strong>{label}</strong>{index < stages.length - 1 && <i><b /></i>}</div>)}</div>
       <div className="liveConsole"><header><span><Terminal /> SENTINEL EVENT STREAM</span><i>{busy ? "LIVE" : submission?.state ?? "READY"}</i></header><pre>{consoleLines.map((line,index) => <code key={`${line}-${index}`}>{line}</code>)}</pre></div>
       <AnimatePresence mode="wait"><motion.div key={error ?? submission?.state ?? "idle"} className={`liveMessage ${error ? "error" : ""}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        {error ? <><ShieldCheck /><div><strong>Stopped safely</strong><p>{error}</p></div></> : submission ? <><Activity /><div><strong>{friendly(submission.state)}</strong><p>{statusMessage(submission)}</p>{submission.state === "COMPLETED" && <button className="openReport" onClick={() => void onCompleted(submission.publicId)}>Open evidence-backed report <ArrowRight /></button>}</div></> : <><Clock3 /><div><strong>Ready when you are</strong><p>Public use is rate-limited. Replaying the same idempotency key cannot create a duplicate incident.</p></div></>}
+        {error ? <><ShieldCheck /><div><strong>Stopped safely</strong><p>{error}</p></div></> : submission ? <><Activity /><div><strong>{friendly(submission.state)}</strong><p>{statusMessage(submission)}</p>{submission.state === "COMPLETED" && <button className="openReport" onClick={() => void onCompleted(submission.publicId)}>Open evidence-backed report <ArrowRight /></button>}</div></> : <><Clock3 /><div><strong>Ready when you are</strong><p>Public use is rate-limited. The real CPU-hosted model may take several minutes; the generated ID keeps the work durable.</p></div></>}
       </motion.div></AnimatePresence>
     </section>
   </div>;
@@ -79,6 +80,6 @@ export default function ScenarioLauncher({ onCompleted }: { onCompleted: (public
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="builderField"><strong>{label}</strong>{children}</label>; }
 function ChoiceGroup({ label, choices, value, onChange }: { label: string; choices: DemoChoice[]; value: string; onChange: (value: string) => void }) { return <fieldset className="choiceField"><legend>{label}</legend><div>{choices.map(choice => <button type="button" key={choice.value} className={value === choice.value ? "active" : ""} title={choice.description} onClick={() => onChange(choice.value)}>{choice.label}</button>)}</div><small>{choices.find(item => item.value === value)?.description}</small></fieldset>; }
-function statusMessage(submission: DemoSubmission) { if (submission.state === "COMPLETED") return "Investigation complete. The report contains the exact persisted metrics, logs, deployment, runbook, model transcript and policy outcome."; if (submission.state === "FAILED") return "The workflow failed without an infrastructure mutation."; if (submission.state === "QUEUED") return "RabbitMQ accepted the work. Its consumer acknowledges only after durable processing."; return "The request has a durable identifier and is entering the bounded workflow."; }
+function statusMessage(submission: DemoSubmission) { if (submission.state === "COMPLETED") return "Investigation complete. The report contains the exact persisted metrics, logs, deployment, runbook, model transcript and policy outcome."; if (submission.state === "FAILED") return "The workflow failed without an infrastructure mutation."; if (submission.state === "QUEUED") return "RabbitMQ accepted the work. The CPU-hosted model can take several minutes; the consumer acknowledges only after durable processing."; return "The request has a durable identifier and is entering the bounded workflow."; }
 function friendly(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, character => character.toUpperCase()); }
 function delay(milliseconds: number) { return new Promise(resolve => setTimeout(resolve, milliseconds)); }

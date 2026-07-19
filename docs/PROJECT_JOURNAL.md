@@ -1362,3 +1362,11 @@ A synthetic incident is valuable when it is a durable, operator-chosen experimen
 ### Next action
 
 Run the complete backend regression and dependency audit, review the release diff, commit and push the coherent workbench, then verify the existing OIDC deployment on the stable Azure hostname. The separate Azure cost-guard bootstrap remains an owner-side task.
+
+### Production acceptance evidence
+
+Commit `36ee313` deployed through green GitHub workflow run `29702502669`; both `verify-and-publish` and Azure OIDC `deploy` completed. Independent HTTPS checks returned readiness `UP`, homepage `200`, 12 configurable services, four symptoms, and the expected 5 × 12 metrics/eight-log/dry-run evidence contract.
+
+A real public configured investigation, `9ebdd036-2787-4d29-9cf6-aa58e2b6c5b4`, completed for `payments-api`. The stored result contains five metric series/60 points, eight logs, one deployment, one runbook, five transcript entries, and one `DRY_RUN` ledger event. Production timestamps exposed the true CPU-model latency: classification about 28 seconds after submission, proposal about 2 minutes 42 seconds after submission, and critique/outcome about five minutes after submission. The consumer was healthy; the first acceptance script's 60-second limit was incorrect.
+
+That measurement also found a frontend defect: its three-minute polling window could stop before the real model completed. The launcher now observes for 14 minutes—inside the server's 15-minute sandbox lease—and adds an honest elapsed-time line every 30 seconds. It no longer implies that real AI inference will finish in a few seconds.
