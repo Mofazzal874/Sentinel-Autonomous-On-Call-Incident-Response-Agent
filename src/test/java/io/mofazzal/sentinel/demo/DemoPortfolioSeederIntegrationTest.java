@@ -138,6 +138,18 @@ class DemoPortfolioSeederIntegrationTest {
 
     @Test
     void exposesOnlyCuratedDemoViewsWithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/api/v1/demo/overview"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teams").value(4))
+                .andExpect(jsonPath("$.services").value(12))
+                .andExpect(jsonPath("$.dependencies").value(18))
+                .andExpect(jsonPath("$.metricSamples").value(10_800))
+                .andExpect(jsonPath("$.logEvents").value(1_080))
+                .andExpect(jsonPath("$.incidents").value(30))
+                .andExpect(jsonPath("$.publicScenarios").value(4))
+                .andExpect(jsonPath("$.executionMode").value("DRY_RUN"))
+                .andExpect(jsonPath("$.modelAuthority").value("PROPOSE_ONLY"));
+
         mockMvc.perform(get("/api/v1/demo/runs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(30))

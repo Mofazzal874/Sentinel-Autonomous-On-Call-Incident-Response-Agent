@@ -1268,3 +1268,58 @@ The walkthrough also records a demonstration script, a recruiter-link checklist,
 ### Next evidence
 
 Automatic delivery is proven. Connect the exact existing `$10` budget to the early deallocation guard, verify the resulting Logic App, Action Group, budget notification, and deallocate-only role without intentionally consuming credit, then keep Cost Analysis under observation for Azure's delayed records.
+
+---
+
+## Session 29 — Product-shaped interactive operator experience
+
+### Goal
+
+Correct the portfolio demo's central failure: the first console exposed backend-shaped records but did not quickly explain the user problem, provide visual hierarchy, guide a first-time visitor, or make the real backend workflow feel interactive.
+
+### Product definition recovered
+
+Sentinel solves two connected on-call problems. Operational evidence is scattered across alerts, releases, metrics, logs, and runbooks, so diagnosis is slow. An AI-generated remediation can also increase blast radius if the model is allowed to authorize itself. Sentinel creates one durable evidence-backed investigation, permits the model to propose only, applies deterministic Java safety policy, and preserves the decision in an append-only ledger.
+
+The public user is not expected to connect Kubernetes, Prometheus, or Grafana. Those are possible evidence providers in a production integration, not prerequisites for understanding or exercising this bounded portfolio sandbox.
+
+### Experience rebuilt
+
+- Replaced the sidebar data wall with five clear destinations: Overview, Live Lab, Incidents, Learn, and protected Admin.
+- Added a problem-first landing experience that identifies the users, shows the alert-to-ledger pipeline, distinguishes real backend behavior from the safe synthetic digital twin, and provides one primary action.
+- Replaced the scenario dropdown with four visual backend-owned scenario cards and a six-stage animated workflow. Completion still comes only from the polled durable API state.
+- Added incident search and severity filtering, plus separate Incident Story, Evidence & AI, Safety Decision, and Audit Ledger views.
+- Surfaced remediation rationale and risk notes that the backend already returned but the old UI hid.
+- Added a five-lesson documentation/tutorial workspace, concrete payment-release example, glossary, and hands-on path.
+- Raised the typography baseline and hierarchy, added responsive layouts, focusable controls, loading/error/empty states, motion, and reduced-motion behavior.
+- Added Motion and Lucide as pinned project dependencies using the `E:\DevCaches\npm` cache; no global application was installed.
+
+### Backend truth added
+
+`GET /api/v1/demo/overview` performs bounded scalar aggregate queries under a read-only transaction. It reports the current PostgreSQL counts for teams, services, dependency edges, deployments, metric samples, logs, incidents, runbooks, public scenarios, visitor-triggered runs, and ledger events. It also reports the public environment's `DRY_RUN` execution mode and `PROPOSE_ONLY` model authority. The frontend therefore does not hard-code portfolio scale.
+
+### Safety and system-design review
+
+The new endpoint is anonymous only under the existing demo profile, returns aggregate synthetic-demo facts, accepts no input, exposes no JPA entity, and performs no mutation. The Live Lab still accepts only server-owned scenarios, uses idempotency and capacity limits, and exposes no prompt/action/policy input. Admin CRUD remains protected by the existing JWT/RBAC boundary.
+
+### Iterative verification
+
+The first UI test pass correctly failed because the tests still navigated through the removed sidebar and because the new overview request was not mocked. The test oracle was updated to exercise the new navigation, incident tabs, ungrounded escalation, Admin authentication boundary, and live-run transition.
+
+Verified evidence:
+
+- TypeScript strict check passed.
+- Six frontend interaction/API tests across two suites passed, including the beginner learning path.
+- Next.js production static export compiled and generated all pages.
+- PostgreSQL/pgvector integration test passed, including exact overview counts and anonymous/protected boundary assertions.
+- Full clean backend regression passed 113 tests across 38 suites with zero failures, errors, or skips. A Redis client emitted a non-failing event-loop shutdown race after the assertions completed; the test result and process exit remained successful.
+- The npm production dependency audit found zero vulnerabilities, and `git diff --check` passed.
+- No second hosting system was created: the existing Azure hostname and OIDC deployment pipeline remain the single delivery path.
+
+### Learning insight
+
+A technically real backend does not automatically create a believable product. A portfolio interface must translate system invariants into a user's decision sequence: understand the pain, cause a bounded event, observe real state, inspect evidence, understand the safety verdict, and verify history. Animation is useful only when it clarifies that sequence; API state remains authoritative.
+
+### Next action
+
+Run the full backend regression and dependency audit, inspect the final source diff, commit and push the coherent redesign, then watch the existing OIDC workflow deploy it to the stable Azure URL. The separate `$10` cost-guard bootstrap remains the only owner-side deployment prerequisite not yet verified.

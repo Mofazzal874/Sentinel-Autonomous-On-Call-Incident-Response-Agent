@@ -68,6 +68,23 @@ export type DemoSubmission = {
   runUrl: string;
 };
 
+export type DemoSystemOverview = {
+  teams: number;
+  services: number;
+  dependencies: number;
+  deployments: number;
+  metricSamples: number;
+  logEvents: number;
+  incidents: number;
+  runbooks: number;
+  publicScenarios: number;
+  liveRuns: number;
+  ledgerEvents: number;
+  executionMode: "DRY_RUN";
+  modelAuthority: "PROPOSE_ONLY";
+  measuredAt: string;
+};
+
 const API_ROOT = "/api/v1/demo/runs";
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -84,6 +101,10 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
 
 export function listDemoRuns(signal?: AbortSignal) {
   return request<DemoRunSummary[]>(API_ROOT, signal);
+}
+
+export function getDemoOverview(signal?: AbortSignal) {
+  return request<DemoSystemOverview>("/api/v1/demo/overview", signal);
 }
 
 export function getDemoRun(publicId: string, signal?: AbortSignal) {

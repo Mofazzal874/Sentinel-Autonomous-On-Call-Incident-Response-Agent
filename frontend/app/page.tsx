@@ -1,31 +1,48 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
-  DemoRun,
-  DemoRunSummary,
-  getDemoRun,
-  listDemoRuns,
+  Activity, ArrowRight, BookOpen, Bot, CheckCircle2, Database, ExternalLink,
+  FileCheck2, FlaskConical, Gauge, GitBranch, Menu, Search, ShieldCheck,
+  Siren, Sparkles, Users, X, Zap,
+} from "lucide-react";
+import {
+  DemoRun, DemoRunSummary, DemoSystemOverview, getDemoOverview, getDemoRun, listDemoRuns,
 } from "../lib/demo-api";
 import CatalogWorkspace from "./CatalogWorkspace";
 import ScenarioLauncher from "./ScenarioLauncher";
+import "./experience.css";
 
 type LoadState = "loading" | "ready" | "error";
+type View = "overview" | "lab" | "incidents" | "learn" | "admin";
+type DetailTab = "story" | "evidence" | "safety" | "audit";
+
+const pipeline = [
+  ["Ingest", "Accept and fingerprint the alert", Siren],
+  ["Correlate", "Join deploys, metrics, logs and runbooks", GitBranch],
+  ["Propose", "AI suggests; it never authorizes", Bot],
+  ["Guard", "Java policy approves, blocks or escalates", ShieldCheck],
+  ["Record", "Append the outcome to an immutable ledger", FileCheck2],
+] as const;
 
 export default function OperatorConsole() {
-  const [view, setView] = useState<"operations" | "catalog">("operations");
+  const [view, setView] = useState<View>("overview");
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [runs, setRuns] = useState<DemoRunSummary[]>([]);
+  const [overview, setOverview] = useState<DemoSystemOverview | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<DemoRun | null>(null);
   const [listState, setListState] = useState<LoadState>("loading");
   const [detailState, setDetailState] = useState<LoadState>("loading");
 
-  const loadRuns = useCallback(async (signal?: AbortSignal) => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     setListState("loading");
     try {
-      const result = await listDemoRuns(signal);
-      setRuns(result);
-      setSelectedId((current) => current ?? result[0]?.publicId ?? null);
+      const [runResult, overviewResult] = await Promise.all([listDemoRuns(signal), getDemoOverview(signal)]);
+      setRuns(runResult);
+      setOverview(overviewResult);
+      setSelectedId((current) => current ?? runResult[0]?.publicId ?? null);
       setListState("ready");
     } catch (error) {
       if ((error as Error).name !== "AbortError") setListState("error");
@@ -34,237 +51,140 @@ export default function OperatorConsole() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadRuns(controller.signal);
+    void loadData(controller.signal);
     return () => controller.abort();
-  }, [loadRuns]);
+  }, [loadData]);
 
   useEffect(() => {
     if (!selectedId) return;
     const controller = new AbortController();
     setDetailState("loading");
-    getDemoRun(selectedId, controller.signal)
-      .then((result) => {
-        setSelected(result);
-        setDetailState("ready");
-      })
-      .catch((error: Error) => {
-        if (error.name !== "AbortError") setDetailState("error");
-      });
+    getDemoRun(selectedId, controller.signal).then((result) => {
+      setSelected(result); setDetailState("ready");
+    }).catch((error: Error) => { if (error.name !== "AbortError") setDetailState("error"); });
     return () => controller.abort();
   }, [selectedId]);
 
-  const counts = useMemo(() => ({
-    total: runs.length,
-    escalated: runs.filter((run) => run.incidentStatus === "ESCALATED").length,
-    approvals: runs.filter((run) => run.incidentStatus === "AWAITING_APPROVAL").length,
-    critical: runs.filter((run) => run.severity === "SEV1").length,
-  }), [runs]);
-
+  const navigate = (next: View) => { setView(next); setMobileOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCompletedRun = useCallback(async (publicId: string) => {
-    await loadRuns();
-    setSelectedId(publicId);
-    setView("operations");
-  }, [loadRuns]);
+    await loadData(); setSelectedId(publicId); setView("incidents");
+  }, [loadData]);
 
-  return (
-    <main className="shell">
-      <aside className="sidebar" aria-label="Primary navigation">
-        <a className="brand" href="#overview" aria-label="Sentinel home">
-          <span className="brandMark">S</span>
-          <span>Sentinel</span>
-        </a>
-        <nav>
-          <button className={`navItem ${view === "operations" ? "active" : ""}`} onClick={() => setView("operations")}><span>01</span> Operations</button>
-          <a className="navItem" href="#incidents"><span>02</span> Incidents</a>
-          <a className="navItem" href="#investigation"><span>03</span> Investigation</a>
-          <a className="navItem" href="#safety"><span>04</span> Safety</a>
-          <button className={`navItem ${view === "catalog" ? "active" : ""}`} onClick={() => setView("catalog")}><span>05</span> Catalog</button>
-        </nav>
-        <div className="sidebarFoot">
-          <div className="environment"><span className="pulse" /> Portfolio sandbox</div>
-          <p>Synthetic operations data.<br />No production mutations.</p>
-        </div>
-      </aside>
+  return <main className="experienceShell">
+    <header className="experienceNav">
+      <button className="wordmark" onClick={() => navigate("overview")} aria-label="Sentinel home"><span><ShieldCheck /></span>Sentinel</button>
+      <button className="mobileMenu" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle navigation">{mobileOpen ? <X /> : <Menu />}</button>
+      <nav className={mobileOpen ? "open" : ""} aria-label="Primary navigation">
+        <NavButton active={view === "overview"} onClick={() => navigate("overview")}>Overview</NavButton>
+        <NavButton active={view === "lab"} onClick={() => navigate("lab")}><FlaskConical /> Live lab</NavButton>
+        <NavButton active={view === "incidents"} onClick={() => navigate("incidents")}>Incidents <span>{runs.length}</span></NavButton>
+        <NavButton active={view === "learn"} onClick={() => navigate("learn")}><BookOpen /> Learn</NavButton>
+        <NavButton active={view === "admin"} onClick={() => navigate("admin")}>Admin</NavButton>
+      </nav>
+      <div className={`apiState ${listState}`}><i />{listState === "ready" ? "System live" : listState === "error" ? "API unavailable" : "Connecting"}</div>
+    </header>
 
-      <section className="workspace">
-        <header className="topbar" id="overview">
-          <div>
-            <p className="eyebrow">INCIDENT OPERATIONS / CENTRAL INDIA</p>
-            <h1>Response control center</h1>
-          </div>
-          <div className="systemState">
-            <span className={`connectionDot ${listState}`} />
-            <span>{listState === "ready" ? "Control plane connected" : listState === "error" ? "Control plane unavailable" : "Connecting"}</span>
-            {listState === "error" && <button onClick={() => void loadRuns()}>Retry</button>}
-          </div>
-        </header>
-
-        {view === "catalog" ? <CatalogWorkspace /> : <><section className="mission">
-          <div>
-            <span className="kicker">SAFETY-FIRST INCIDENT RESPONSE</span>
-            <h2>Investigate quickly.<br /><em>Keep humans in control.</em></h2>
-            <p>Sentinel correlates operational evidence, proposes grounded remediation, and sends every action through deterministic Java guardrails.</p>
-          </div>
-          <div className="modePanel">
-            <span>EXECUTION MODE</span>
-            <strong>DRY-RUN</strong>
-            <p>Infrastructure mutation is disabled for this public environment.</p>
-          </div>
-        </section>
-
-        <section className="metrics" aria-label="Incident summary">
-          <Metric label="Recorded incidents" value={counts.total} note="Curated causal histories" />
-          <Metric label="Escalated safely" value={counts.escalated} note="No unsafe execution" tone="warning" />
-          <Metric label="Awaiting approval" value={counts.approvals} note="Human decision required" tone="blue" />
-          <Metric label="Critical severity" value={counts.critical} note="SEV1 investigations" tone="danger" />
-        </section>
-
-        <ScenarioLauncher onCompleted={openCompletedRun} />
-
-        <section className="consoleGrid" id="incidents">
-          <div className="panel incidentPanel">
-            <div className="panelHead">
-              <div><span className="sectionNumber">01</span><h3>Incident queue</h3></div>
-              <span className="recordCount">{runs.length} RECORDS</span>
-            </div>
-            <p className="panelIntro">Select a scenario to inspect the real persisted investigation and safety decision.</p>
-            <div className="incidentList" aria-live="polite">
-              {listState === "loading" && <LoadingRows />}
-              {listState === "error" && <EmptyState title="Could not load incidents" body="The backend may still be starting. Retry the connection above." />}
-              {listState === "ready" && runs.map((run) => (
-                <button
-                  className={`incidentRow ${selectedId === run.publicId ? "selected" : ""}`}
-                  key={run.publicId}
-                  onClick={() => setSelectedId(run.publicId)}
-                  aria-pressed={selectedId === run.publicId}
-                >
-                  <span className={`severity ${run.severity.toLowerCase()}`}>{run.severity}</span>
-                  <span className="incidentCopy">
-                    <strong>{run.scenarioTitle}</strong>
-                    <small>{run.summary}</small>
-                    <span className="incidentMeta"><code>{run.service}</code><time>{formatTime(run.startedAt)}</time></span>
-                  </span>
-                  <StatusBadge value={run.incidentStatus} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel investigation" id="investigation">
-            {detailState === "loading" && <InvestigationSkeleton />}
-            {detailState === "error" && <EmptyState title="Investigation unavailable" body="The selected record could not be read safely." />}
-            {detailState === "ready" && selected && <Investigation run={selected} />}
-          </div>
-        </section>
-
-        <section className="safetyStrip" id="safety">
-          <div><span className="sectionNumber">03</span><h3>Deterministic safety boundary</h3></div>
-          <div className="safetyRules">
-            <SafetyRule label="Kill switch" value="Ready" />
-            <SafetyRule label="Mutation mode" value="Dry-run" />
-            <SafetyRule label="Model authority" value="Propose only" />
-            <SafetyRule label="Audit history" value="Append-only" />
-          </div>
-        </section>
-
-        </>}
-        <footer>
-          <span>SENTINEL / SAFE AUTONOMOUS RESPONSE</span>
-          <span>Spring Boot · PostgreSQL · RabbitMQ · Redis · pgvector</span>
-        </footer>
-      </section>
-    </main>
-  );
+    <AnimatePresence mode="wait">
+      <motion.div key={view} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .28 }}>
+        {view === "overview" && <Overview overview={overview} runs={runs} onLab={() => navigate("lab")} onLearn={() => navigate("learn")} />}
+        {view === "lab" && <LiveLab onCompleted={openCompletedRun} />}
+        {view === "incidents" && <IncidentExplorer runs={runs} selectedId={selectedId} selected={selected} listState={listState} detailState={detailState} onSelect={setSelectedId} onRetry={() => void loadData()} />}
+        {view === "learn" && <LearningCenter onLab={() => navigate("lab")} />}
+        {view === "admin" && <div className="legacyWrap"><CatalogWorkspace /></div>}
+      </motion.div>
+    </AnimatePresence>
+    <footer className="experienceFooter"><div><strong>Sentinel</strong><span>Safe autonomous incident response</span></div><p>Spring Boot · PostgreSQL · RabbitMQ · Redis · pgvector</p><a href="https://github.com/Mofazzal874/Sentinel-Autonomous-On-Call-Incident-Response-Agent" target="_blank" rel="noreferrer">Source code <ExternalLink /></a></footer>
+  </main>;
 }
 
-function Metric({ label, value, note, tone = "default" }: { label: string; value: number; note: string; tone?: string }) {
-  return <article className={`metric ${tone}`}><span>{label}</span><strong>{String(value).padStart(2, "0")}</strong><small>{note}</small></article>;
+function Overview({ overview, runs, onLab, onLearn }: { overview: DemoSystemOverview | null; runs: DemoRunSummary[]; onLab: () => void; onLearn: () => void }) {
+  return <>
+    <section className="heroSection">
+      <div className="heroGlow" />
+      <motion.div className="heroCopy" initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: .09 } } }}>
+        <motion.p variants={rise} className="heroLabel"><Sparkles /> A working incident-response sandbox</motion.p>
+        <motion.h1 variants={rise}>Turn alert noise into a <em>safe, explainable response.</em></motion.h1>
+        <motion.p variants={rise} className="heroLead">On-call engineers lose time joining scattered evidence—and an AI-generated fix can make an outage worse. Sentinel assembles the evidence, proposes one bounded action, and lets deterministic policy keep the human in control.</motion.p>
+        <motion.div variants={rise} className="heroActions"><button className="primaryCta" onClick={onLab}>Launch a live incident <ArrowRight /></button><button className="secondaryCta" onClick={onLearn}><BookOpen /> How it works</button></motion.div>
+        <motion.div variants={rise} className="truthLine"><span><CheckCircle2 /> Real database records</span><span><CheckCircle2 /> Real queue processing</span><span><ShieldCheck /> Zero production mutations</span></motion.div>
+      </motion.div>
+      <motion.div className="heroVisual" initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: .25 }}>
+        <div className="visualTop"><span><i /> INCIDENT IN PROGRESS</span><code>payments-api / SEV1</code></div>
+        <div className="signal"><Activity /><div><small>Observed signal</small><strong>Error rate jumped after release</strong><span>Logs + metrics + deploy history correlated</span></div></div>
+        <div className="decisionFlow"><div><Bot /><span>AI proposal</span><strong>Rollback deployment</strong></div><ArrowRight /><div className="guard"><ShieldCheck /><span>Java guardrail</span><strong>DRY-RUN ONLY</strong></div></div>
+        <div className="visualFoot"><span>✓ Evidence grounded</span><span>✓ Audit event written</span></div>
+      </motion.div>
+    </section>
+
+    <section className="proofBand" aria-label="Live database snapshot">
+      <div><p>LIVE DATABASE SNAPSHOT</p><h2>This is not a static mockup.</h2><span>These totals are queried from PostgreSQL when this page loads.</span></div>
+      <Proof value={overview?.services} label="services" icon={Database} />
+      <Proof value={overview?.metricSamples} label="metric samples" icon={Gauge} />
+      <Proof value={overview?.logEvents} label="log events" icon={Activity} />
+      <Proof value={overview?.ledgerEvents} label="audit events" icon={FileCheck2} />
+    </section>
+
+    <section className="storySection">
+      <div className="sectionHeading"><p>THE PROBLEM, MADE CONCRETE</p><h2>One alert. Five accountable decisions.</h2><span>Follow the same path a real on-call engineer would inspect during an outage.</span></div>
+      <div className="pipelineCards">{pipeline.map(([title, body, Icon], index) => <motion.article key={title} whileHover={{ y: -6 }}><span className="stepIndex">0{index + 1}</span><Icon /><h3>{title}</h3><p>{body}</p>{index < pipeline.length - 1 && <ArrowRight className="flowArrow" />}</motion.article>)}</div>
+    </section>
+
+    <section className="personaSection"><div><p>WHO USES IT?</p><h2>Built for the moment when every minute matters.</h2></div><div className="personaGrid"><Persona icon={Siren} title="On-call engineer" text="Gets one evidence-backed incident instead of hunting across four tools." /><Persona icon={Users} title="SRE approver" text="Sees the proposed action, risk, grounding and audit history before deciding." /><Persona icon={ShieldCheck} title="Platform team" text="Defines the deterministic policy boundary that neither a user nor a model can bypass." /></div></section>
+    <section className="finalCta"><div><span>READY TO SEE THE BACKEND MOVE?</span><h2>Run a safe incident yourself.</h2><p>Choose one server-owned scenario. Sentinel will create fresh records, publish durable work, investigate it, apply the safety gate and return the persisted result.</p></div><button className="primaryCta" onClick={onLab}>Open the live lab <Zap /></button><small>{runs.filter(run => run.source === "LIVE").length} visitor-triggered runs recorded so far</small></section>
+  </>;
 }
 
-function Investigation({ run }: { run: DemoRun }) {
+function LiveLab({ onCompleted }: { onCompleted: (id: string) => Promise<void> }) {
+  return <section className="pageSection"><div className="pageIntro"><p>INTERACTIVE DEMO</p><h1>Cause a safe failure.<br /><em>Watch Sentinel reason.</em></h1><span>This is a real backend workflow—not a frontend animation. It creates fresh telemetry and an incident, sends work through RabbitMQ, persists the investigation, and records the guardrail outcome.</span></div><ScenarioLauncher onCompleted={onCompleted} /></section>;
+}
+
+function IncidentExplorer({ runs, selectedId, selected, listState, detailState, onSelect, onRetry }: { runs: DemoRunSummary[]; selectedId: string | null; selected: DemoRun | null; listState: LoadState; detailState: LoadState; onSelect: (id: string) => void; onRetry: () => void }) {
+  const [query, setQuery] = useState(""); const [severity, setSeverity] = useState("ALL"); const [tab, setTab] = useState<DetailTab>("story");
+  const filtered = useMemo(() => runs.filter(run => (severity === "ALL" || run.severity === severity) && `${run.scenarioTitle} ${run.service} ${run.summary}`.toLowerCase().includes(query.toLowerCase())), [runs, query, severity]);
+  return <section className="pageSection incidentPage"><div className="pageIntro compact"><p>PERSISTED INVESTIGATIONS</p><h1>Incident explorer</h1><span>Every row below comes from PostgreSQL. Select one to inspect the evidence, agent proposal, deterministic safety decision and append-only audit trail.</span></div>
+    <div className="explorerLayout"><aside className="queuePanel"><div className="filterBar"><label><Search /><input aria-label="Search incidents" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search incidents or services" /></label><select aria-label="Filter by severity" value={severity} onChange={e => setSeverity(e.target.value)}><option value="ALL">All severity</option><option>SEV1</option><option>SEV2</option><option>SEV3</option><option>SEV4</option></select></div>
+      <p className="resultCount">{filtered.length} of {runs.length} records</p>{listState === "error" && <div className="largeEmpty"><strong>Could not reach the API</strong><button onClick={onRetry}>Retry</button></div>}{listState === "loading" && <LoadingRows />}
+      <div className="runList">{filtered.map(run => <button key={run.publicId} className={selectedId === run.publicId ? "active" : ""} onClick={() => onSelect(run.publicId)}><div><Severity value={run.severity} /><span className={`source ${run.source.toLowerCase()}`}>{run.source}</span></div><strong>{run.scenarioTitle}</strong><p>{run.summary}</p><footer><code>{run.service}</code><Status value={run.incidentStatus} /></footer></button>)}</div></aside>
+      <article className="detailPanel">{detailState === "loading" && <InvestigationSkeleton />}{detailState === "error" && <div className="largeEmpty"><strong>Investigation unavailable</strong><p>The selected record could not be read.</p></div>}{detailState === "ready" && selected && <Investigation run={selected} tab={tab} setTab={setTab} />}</article></div>
+  </section>;
+}
+
+function Investigation({ run, tab, setTab }: { run: DemoRun; tab: DetailTab; setTab: (tab: DetailTab) => void }) {
   const remediation = run.remediation;
-  return (
-    <>
-      <div className="panelHead investigationHead">
-        <div><span className="sectionNumber">02</span><h3>Investigation record</h3></div>
-        <span className="sourceBadge">{run.source}</span>
-      </div>
-      <div className="incidentTitle">
-        <div><span className={`severity ${run.severity.toLowerCase()}`}>{run.severity}</span><code>{run.service}</code></div>
-        <h2>{run.scenarioTitle}</h2>
-        <p>{run.disclaimer}</p>
-      </div>
-
-      <div className="timeline">
-        {run.timeline.map((entry) => (
-          <article className="timelineEntry" key={entry.sequence}>
-            <span className={`timelineMarker ${entry.type.toLowerCase()}`}>{String(entry.sequence).padStart(2, "0")}</span>
-            <div>
-              <header><strong>{friendly(entry.type)}</strong><time>{formatClock(entry.recordedAt)}</time></header>
-              <p>{entry.content}</p>
-              {entry.iteration > 0 && <small>Evaluation iteration {entry.iteration}</small>}
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {remediation ? (
-        <section className="decisionCard">
-          <div className="decisionTop">
-            <div><span>PROPOSED ACTION</span><strong>{friendly(remediation.action)}</strong></div>
-            <div className="riskDial" style={{ "--risk": `${remediation.riskScore ?? 0}%` } as React.CSSProperties}>
-              <strong>{remediation.riskScore ?? "—"}</strong><span>RISK</span>
-            </div>
-          </div>
-          <div className="grounding"><span>Grounding confidence</span><div><i style={{ width: `${Math.round(remediation.groundingSimilarity * 100)}%` }} /></div><strong>{Math.round(remediation.groundingSimilarity * 100)}%</strong></div>
-          <h4>{remediation.runbook}</h4>
-          <ol>{remediation.steps.map((step) => <li key={step}>{step}</li>)}</ol>
-          <div className="gateResult"><span>GATE DECISION</span><StatusBadge value={remediation.status} /><p>{remediation.decisionNote}</p></div>
-        </section>
-      ) : (
-        <section className="decisionCard noProposal"><span>NO GROUNDED REMEDIATION</span><h4>Escalated to a human operator</h4><p>Missing authoritative evidence is a hard safety stop.</p></section>
-      )}
-
-      <section className="ledger">
-        <h4>Append-only action ledger <span>{run.ledger.length} EVENTS</span></h4>
-        {run.ledger.length === 0 ? <p className="emptyLedger">No infrastructure action was proposed or claimed.</p> : run.ledger.map((entry, index) => (
-          <div className="ledgerRow" key={`${entry.recordedAt}-${index}`}>
-            <time>{formatClock(entry.recordedAt)}</time><strong>{friendly(entry.eventType)}</strong><span>{entry.actor}</span><code>{entry.mode}</code>
-          </div>
-        ))}
-      </section>
-    </>
-  );
+  return <><header className="detailHeader"><div><div className="detailMeta"><Severity value={run.severity} /><span className={`source ${run.source.toLowerCase()}`}>{run.source}</span><code>{run.service}</code></div><h2>{run.scenarioTitle}</h2><p>{run.summary}</p></div><Status value={run.incidentStatus} /></header>
+    <nav className="detailTabs" aria-label="Investigation sections">{([['story','Incident story'],['evidence','Evidence & AI'],['safety','Safety decision'],['audit','Audit ledger']] as [DetailTab,string][]).map(([id,label]) => <button className={tab === id ? "active" : ""} onClick={() => setTab(id)} key={id}>{label}{id === "audit" && <span>{run.ledger.length}</span>}</button>)}</nav>
+    <AnimatePresence mode="wait"><motion.div className="detailBody" key={tab} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}>
+      {tab === "story" && <div className="readableTimeline">{run.timeline.map(entry => <article key={entry.sequence}><span>{entry.sequence}</span><div><header><strong>{friendly(entry.type)}</strong><time>{formatClock(entry.recordedAt)}</time></header><p>{entry.content}</p></div></article>)}</div>}
+      {tab === "evidence" && <><Explainer title="What did the agent do?" text="It classified the incident, gathered bounded evidence, retrieved a runbook, proposed an action and critiqued that proposal. It did not authorize execution." /><div className="evidenceGrid">{run.timeline.filter(entry => entry.type !== "OUTCOME").map(entry => <article key={entry.sequence}><span>{friendly(entry.type)}</span><p>{entry.content}</p>{entry.iteration > 0 && <small>Evaluator pass {entry.iteration}</small>}</article>)}</div>{remediation && <div className="reasonGrid"><article><span>Why this action?</span><p>{remediation.rationale}</p></article><article><span>Known risk</span><p>{remediation.riskNotes}</p></article></div>}</>}
+      {tab === "safety" && (remediation ? <><Explainer title="Who made the final decision?" text="Deterministic Java code—not the AI model—scored risk and applied kill-switch, allowlist, grounding, approval and idempotency rules." /><div className="decisionHero"><div><small>PROPOSED ACTION</small><h3>{friendly(remediation.action)}</h3><p>{remediation.runbook}</p></div><div className="score"><strong>{remediation.riskScore ?? "—"}</strong><span>risk / 100</span></div><div className="score safe"><strong>{Math.round(remediation.groundingSimilarity * 100)}%</strong><span>grounded</span></div></div><ol className="actionSteps">{remediation.steps.map((step,index) => <li key={step}><span>{index + 1}</span>{step}</li>)}</ol><div className="gateBanner"><ShieldCheck /><div><small>DETERMINISTIC GATE RESULT</small><strong>{friendly(remediation.status)}</strong><p>{remediation.decisionNote ?? "The proposal remained inside the configured safety boundary."}</p></div></div></> : <div className="noRemediation"><ShieldCheck /><h3>No grounded remediation was allowed</h3><p>Sentinel escalated instead of inventing a fix. Missing authoritative evidence is a hard safety stop.</p></div>)}
+      {tab === "audit" && <><Explainer title="Why an append-only ledger?" text="An action is never erased or rewritten. Later compensation becomes a new fact, preserving who decided what and when." /><div className="auditTable">{run.ledger.length ? run.ledger.map((entry,index) => <article key={`${entry.recordedAt}-${index}`}><time>{formatClock(entry.recordedAt)}</time><span className="auditDot" /><div><strong>{friendly(entry.eventType)}</strong><p>{entry.details}</p><small>{entry.actor} · {friendly(entry.mode)}</small></div></article>) : <div className="largeEmpty"><strong>No mutation was claimed</strong><p>The safe outcome itself is visible in the investigation timeline.</p></div>}</div></>}
+    </motion.div></AnimatePresence></>;
 }
 
-function StatusBadge({ value }: { value: string }) {
-  return <span className={`statusBadge ${value.toLowerCase()}`}>{friendly(value)}</span>;
+function LearningCenter({ onLab }: { onLab: () => void }) {
+  const [open, setOpen] = useState(0);
+  const lessons = [
+    ["1. Start with the user problem", "An alert says something is wrong, but not why. An engineer normally jumps among monitoring, logs, deployment history and runbooks. Sentinel joins that evidence into one durable incident."],
+    ["2. Understand the AI boundary", "The model can classify evidence and propose a remediation. It cannot call a mutating tool, lower its own risk score, approve itself or bypass the deterministic GuardrailGate."],
+    ["3. Run the live lab", "Choose a fixed failure scenario and click Run. The browser sends one idempotent request; the backend creates fresh evidence, publishes work to RabbitMQ and processes it at least once without creating duplicate incidents."],
+    ["4. Read the investigation", "Incident Story is the sequence. Evidence & AI shows reasoning inputs and critique. Safety Decision explains why a proposal was blocked, dry-run or sent for approval. Audit Ledger proves the outcome."],
+    ["5. Know what is simulated", "The organization and failures are synthetic so a public visitor cannot damage real infrastructure. The Spring services, PostgreSQL writes, Redis limits, RabbitMQ delivery, agent orchestration and Java guardrails are real."],
+  ];
+  return <section className="pageSection learnPage"><div className="pageIntro"><p>DOCUMENTATION & TUTORIAL</p><h1>Understand Sentinel<br /><em>without reading the code.</em></h1><span>A guided tour of the product, its system design, and the safety boundary that makes an incident-response agent defensible.</span><button className="primaryCta" onClick={onLab}>Start the hands-on tutorial <ArrowRight /></button></div>
+    <div className="learningLayout"><aside><span>IN THIS GUIDE</span>{lessons.map(([title],index) => <button className={open === index ? "active" : ""} onClick={() => setOpen(index)} key={title}>{title}</button>)}</aside><article className="lesson"><span>LESSON {open + 1} OF {lessons.length}</span><h2>{lessons[open][0]}</h2><p>{lessons[open][1]}</p><div className="lessonExample"><strong>Concrete example</strong><p>A payments deployment finishes at 10:02. Errors spike at 10:04. Sentinel finds the temporal correlation, retrieves the approved rollback runbook, proposes rollback, then records a dry-run because this public environment cannot mutate infrastructure.</p></div><div className="lessonNav"><button disabled={open === 0} onClick={() => setOpen(open - 1)}>Previous</button><button disabled={open === lessons.length - 1} onClick={() => setOpen(open + 1)}>Next lesson <ArrowRight /></button></div></article></div>
+    <div className="glossary"><div><p>PLAIN-LANGUAGE GLOSSARY</p><h2>Words you will see in the console</h2></div><Glossary term="Grounding" meaning="Supporting a proposal with retrieved operational evidence instead of model memory." /><Glossary term="Idempotency" meaning="Repeating the same request cannot create a duplicate incident or action." /><Glossary term="Dry-run" meaning="Evaluate and record an action without changing infrastructure." /><Glossary term="Compensation" meaning="A new action that reverses an earlier action without erasing history." /></div>
+  </section>;
 }
 
-function SafetyRule({ label, value }: { label: string; value: string }) {
-  return <div><span className="check">✓</span><p><small>{label}</small><strong>{value}</strong></p></div>;
-}
-
-function LoadingRows() {
-  return <>{[1, 2, 3].map((row) => <div className="loadingRow" key={row}><span /><span /><span /></div>)}</>;
-}
-
-function InvestigationSkeleton() {
-  return <div className="investigationSkeleton"><div /><div /><div /><div /></div>;
-}
-
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return <div className="emptyState"><strong>{title}</strong><p>{body}</p></div>;
-}
-
-function friendly(value: string) {
-  return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).format(new Date(value)) + " UTC";
-}
-
-function formatClock(value: string) {
-  return new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "UTC" }).format(new Date(value));
-}
+const rise = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
+function NavButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) { return <button className={active ? "active" : ""} onClick={onClick}>{children}</button>; }
+function Proof({ value, label, icon: Icon }: { value?: number; label: string; icon: typeof Database }) { return <div className="proof"><Icon /><strong>{value === undefined ? "—" : value.toLocaleString()}</strong><span>{label}</span></div>; }
+function Persona({ icon: Icon, title, text }: { icon: typeof Siren; title: string; text: string }) { return <article><Icon /><h3>{title}</h3><p>{text}</p></article>; }
+function Severity({ value }: { value: string }) { return <span className={`newSeverity ${value.toLowerCase()}`}>{value}</span>; }
+function Status({ value }: { value: string }) { return <span className={`newStatus ${value.toLowerCase()}`}>{friendly(value)}</span>; }
+function Explainer({ title, text }: { title: string; text: string }) { return <div className="explainer"><BookOpen /><div><strong>{title}</strong><p>{text}</p></div></div>; }
+function Glossary({ term, meaning }: { term: string; meaning: string }) { return <article><strong>{term}</strong><p>{meaning}</p></article>; }
+function LoadingRows() { return <div className="newLoading">{[1,2,3].map(row => <div key={row}><i /><span /><span /></div>)}</div>; }
+function InvestigationSkeleton() { return <div className="detailSkeleton"><i /><i /><i /><i /></div>; }
+function friendly(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase()); }
+function formatClock(value: string) { return new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "UTC" }).format(new Date(value)) + " UTC"; }

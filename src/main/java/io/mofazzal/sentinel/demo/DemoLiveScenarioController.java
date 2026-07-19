@@ -25,9 +25,16 @@ import java.util.UUID;
 public class DemoLiveScenarioController {
 
     private final DemoLiveScenarioService scenarios;
+    private final DemoSystemOverviewService overview;
 
-    public DemoLiveScenarioController(DemoLiveScenarioService scenarios) {
+    public DemoLiveScenarioController(DemoLiveScenarioService scenarios, DemoSystemOverviewService overview) {
         this.scenarios = scenarios;
+        this.overview = overview;
+    }
+
+    @GetMapping("/overview")
+    public DemoSystemOverview overview() {
+        return overview.read();
     }
 
     @GetMapping("/scenarios")

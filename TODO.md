@@ -10,6 +10,9 @@ This is the active, phase-gated task list. Complete and verify each phase before
 - [x] Add bounded anonymous read projections while keeping ordinary operational APIs authenticated.
 - [x] Add fixed live scenario submission with per-client and global limits; never accept arbitrary prompts or actions.
 - [x] Build and package the first operator console around incident, evidence, proposal, gate, and ledger facts.
+- [x] Replace the database-shaped first console with a product-shaped journey: problem overview, interactive live lab, searchable incident explorer, evidence/safety/audit tabs, and beginner learning center.
+- [x] Expose a bounded read-only system overview so portfolio scale is measured from PostgreSQL rather than hard-coded in the frontend.
+- [x] Raise the frontend readability baseline, add responsive hierarchy and reduced-motion-safe interaction, and render remediation rationale/risk notes already owned by the backend.
 - [x] Add frontend interaction tests, type checking, static export, dependency audit, and exact-stack HTTP rehearsal.
 - [x] Expand the digital twin to the documented 12-service/30-incident/10,000-metric baseline.
 - [x] Add generated-ID catalog/runbook/scenario CRUD with optimistic locking and safe archive rules.

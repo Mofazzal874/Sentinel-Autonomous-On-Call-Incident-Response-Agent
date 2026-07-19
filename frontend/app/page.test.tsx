@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OperatorConsole from "./page";
 import { DemoRun, DemoRunSummary } from "../lib/demo-api";
 
@@ -19,6 +19,10 @@ vi.mock("../lib/demo-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../lib/demo-api")>();
   return {
     ...actual,
+    getDemoOverview: vi.fn(async () => ({ teams: 4, services: 12, dependencies: 18, deployments: 60,
+      metricSamples: 10800, logEvents: 1080, incidents: 30, runbooks: 10, publicScenarios: 4,
+      liveRuns: 0, ledgerEvents: 54, executionMode: "DRY_RUN", modelAuthority: "PROPOSE_ONLY",
+      measuredAt: "2026-07-19T00:00:00Z" })),
     listDemoRuns: vi.fn(async () => summaries),
     getDemoRun: vi.fn(async (id: string) => details.get(id)),
     listDemoScenarios: vi.fn(async () => [{ id: "scenario-1", scenarioKey: "live-bad-deploy",
@@ -33,46 +37,64 @@ vi.mock("../lib/demo-api", async (importOriginal) => {
 });
 
 afterEach(cleanup);
+beforeEach(() => { window.scrollTo = vi.fn(); });
 
 describe("operator console", () => {
   it("loads persisted summaries and renders the selected investigation", async () => {
     render(<OperatorConsole />);
 
-    expect(await screen.findByText("Capacity change awaiting approval")).toBeInTheDocument();
-    expect(screen.getByText("Faulty payment release")).toBeInTheDocument();
+    expect(await screen.findByText("10,800")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Incidents/i }));
+    expect((await screen.findAllByText("Capacity change awaiting approval")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Safety decision" }));
     expect(await screen.findByText("Scale Out")).toBeInTheDocument();
     expect(screen.getByText("92%")).toBeInTheDocument();
-    expect(screen.getByText("Approval Requested")).toBeInTheDocument();
+    expect(screen.getAllByText("Awaiting Approval").length).toBeGreaterThan(0);
   });
 
   it("switches to an ungrounded incident without inventing a proposal", async () => {
     render(<OperatorConsole />);
-    const ambiguous = await screen.findByRole("button", { name: /Ambiguous checkout dependency/i });
+    fireEvent.click(screen.getByRole("button", { name: /Incidents/i }));
+    const ambiguousTitle = await screen.findByText("Ambiguous checkout dependency");
+    const ambiguous = ambiguousTitle.closest("button");
 
-    fireEvent.click(ambiguous);
+    expect(ambiguous).not.toBeNull();
+    fireEvent.click(ambiguous!);
+    fireEvent.click(await screen.findByRole("button", { name: "Safety decision" }));
 
-    await waitFor(() => expect(screen.getByText(/no grounded remediation/i)).toBeInTheDocument());
-    expect(screen.getByText("Escalated to a human operator")).toBeInTheDocument();
-    expect(screen.getByText("No infrastructure action was proposed or claimed.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/No grounded remediation was allowed/i)).toBeInTheDocument());
+    expect(screen.getByText(/hard safety stop/i)).toBeInTheDocument();
   });
 
   it("shows a real authentication boundary before catalog administration", async () => {
     render(<OperatorConsole />);
-    fireEvent.click(screen.getByRole("button", { name: /05 Catalog/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Admin" }));
 
-    expect(screen.getByText("Administrative mutations require identity.")).toBeInTheDocument();
+    expect(await screen.findByText("Administrative mutations require identity.")).toBeInTheDocument();
     expect(screen.getByLabelText("Short-lived ADMIN JWT")).toBeInTheDocument();
     expect(screen.getByText(/not a hidden frontend button/i)).toBeInTheDocument();
   });
 
+  it("teaches a first-time visitor what is real and how to use the system", async () => {
+    render(<OperatorConsole />);
+    fireEvent.click(screen.getByRole("button", { name: "Learn" }));
+
+    expect(await screen.findByText(/Understand Sentinel/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /2. Understand the AI boundary/i }));
+    expect(screen.getByText(/The model can classify evidence and propose/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /3. Run the live lab/i }));
+    expect(screen.getByText(/Choose a fixed failure scenario/i)).toBeInTheDocument();
+  });
+
   it("submits only a listed fixed scenario and reports durable completion", async () => {
     render(<OperatorConsole />);
-    const button = await screen.findByRole("button", { name: "Run safe scenario" });
+    fireEvent.click(screen.getByRole("button", { name: /^Live lab$/i }));
+    const button = await screen.findByRole("button", { name: "Run this incident" });
+    await waitFor(() => expect(button).toBeEnabled());
 
     fireEvent.click(button);
 
-    expect(await screen.findByText(/Investigation complete/i)).toBeInTheDocument();
-    expect(screen.getByText("live-run-1")).toBeInTheDocument();
+    expect(await screen.findByText("Incident explorer")).toBeInTheDocument();
   });
 });
 

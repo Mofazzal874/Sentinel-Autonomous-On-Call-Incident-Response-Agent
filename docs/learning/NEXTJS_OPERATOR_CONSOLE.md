@@ -13,6 +13,16 @@ Understand HTTP requests, JSON, a browser, an API endpoint, static files, and a 
 - **Hydration:** React attaching interaction behavior to HTML after it reaches the browser.
 - **Reverse proxy:** the public entry point that forwards requests to an internal server.
 
+## Product question before framework question
+
+The interface must answer three questions in order:
+
+1. **Why does this exist?** On-call engineers lose time joining scattered evidence, while an unconstrained AI fix can worsen an outage.
+2. **What does Sentinel do?** It turns an alert into a durable investigation, lets AI propose, lets deterministic Java policy decide, and records the result.
+3. **How can I prove it?** Launch a fixed live scenario, watch its durable status, then inspect its stored evidence, safety decision, and ledger.
+
+The original console started at question three. It looked like a database viewer and forced a visitor to infer the product. The revised console begins with the problem and gives one obvious hands-on path.
+
 ## Request flow
 
 ```text
@@ -30,9 +40,11 @@ Next.js does not access PostgreSQL. It calls Spring Boot, and Spring Boot applie
 
 ## Code map
 
-- `frontend/app/page.tsx`: operations overview, incident queue, investigation, proposal, decision, and ledger.
+- `frontend/app/page.tsx`: product overview, navigation, searchable incident explorer, evidence/safety/audit views, and learning center.
+- `frontend/app/ScenarioLauncher.tsx`: selectable backend-owned scenarios plus API-reported workflow progress.
 - `frontend/lib/demo-api.ts`: typed API boundary.
-- `frontend/app/globals.css`: responsive operations-console visual system.
+- `frontend/app/experience.css`: readable responsive hierarchy, interaction states, motion, and reduced-motion behavior.
+- `frontend/app/globals.css`: original shared/catalog styles retained for the protected administrative workspace.
 - `frontend/app/page.test.tsx`: mocked API interaction tests.
 - `frontend/next.config.ts`: static-export decision.
 - `build.gradle.kts`: includes the finished export in the application artifact.
@@ -40,7 +52,9 @@ Next.js does not access PostgreSQL. It calls Spring Boot, and Spring Boot applie
 
 ## Concrete example
 
-When the page starts, it requests `GET /api/v1/demo/runs`. Selecting a public UUID requests its detail projection. The browser renders transcript entries and remediation facts, but it cannot change an incident because no mutation API is called and the ordinary incident API still requires a JWT.
+When the page starts, it requests `GET /api/v1/demo/runs` and `GET /api/v1/demo/overview`. The overview counts are scalar database queries, not marketing constants. Selecting a public UUID requests its detail projection. The browser renders transcript entries, proposal rationale, risk notes, gate result, and ledger facts, but it cannot change an incident because no mutation API is called and the ordinary incident API still requires a JWT.
+
+In the Live Lab, the browser first reads the four reviewed server-owned scenarios. A click submits one idempotent request, polls its durable submission record, and opens the finished investigation. The moving pipeline visualizes API state; it does not pretend a timer is backend progress.
 
 ## Failure modes and safeguards
 
@@ -49,11 +63,18 @@ When the page starts, it requests `GET /api/v1/demo/runs`. Selecting a public UU
 - Unknown run: Spring returns `404`; the frontend enters a safe error state.
 - Static assets exposed: only UI assets and reviewed demo DTOs are anonymous; operational APIs remain authenticated.
 - Frontend fabricates business state: forbidden by using API DTOs rather than hard-coded incident objects.
+- Motion misrepresents progress: the launcher advances only to completed after the API returns `COMPLETED`, and labels the animation as a visualization of polled durable state.
+- Tiny operations-style typography: avoided with a 16 px baseline, 14–19 px supporting copy, large task headings, and monospace reserved for identifiers/timestamps.
+- Motion harms accessibility: `prefers-reduced-motion` collapses animation and transition duration.
 - Extra runtime consumes VM memory: avoided through static export; no Node process runs in Azure.
 
 ## Design tradeoffs
 
 Static export cannot perform server-side Next.js actions at runtime. That is desirable here because Spring Boot already owns the server boundary. A separate Node service would add memory, failure modes, dependency patching, and routing without adding necessary product capability.
+
+Synthetic data is deliberate, not fake UI state. A public incident-response demo needs repeatable failures without exposing customer telemetry or granting infrastructure authority. The PostgreSQL records, message delivery, agent workflow, safety policy, and ledger are real; the fictional company and injected outages are the safe digital twin.
+
+Motion and Lucide are local frontend dependencies. Motion communicates state changes and view transitions; Lucide supplies consistent accessible vector icons. Neither owns business state or adds a server process.
 
 ## Verification
 
@@ -77,3 +98,5 @@ Locally, Next.js provides a responsive operator interface. In the system design,
 2. Explain why the browser must never connect directly to PostgreSQL.
 3. List what would break if frontend code were trusted to enforce `SRE_APPROVER`.
 4. Compare a static export with a permanent `next start` process for this VM.
+5. Explain why a synthetic outage can still prove real distributed-systems behavior.
+6. Mark which progress states the browser may infer and which must come from the backend.
