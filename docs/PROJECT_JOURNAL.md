@@ -1235,3 +1235,36 @@ The beginner guide now includes the one-time setup, every-push flow, failure bou
 All three shell scripts pass Bash syntax checks. Invalid release identity is rejected before mutation, both Azure bootstrap scripts refuse to run without their explicit confirmation values, the workflow parses as YAML, its OIDC permission/SSH-removal invariants pass, documentation fences are balanced, stale SSH deployment configuration is removed, and `git diff --check` is clean. No application code changed, so the already-green 113-test regression is not repeated locally; the pushed workflow will run the complete frontend/backend gate again.
 
 Cloud identity creation and budget wiring require the owner's authenticated Azure Cloud Shell. They remain unchecked in `TODO.md` until the user runs both confirmation-gated scripts and one complete automated deployment is green.
+
+---
+
+## Session 28 — Recorded Azure identity and UI deployment walkthrough
+
+### Goal
+
+Preserve the exact real demo topology and reproduce the chat-assisted Azure/GitHub setup as a beginner-friendly visual sequence without publishing unnecessary Azure account fingerprints or any secret.
+
+### Account-side progress
+
+The owner ran `configure-github-oidc.sh` successfully from authenticated Azure Cloud Shell at commit `7a05a88`. Azure created or reused the `sentinel-github-deployer` Entra application, its service principal, the `sentinel-main-azure-demo` immutable federated credential, the `Sentinel Demo Release Activator` custom role, and the exact-VM assignment. The CLI's read-only role-definition attribute warning was non-fatal. No client secret was created.
+
+The owner then entered all seven `azure-demo` GitHub environment variables and the repository-level `AZURE_DEPLOY_ENABLED=true` switch. Enabled workflow run `29699411314` completed successfully for exact SHA `7a05a88f6024cf6d5a050a4bd4efb47b39d32a72`: both `verify-and-publish` and `deploy` were green. Independent public checks returned `200 {"status":"UP"}` from readiness and HTTP `200` from a homepage containing the `Sentinel | Incident Operations Console` title.
+
+### Durable inventory
+
+- Azure: `Azure for Students`, Central India, 6 regional vCPUs, 4 BS-family vCPUs, `sentinel-demo-rg`, non-zonal `Standard_B4as_v2`, Ubuntu 24.04, 64-GiB Standard SSD.
+- Network: static `20.219.22.24`, `sentinel-mofazzal874.centralindia.cloudapp.azure.com`, owner-only TCP 22, public TCP 80/443, VNet `10.40.0.0/16`, subnet `10.40.1.0/24`.
+- GitHub: public owner ID `35369040`, repository ID `1304261078`, environment `azure-demo`, automation commit `7a05a88f6024cf6d5a050a4bd4efb47b39d32a72`.
+- Cost: owner-reported approximately `$100` student credit with one-year validity and a `$10` demo budget. The budget remains an alert until the separate cost-guard setup is run and verified.
+
+Tenant, subscription, and application client IDs are recognizable but partially masked in the public walkthrough. They are not authentication secrets, but publishing full Azure account fingerprints provides no learning benefit. SSH source IP and all actual credentials remain fully excluded.
+
+### Documentation delivered
+
+`docs/deployment/AZURE_GITHUB_UI_WALKTHROUGH.md` now follows ten screens in operational order: subscription, resource group, VM/public identity, Actions graph, GitHub environment variables, first automated run, first-failure diagnosis, budget, cost-guard verification, and deliberate start/deallocate/retire operations. Each screen includes the exact Sentinel values, UI route, Cloud Shell equivalent, expected result, and the system-design reason it exists.
+
+The walkthrough also records a demonstration script, a recruiter-link checklist, masked-value notation, authority separation, and an explicit warning that Azure's delayed cost data prevents any exact `$10` guarantee.
+
+### Next evidence
+
+Automatic delivery is proven. Connect the exact existing `$10` budget to the early deallocation guard, verify the resulting Logic App, Action Group, budget notification, and deallocate-only role without intentionally consuming credit, then keep Cost Analysis under observation for Azure's delayed records.

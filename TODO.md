@@ -310,7 +310,8 @@ Execution checkpoints:
 
 - [x] Stop and ask the user before creating any Azure resource, registry, paid model deployment, DNS entry, or public endpoint.
 - [x] Obtain final approval for the dedicated Azure resource group, static public IP, ports 80/443, and VM spend.
-- [ ] Run the committed OIDC bootstrap in Cloud Shell, add the seven printed GitHub `azure-demo` environment variables, set `AZURE_DEPLOY_ENABLED=true`, and prove one full automated deployment.
+- [x] Run the committed OIDC bootstrap in Cloud Shell, create the passwordless Entra/federated identity and exact-VM role assignment, add the seven GitHub `azure-demo` variables, and set `AZURE_DEPLOY_ENABLED=true`.
+- [x] Prove workflow run `29699411314` has both jobs green for `7a05a88f6024cf6d5a050a4bd4efb47b39d32a72`; independently verify readiness `200 {"status":"UP"}` and the public console `200`.
 - [ ] Run the committed cost-guard bootstrap against the exact existing `$10` budget and verify its Action Group, Logic App identity, notification, and deallocation permission without forcing spend.
 - [x] Provision the approved minimal-cost target and verify the stable HTTPS console, health, migrations, secrets, and bounded end-to-end live scenario.
 - [x] Add the recruiter-facing README, architecture flow, safety model, evaluation result, demo instructions/evidence, and future work.

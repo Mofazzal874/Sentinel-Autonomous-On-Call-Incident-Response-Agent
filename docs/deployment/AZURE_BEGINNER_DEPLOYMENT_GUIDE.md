@@ -2,6 +2,8 @@
 
 This is the start-to-finish learning and operations guide for the portfolio deployment. It records the deployment that was actually built, the commands used at each boundary, automated delivery, cost containment, recovery, and the remaining one-time account configuration.
 
+For a screen-by-screen checklist with the exact Sentinel resource names and masked account identifiers, use [`AZURE_GITHUB_UI_WALKTHROUGH.md`](AZURE_GITHUB_UI_WALKTHROUGH.md). This document remains the deeper engineering explanation and command reference.
+
 Do not paste the whole document into a terminal. Run one checkpoint at a time, read its expected result, and stop when the result differs.
 
 ## 1. Current state
@@ -19,6 +21,8 @@ As of 20 July 2026:
 - CI: active. Each `main` push verifies and publishes an immutable image.
 - CD implementation: OIDC plus Azure VM Run Command is committed; one-time Azure/GitHub configuration must be completed before enabling it.
 - Cost guard implementation: an early budget action can deallocate the VM; it must be connected to the user's existing budget once from Cloud Shell.
+- OIDC Azure setup: completed on 20 July 2026; Entra application, immutable federated credential, custom role, and exact-VM assignment were created without a client secret.
+- GitHub setup: the seven `azure-demo` environment variables and repository enable switch were entered by the owner. Workflow run `29699411314` proved both jobs green for SHA `7a05a88f6024cf6d5a050a4bd4efb47b39d32a72`; independent HTTPS checks returned readiness `200 {"status":"UP"}` and console `200`.
 
 Until `AZURE_DEPLOY_ENABLED=true` is added, the site can be older than the latest Git commit. After it is enabled, a green workflow means the exact commit-SHA image was published, activated, and checked at the stable readiness URL.
 
