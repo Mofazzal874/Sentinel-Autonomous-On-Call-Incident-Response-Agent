@@ -957,6 +957,12 @@ The first GitHub runner stopped immediately with exit code 126 because the repos
 
 The corrected GitHub run `29679568345` completed successfully: Linux regression, executable JAR, OCI build, and commit-SHA/main GHCR publication all passed. The deploy job remained skipped because `AZURE_DEPLOY_ENABLED` is not set to `true`, proving the cloud mutation boundary works as intended.
 
+---
+
+## Session 20 — Domain-free stable HTTPS decision
+
+The user has no custom domain. The Azure DNS label still produces a qualifying public hostname. Caddy can validate control through the hostname's public A record and externally reachable ports 80/443, obtain a publicly trusted certificate, redirect HTTP to HTTPS, and renew the certificate using its persistent data volume. Deployment configuration now uses the bare Azure FQDN; adding `http://` would deliberately disable automatic HTTPS. A purchased domain is therefore optional branding rather than a deployment prerequisite.
+
 ### Durable lesson
 
 The service identity and release artifact must be separate. DNS/static IP is the durable address; an image tagged by commit SHA is replaceable software. A budget is an alert rather than an automatic shutdown. Continuous résumé availability therefore costs money even when no release occurs, while deallocation preserves the address but takes the demo offline.

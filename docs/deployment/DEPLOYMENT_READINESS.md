@@ -26,7 +26,7 @@ AKS is not recommended for this deadline. It adds cluster, ingress, identity, st
 1. Azure for Students is active with about `$100` remaining; Central India has six regional vCPUs and four Standard BS-family vCPUs. `Standard_B4as_v2` is available for a non-zonal deployment, while zone 3 is restricted and `Standard_B4ms` is unavailable.
 2. The user created a `$10` budget alert. It is useful but does not cap or stop spending.
 3. No registry package, VM, resource group, DNS record, or public endpoint may be created until the user explicitly approves the reviewed bundle.
-4. The stable hostname label must be selected. A custom domain is optional but recommended for a permanent HTTPS résumé URL.
+4. The stable hostname label must be selected. The resulting Azure FQDN can receive automatic HTTPS through Caddy; a custom domain is optional branding.
 5. GitHub deployment secrets and the opt-in repository variable remain intentionally unset.
 6. CPU-only grounded triage took about 100 seconds locally. The VM demo must accept that latency or later adopt a separately implemented and approved accelerated/managed provider.
 

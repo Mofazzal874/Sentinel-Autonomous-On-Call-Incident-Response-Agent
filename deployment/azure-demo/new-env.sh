@@ -11,7 +11,7 @@ if [[ -f "$environment_file" ]]; then
   exit 0
 fi
 
-: "${SENTINEL_DEMO_ADDRESS:?Set SENTINEL_DEMO_ADDRESS to http://your Azure hostname or to your custom HTTPS domain}"
+: "${SENTINEL_DEMO_ADDRESS:?Set SENTINEL_DEMO_ADDRESS to your Azure FQDN without http://, or to a custom domain}"
 
 mkdir -p "$secret_directory"
 cat > "$environment_file" <<EOF

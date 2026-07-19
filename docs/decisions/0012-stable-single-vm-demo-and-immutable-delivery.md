@@ -15,7 +15,7 @@ The demo needs PostgreSQL/pgvector, Redis, RabbitMQ, two Ollama models, and Sent
 - Run pinned dependency images and the Sentinel image with Compose on one private Docker network.
 - Publish each successful `main` commit to GHCR under an immutable commit-SHA tag; deploy that exact tag to the existing VM.
 - Put Caddy at ports 80/443. Keep the application host mapping on loopback and do not publish database, Redis, RabbitMQ, or Ollama ports.
-- Use the Azure hostname over HTTP as the immediate fallback. Prefer a user-owned domain pointed at the static IP so Caddy can obtain and renew HTTPS automatically.
+- Use the public Azure hostname directly. Caddy validates it through the public DNS record and ports 80/443, then obtains and renews HTTPS automatically. A user-owned domain is optional, not required for TLS.
 - Keep deployment opt-in through the `AZURE_DEPLOY_ENABLED` repository variable and a protected GitHub environment.
 
 ## Consequences

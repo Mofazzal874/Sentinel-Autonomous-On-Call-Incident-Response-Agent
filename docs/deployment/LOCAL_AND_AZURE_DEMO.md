@@ -57,7 +57,7 @@ To also delete only this rehearsal's PostgreSQL/Redis/RabbitMQ volumes:
 
 The URL belongs to the Azure Public IP resource, not to a container. Use a Standard static IP and attach one Azure DNS label, producing a hostname such as `sentinel-mofazzal.centralindia.cloudapp.azure.com`. Replacing the app container does not replace that resource.
 
-For a durable HTTPS résumé link, register or reuse a domain you control and add an A record such as `sentinel.example.com` pointing to the static IP. Set `SENTINEL_DEMO_ADDRESS=sentinel.example.com`; Caddy then obtains and renews TLS. Without a custom domain, set `SENTINEL_DEMO_ADDRESS=http://<label>.centralindia.cloudapp.azure.com` and use the stable Azure HTTP hostname until a domain is available.
+The Azure FQDN is already a public DNS name, so a purchased domain is not required for HTTPS. Set `SENTINEL_DEMO_ADDRESS=<label>.centralindia.cloudapp.azure.com` without `http://`. After DNS resolves and ports 80/443 reach the VM, Caddy obtains and renews a public certificate and redirects HTTP to HTTPS. A custom domain remains an optional branding improvement later.
 
 Do not delete the Public IP resource during normal updates. Deallocating the VM preserves the resource and link identity but makes the site unavailable. Deleting the whole resource group deletes the link.
 
@@ -88,11 +88,11 @@ On the VM, create the ignored secret file once:
 
 ```bash
 cd /opt/sentinel/release
-export SENTINEL_DEMO_ADDRESS='http://YOUR_AZURE_HOSTNAME'
+export SENTINEL_DEMO_ADDRESS='YOUR_AZURE_HOSTNAME'
 bash deployment/azure-demo/new-env.sh
 ```
 
-Use a bare custom domain instead of the `http://` value when DNS already points at the VM and HTTPS is desired.
+Do not prefix the hostname with `http://`; that prefix deliberately disables Caddy automatic HTTPS.
 
 ## GitHub CI/CD setup
 
@@ -113,7 +113,7 @@ Repository/environment secrets:
 Repository variables:
 
 - `AZURE_DEPLOY_ENABLED`: keep `false` until the manual deployment is healthy, then set `true`.
-- `AZURE_DEMO_HEALTH_URL`: `http://<azure-host>/actuator/health/readiness` or the custom HTTPS equivalent.
+- `AZURE_DEMO_HEALTH_URL`: `https://<azure-host>/actuator/health/readiness`.
 
 Use environment approval protection if the repository plan supports it. A failed test never publishes or deploys. A failed deployment does not change DNS. Roll back by manually running the prior workflow/commit image tag on the VM; never use the moving `main` tag as rollback evidence.
 
