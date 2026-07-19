@@ -1192,3 +1192,46 @@ The commands and security model were checked against current primary Microsoft A
 ### Next action
 
 Use the guide for the next manual immutable Azure release. Then implement and rehearse OIDC plus VM Run Command before enabling automatic CD or deleting the old SSH secrets.
+
+---
+
+## Session 27 — Passwordless Azure CD and budget containment
+
+### Goal
+
+Make a verified `main` update deploy to the existing stable Azure hostname automatically, explain why the earlier deployment job was skipped, and add a reversible budget response without pretending Azure budgets are hard spending caps.
+
+### Delivery implementation
+
+- Replaced the unreachable SSH/scp job with pinned Azure Login OIDC and Azure VM Run Command.
+- Audited the repository's post-15-July-2026 immutable OIDC identity: owner ID `35369040`, repository ID `1304261078`, and GitHub environment `azure-demo`.
+- Added a confirmation-gated Cloud Shell bootstrap that creates or reuses the Entra application, service principal, federated credential, custom role, and exact-VM assignment. It creates no client secret.
+- Restricted GitHub to VM read, instance-view read, and Run Command. It cannot start, stop, resize, create, or delete compute.
+- Added a portable release activator that validates the full SHA, requires the matching immutable GHCR tag, refuses tracked VM drift, checks out the exact source, preserves ignored secrets and named volumes, and waits for Compose readiness.
+- Kept `AZURE_DEPLOY_ENABLED` as the last one-time switch. CI continues safely while identity variables are absent; once enabled, every green `main` push runs deployment and external readiness verification.
+- Updated pinned checkout and Docker actions to current major releases, removing the earlier Node 20 action warning source.
+
+### Cost-control implementation
+
+- Added a confirmation-gated Cloud Shell bootstrap that connects the user's existing budget to an Action Group and Consumption Logic App.
+- The Logic App uses its own managed identity and a custom role that can deallocate only `sentinel-demo-vm`; it cannot deploy, start, resize, or delete it.
+- The default notification is 50% actual budget usage. With a `$10` budget this nominally reacts at `$5`, leaving margin for Azure's delayed cost records.
+- Kept VM start authority away from GitHub so a later push cannot undo a budget stop.
+- Made daily VM auto-shutdown optional because it limits unattended runtime but deliberately makes the public résumé link unavailable until a manual start.
+- Rejected automatic resource-group deletion because it destroys the database and stable DNS resource. It also cannot create an exact cap when cost records arrive late.
+
+### Accuracy boundary
+
+Microsoft documents that budget notifications do not affect resources or stop consumption. Cost data is typically delayed 8–24 hours and budgets are evaluated periodically. Deallocation ends compute allocation but the managed disk, retained Standard static IP, and small automation execution costs can remain. Therefore “not a single penny after `$10`” is not a guarantee Azure Budgets can provide. Early deallocation is risk reduction; only explicit teardown ends this resource group's remaining lifecycle, and already accrued delayed cost cannot be reversed.
+
+### Learning model
+
+CI proves code and publishes an artifact. CD proves a particular environment activated that artifact. OIDC answers “which workflow is asking?” RBAC answers “what may it do?” Run Command is the control path that avoids public SSH. The cost guard is a separate failure-containment identity, so deployment authority cannot override financial safety.
+
+The beginner guide now includes the one-time setup, every-push flow, failure boundaries, concurrency behavior, database/rollback implications, early budget wiring, optional time-based shutdown, cost-state table, verification commands, and common beginner questions with scenarios.
+
+### Verification status and next action
+
+All three shell scripts pass Bash syntax checks. Invalid release identity is rejected before mutation, both Azure bootstrap scripts refuse to run without their explicit confirmation values, the workflow parses as YAML, its OIDC permission/SSH-removal invariants pass, documentation fences are balanced, stale SSH deployment configuration is removed, and `git diff --check` is clean. No application code changed, so the already-green 113-test regression is not repeated locally; the pushed workflow will run the complete frontend/backend gate again.
+
+Cloud identity creation and budget wiring require the owner's authenticated Azure Cloud Shell. They remain unchecked in `TODO.md` until the user runs both confirmation-gated scripts and one complete automated deployment is green.

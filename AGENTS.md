@@ -99,7 +99,10 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 
 - `docs/deployment/AZURE_BEGINNER_DEPLOYMENT_GUIDE.md` is the start-to-finish Azure and GitHub CI/CD learning source of truth. Update it whenever resource names, commands, workflow identity, topology, release verification, rollback, or cost-control behavior changes.
 - Keep three states explicit: source committed, immutable image verified/published, and Azure environment activated. Never report a Git push or green CI run as a deployed website unless the stable public endpoint was verified against that exact image SHA.
-- Current CI publishes SHA-tagged GHCR images. Azure activation is manual until the disabled SSH job is replaced and rehearsed with repository/environment-bound OIDC plus VM Run Command; do not broaden port 22 for GitHub-hosted runners.
+- Azure CD uses repository/environment-bound OIDC plus VM Run Command. GitHub receives no SSH key or client secret and has only exact-VM Run Command authority; never broaden port 22 for GitHub-hosted runners.
+- The deployment identity must not receive VM start authority. A later push must not restart a VM that was deallocated by the cost guard.
+- Azure budgets are delayed alerts, never hard spending caps. Use an early threshold and a separate deallocate-only managed identity; state plainly that disk/static-IP costs can remain after deallocation.
+- Never automate deletion of the dedicated resource group without an explicit backup and retirement decision because it destroys the stable hostname and persisted demo data.
 
 ## Demo dataset baseline
 

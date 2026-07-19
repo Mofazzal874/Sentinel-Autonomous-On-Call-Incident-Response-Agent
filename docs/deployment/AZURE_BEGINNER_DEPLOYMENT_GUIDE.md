@@ -1,6 +1,6 @@
 # Sentinel on Azure: beginner deployment and CI/CD guide
 
-This is the start-to-finish learning and operations guide for the portfolio deployment. It records the deployment that was actually built, the commands used at each boundary, how to update the existing site safely, and what remains before deployment is fully automatic.
+This is the start-to-finish learning and operations guide for the portfolio deployment. It records the deployment that was actually built, the commands used at each boundary, automated delivery, cost containment, recovery, and the remaining one-time account configuration.
 
 Do not paste the whole document into a terminal. Run one checkpoint at a time, read its expected result, and stop when the result differs.
 
@@ -17,9 +17,10 @@ As of 20 July 2026:
 - Container registry: public GitHub Container Registry package under `ghcr.io/mofazzal874/`.
 - Safety mode: `SENTINEL_REMEDIATION_DRY_RUN=true`.
 - CI: active. Each `main` push verifies and publishes an immutable image.
-- CD: not yet automatic. The workflow's Azure job is disabled and still uses the legacy SSH design.
+- CD implementation: OIDC plus Azure VM Run Command is committed; one-time Azure/GitHub configuration must be completed before enabling it.
+- Cost guard implementation: an early budget action can deallocate the VM; it must be connected to the user's existing budget once from Cloud Shell.
 
-The site can therefore be older than the latest Git commit. A green CI run means “verified image published,” not “Azure updated.”
+Until `AZURE_DEPLOY_ENABLED=true` is added, the site can be older than the latest Git commit. After it is enabled, a green workflow means the exact commit-SHA image was published, activated, and checked at the stable readiness URL.
 
 ## 2. Mental model
 
@@ -166,7 +167,24 @@ For this subscription, the restriction applied to zone 3 rather than the whole C
 
 ## 7. Budget checkpoint
 
-The user created a `$10` Azure budget alert while retaining approximately `$100` of student credit. This is useful, but an Azure budget is an alert—not an automatic spending stop.
+The user created a `$10` Azure budget while retaining approximately `$100` of student credit. The amount is a sensible experiment limit, but an Azure budget is an alert—not a prepaid wallet, quota, or instantaneous circuit breaker.
+
+Microsoft documents two limitations that control this design:
+
+- crossing a budget does not stop resources or consumption;
+- cost records are normally delayed by 8–24 hours and budgets are evaluated periodically, not per request.
+
+Therefore nobody can truthfully guarantee that Azure will stop at exactly `$10.00`. An automation triggered at 100% can run after more cost has already accrued. Sentinel instead uses **early containment**: at 50% actual usage by default, an Action Group invokes a Logic App, whose managed identity has permission to deallocate only `sentinel-demo-vm`.
+
+```text
+delayed Azure cost record -> existing budget reaches 50%
+                         -> Action Group webhook
+                         -> Logic App managed identity
+                         -> VM deallocate API
+                         -> compute billing stops
+```
+
+Deallocation does not erase anything and does not change the hostname. It also does not remove every charge: the managed OS disk and Standard static Public IP can still be billed. The only way to end all future charges from this dedicated resource group is to delete the group, which also destroys the database, disk, IP, and stable résumé URL. That destructive tradeoff is intentionally not automated.
 
 Before and after deployment:
 
@@ -174,7 +192,7 @@ Before and after deployment:
 az resource list --resource-group sentinel-demo-rg --output table
 ```
 
-Use Azure Portal **Cost Management + Billing → Budgets** and **Cost analysis** to inspect actual spend. Keep alerts at several percentages. Deallocate the VM when availability is not needed; do not assume the budget will stop it.
+Use Azure Portal **Cost Management + Billing → Budgets** and **Cost analysis** to inspect actual spend. Keep the original email notifications as well as the automated early action. Do not treat the action as an exact financial guarantee.
 
 ## 8. DNS label and source preparation
 
@@ -312,7 +330,7 @@ Do not deploy until `verify-and-publish` is green. If CI is red, open the failed
 
 ## 12. First deployment or manual immutable update
 
-This is the current safe release method until OIDC CD is implemented.
+This is the fallback release method and the correct way to rehearse the same versioned script before OIDC CD is enabled.
 
 In Cloud Shell, update the repository and capture the complete verified SHA:
 
@@ -330,60 +348,20 @@ printf 'Release SHA: %s\nImage: %s\n' "$RELEASE_SHA" "$RELEASE_IMAGE"
 
 Confirm the printed SHA is the green GitHub Actions run you intend to deploy.
 
-Create a temporary VM script. The unquoted `SCRIPT` marker intentionally substitutes the two Cloud Shell variables now; no secret is included:
-
-```bash
-cat > /tmp/sentinel-release.sh <<SCRIPT
-set -eu
-
-release_sha='${RELEASE_SHA}'
-image='${RELEASE_IMAGE}'
-repo='https://github.com/Mofazzal874/Sentinel-Autonomous-On-Call-Incident-Response-Agent.git'
-release_dir='/opt/sentinel/release'
-
-install -d -o azureuser -g azureuser "\$release_dir"
-
-if [ -d "\$release_dir/.git" ]; then
-  sudo -u azureuser git -C "\$release_dir" diff --quiet
-  sudo -u azureuser git -C "\$release_dir" diff --cached --quiet
-  sudo -u azureuser git -C "\$release_dir" fetch --prune origin
-else
-  rmdir "\$release_dir"
-  sudo -u azureuser git clone "\$repo" "\$release_dir"
-fi
-
-sudo -u azureuser git -C "\$release_dir" checkout --detach "\$release_sha"
-
-export SENTINEL_DEMO_ADDRESS='sentinel-mofazzal874.centralindia.cloudapp.azure.com'
-bash "\$release_dir/deployment/azure-demo/new-env.sh"
-
-docker pull "\$image"
-SENTINEL_IMAGE="\$image" bash "\$release_dir/deployment/azure-demo/start-azure.sh"
-SCRIPT
-```
-
-Review exactly what Azure will run:
-
-```bash
-sed -n '1,240p' /tmp/sentinel-release.sh
-```
-
-Run it through the VM agent:
+Run the repository-owned activator through the VM agent. Linux Action Run Command supplies parameters as positional `$1`, `$2`, and `$3` values:
 
 ```bash
 az vm run-command invoke \
   --resource-group sentinel-demo-rg \
   --name sentinel-demo-vm \
   --command-id RunShellScript \
-  --scripts @/tmp/sentinel-release.sh \
+  --scripts @deployment/azure-demo/activate-release.sh \
+  --parameters \
+    "$RELEASE_SHA" \
+    "$RELEASE_IMAGE" \
+    'sentinel-mofazzal874.centralindia.cloudapp.azure.com' \
   --query 'value[0].message' \
   --output tsv
-```
-
-Remove only the temporary Cloud Shell script:
-
-```bash
-rm /tmp/sentinel-release.sh
 ```
 
 What the release does:
@@ -526,20 +504,9 @@ az group delete --name sentinel-demo-rg --yes --no-wait
 
 Do not run teardown merely to stop compute charges; use deallocation. Run deletion only when intentionally retiring the entire demo.
 
-## 17. Current CI/CD gap
+## 17. Automated CD with Azure OIDC and VM Run Command
 
-The workflow's `verify-and-publish` job is valid CI. Its current `deploy` job is opt-in and SSH-based:
-
-- `AZURE_DEPLOY_ENABLED` is not `true`, so the job is skipped.
-- the NSG allows port 22 only from the user's recorded `/32`;
-- GitHub-hosted runner IPs are not that `/32` and are not stable enough to add broadly;
-- therefore enabling the existing job would not create hassle-free delivery.
-
-Do not solve this by opening SSH to the entire internet or continually adding GitHub runner IP ranges.
-
-## 18. Target CD with Azure OIDC and VM Run Command
-
-The target design is:
+The implemented design is:
 
 ```text
 green verify-and-publish job
@@ -555,44 +522,161 @@ az vm run-command invoke updates the existing VM
 workflow verifies the stable public readiness URL
 ```
 
-This removes the long-lived SSH private key and does not require opening port 22 to GitHub.
+This removes the long-lived SSH private key and does not require opening port 22 to GitHub. The custom role can read and invoke Run Command on this VM only. It cannot start, deallocate, resize, create, or delete a VM.
 
-One-time OIDC work still to implement and verify:
+### One-time Azure identity setup
 
-1. create a Microsoft Entra application and service principal dedicated to this repository;
-2. add a federated credential restricted to the repository's `azure-demo` GitHub environment;
-3. grant only the VM Run Command permissions at the `sentinel-demo-vm` scope (built-in Virtual Machine Contributor is the initial bounded option; a smaller custom role is preferable after rehearsal);
-4. create the GitHub `azure-demo` environment and restrict deployment to `main`;
-5. add `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` as environment configuration;
-6. add workflow `id-token: write` and a pinned `azure/login` action;
-7. replace `scp`/`ssh` steps with an `az vm run-command invoke` release;
-8. keep `AZURE_DEPLOY_ENABLED=false` until a manual release and rollback are healthy;
-9. enable it and observe one complete automated deployment;
-10. remove obsolete SSH deployment secrets only after OIDC succeeds.
+In Azure Cloud Shell, update the repository, review the script, and run it:
 
-Do not blindly paste a federated subject string. GitHub changed the default OIDC subject behavior for repositories created, renamed, or transferred after 15 July 2026. The repository has also been renamed. The implementation must inspect the repository's actual token claims or use the current Azure/GitHub environment wizard, then bind the exact immutable identity.
+```bash
+cd ~/sentinel-deploy
+git pull --ff-only
+sed -n '1,260p' deployment/azure-demo/configure-github-oidc.sh
 
-The expected workflow shape is:
-
-```yaml
-permissions:
-  contents: read
-  packages: write
-  id-token: write
-
-jobs:
-  deploy:
-    environment: azure-demo
-    steps:
-      - uses: azure/login@<pinned-commit-sha>
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - run: az vm run-command invoke ...
+export CONFIRM_CONFIGURE_AZURE_OIDC='yes'
+bash deployment/azure-demo/configure-github-oidc.sh
 ```
 
-`id-token: write` permits requesting an OIDC identity token; it does not by itself grant Azure mutation authority. Azure grants only the scope assigned to the federated service principal.
+It creates or reuses:
+
+1. a Microsoft Entra application and service principal named `sentinel-github-deployer`;
+2. one federated credential for the exact repository and GitHub `azure-demo` environment;
+3. a custom `Sentinel Demo Release Activator` role;
+4. one assignment of that role at the exact VM resource scope.
+
+No client secret is created. The repository was created on 17 July 2026, so GitHub's post-15-July immutable subject format applies. The audited subject includes owner ID `35369040` and repository ID `1304261078`; a rename cannot silently transfer deployment authority to a different repository.
+
+### One-time GitHub environment setup
+
+Go to **GitHub repository → Settings → Environments → New environment** and create exactly `azure-demo`. Under its **Environment variables**, copy the seven values printed by the script:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+- `AZURE_RESOURCE_GROUP`
+- `AZURE_VM_NAME`
+- `AZURE_DEMO_ADDRESS`
+- `AZURE_DEMO_HEALTH_URL`
+
+These are identifiers and routing configuration, not passwords. Then go to **Settings → Secrets and variables → Actions → Variables** and create:
+
+```text
+AZURE_DEPLOY_ENABLED = true
+```
+
+This variable is deliberately last. Before it exists, `verify-and-publish` succeeds and `deploy` is shown as **skipped**. After it is `true`, every `main` push runs both jobs.
+
+### What happens on every later push
+
+1. GitHub tests the frontend and backend.
+2. It builds and publishes `ghcr.io/...:<full commit SHA>`.
+3. The deploy job requests an OIDC token for the `azure-demo` environment.
+4. Microsoft Entra checks the immutable subject and gives a short-lived Azure token.
+5. Run Command sends `activate-release.sh` and three non-secret positional arguments to the VM agent.
+6. The script validates that image tag and source SHA are identical, refuses tracked VM edits, checks out the exact commit, pulls the image, and converges Compose.
+7. GitHub checks the stable public readiness URL. Only then is the deployment green.
+
+The workflow concurrency group serializes releases. If commits A and B arrive close together, B waits; they do not race two Compose updates. `id-token: write` only lets the job request identity proof. The exact Azure role assignment decides what that proof can do.
+
+### First automated proof
+
+Use **Actions → Verify, publish, and deploy demo → Run workflow**, or push a small reviewed commit. Confirm both jobs are green. Then verify:
+
+```bash
+curl --fail --silent \
+  https://sentinel-mofazzal874.centralindia.cloudapp.azure.com/actuator/health/readiness
+```
+
+If OIDC succeeds but Run Command says the VM is deallocated, that is expected after a cost guard or manual stop. Start it manually only after checking the budget:
+
+```bash
+az vm start --resource-group sentinel-demo-rg --name sentinel-demo-vm
+```
+
+## 18. Automated cost containment
+
+The cost guard is intentionally a separate identity from deployment:
+
+- GitHub identity: may activate a release, but cannot start or stop compute.
+- Logic App identity: may deallocate this VM, but cannot deploy, start, resize, or delete it.
+
+This separation prevents a later code push from undoing a budget stop.
+
+### Connect the existing `$10` budget once
+
+Find the exact budget name in **Cost Management → Budgets**, then in Cloud Shell:
+
+```bash
+cd ~/sentinel-deploy
+git pull --ff-only
+sed -n '1,340p' deployment/azure-demo/configure-cost-guard.sh
+
+export AZURE_BUDGET_NAME='PUT YOUR EXACT EXISTING BUDGET NAME HERE'
+export AZURE_COST_GUARD_THRESHOLD_PERCENT='50'
+export CONFIRM_CONFIGURE_COST_GUARD='yes'
+
+bash deployment/azure-demo/configure-cost-guard.sh
+```
+
+The script preserves the existing budget and adds a `SentinelEarlyDeallocate` notification. It creates a Consumption Logic App, Action Group, narrowly scoped custom role, and VM-scope assignment. The default 50% threshold is deliberately conservative: with a `$10` budget the signal nominally starts at `$5`, leaving room for delayed cost records. Even this cannot guarantee a final amount below `$10`.
+
+The Logic App is a Consumption resource and an invocation can itself have a small cost. Action Group notification limits and pricing also depend on the subscription. Inspect the resulting resources in Cost Analysis rather than assuming they are free.
+
+### Optional daily shutdown
+
+Daily shutdown is a different control: it limits unattended runtime even if no budget event arrives. It also makes the résumé URL unavailable until you manually start the VM. To add midnight Bangladesh-time shutdown (`18:00 UTC`), set these before running the same cost script:
+
+```bash
+export AZURE_DAILY_SHUTDOWN_UTC='1800'
+export AZURE_BUDGET_EMAIL='YOUR EMAIL ADDRESS'
+```
+
+Azure auto-shutdown does not auto-start the VM. Omit `AZURE_DAILY_SHUTDOWN_UTC` if continuous portfolio availability matters more than that daily cap.
+
+### Verify without intentionally spending more
+
+Inspect wiring rather than forcing the budget to be consumed:
+
+```bash
+az logic workflow show \
+  --resource-group sentinel-demo-rg \
+  --name sentinel-budget-deallocate \
+  --query '{State:state,Identity:identity.principalId}' \
+  --output table
+
+az monitor action-group show \
+  --resource-group sentinel-demo-rg \
+  --name sentinel-budget-stop \
+  --query '{Enabled:enabled,LogicAppCount:length(logicAppReceivers)}' \
+  --output table
+
+az consumption budget show \
+  --budget-name "$AZURE_BUDGET_NAME" \
+  --query 'notifications.SentinelEarlyDeallocate' \
+  --output json
+```
+
+When the action fires, verify deallocation:
+
+```bash
+az vm get-instance-view \
+  --resource-group sentinel-demo-rg \
+  --name sentinel-demo-vm \
+  --query "instanceView.statuses[?starts_with(code,'PowerState/')].displayStatus" \
+  --output tsv
+```
+
+Expected: `VM deallocated`. `VM stopped` is not sufficient evidence; a stopped-but-allocated VM can still incur compute charges.
+
+### Cost states worth memorizing
+
+| State | Site | Compute | Disk/IP | Recovery |
+|---|---|---:|---:|---|
+| VM running | Online | Billed | Billed | None |
+| VM deallocated | Offline | Not billed | May remain billed | Manual `az vm start` |
+| Resource group deleted | Gone | None from group | None from group | Recreate; old data/URL are lost |
+
+Never automate resource-group deletion for this portfolio without a separate backup and retirement decision.
 
 ## 19. Security boundaries to defend
 
@@ -619,9 +703,71 @@ Stable service identity is separated from replaceable software identity. CI prov
 
 ### Interview defense
 
-“I deployed a Spring Boot/Next.js incident-response control plane to an isolated Azure VM. GitHub Actions builds and tests both stacks, publishes commit-SHA images to GHCR, and the release converges a private Compose topology behind Caddy TLS without changing the public DNS. The demo is intentionally single-node and dry-run. I use durable volumes, forward-only migrations, readiness verification, immutable rollback tags, bounded public workloads, and I am replacing the initial manual/SSH release with least-privilege OIDC plus Azure VM Run Command.”
+“I deployed a Spring Boot/Next.js incident-response control plane to an isolated Azure VM. GitHub Actions tests both stacks, publishes commit-SHA images to GHCR, exchanges repository-bound OIDC for a short-lived Azure token, and activates the exact release through VM Run Command without exposing SSH. A separate least-privilege budget action deallocates compute early, while immutable tags, forward-only migrations, readiness checks, and durable volumes make delivery explainable and recoverable.”
 
-## 21. Pen-and-paper exercises
+## 21. Beginner questions, answers, and scenarios
+
+### Why was `deploy` skipped even though the workflow was green?
+
+The job had `if: vars.AZURE_DEPLOY_ENABLED == 'true'`. GitHub correctly completed CI and skipped CD because the opt-in variable did not exist. This was a safety switch, not a runner failure. After the one-time OIDC variables exist, set the switch to `true` and the same workflow will deploy every green `main` commit.
+
+### Does automated deployment mean every edit instantly reaches production?
+
+No. Only a commit pushed to `main` triggers this workflow. It must pass frontend and backend checks, publish an image, authenticate to Azure, activate the image, and pass public readiness. A failing test stops before Azure. A failed readiness check leaves the run red and visible even if Compose attempted the update.
+
+Example: commit A has a TypeScript error. `npm run typecheck` fails, so no A image is published and the VM remains on the previous healthy SHA.
+
+### Why use both a Git SHA and a container image tag?
+
+The SHA connects source, build, and runtime evidence. `activate-release.sh` rejects an image whose tag differs from the requested source SHA. Without that check, the VM could display source A while actually running image B, making debugging and résumé claims unreliable.
+
+### Why OIDC instead of storing an Azure password in GitHub?
+
+OIDC creates a short-lived token only when the exact repository/environment workflow runs. There is no reusable client secret to leak, rotate, or forget. The token still has minimal authority because Azure RBAC permits only Run Command on one VM.
+
+### Could a malicious pull request deploy itself?
+
+Not through this workflow. Deployment triggers on `main`, uses the `azure-demo` environment identity, and requires the exact immutable repository subject. Protect `main` with pull-request review and branch protection for a stronger human gate. Never add a `pull_request_target` deployment path for untrusted code.
+
+### What if two pushes happen within one minute?
+
+The workflow uses one `azure-demo` concurrency group with `cancel-in-progress: false`. The first release finishes and the second waits. This avoids simultaneous Git checkouts and Compose updates on one VM. The later successful SHA becomes active.
+
+### What happens to PostgreSQL data during deployment?
+
+Compose replaces containers, not named volumes. PostgreSQL data, message state, model cache, and Caddy certificates persist. Flyway applies forward-only migrations at startup. An image rollback cannot blindly reverse a database migration, so schema changes must remain backward compatible across the rollback window.
+
+### Why can the deployment identity not start the VM?
+
+Because a budget stop must dominate delivery. If GitHub also had `start/action`, a routine push after budget deallocation could restart compute billing. Recovery is a conscious owner action after checking Cost Analysis.
+
+### Does the `$10` budget guarantee a maximum charge of `$10`?
+
+No. Azure explicitly says budgets do not stop consumption. Cost data can arrive 8–24 hours later, so even automation at 100% can overshoot. A 50% action creates safety margin but still cannot mathematically guarantee the final bill.
+
+Scenario: the VM costs accrue today, but the cost record reaches Cost Management tomorrow. The recorded total may jump from `$4.80` to `$8.20`; the guard then deallocates. The threshold worked, but not in real time.
+
+### Why not automatically delete the resource group at the limit?
+
+Deletion would stop the disk/IP lifecycle too, but destroys the database and stable DNS resource. Delayed cost records still mean it cannot guarantee an exact cap. For a résumé demo, early deallocation is reversible; group deletion is an explicit retirement operation.
+
+### What still costs money after deallocation?
+
+Compute allocation stops, but the OS disk and retained Standard static Public IP may still be billed. The Logic App can also have per-execution cost. Check the subscription's current pricing and Cost Analysis. “VM deallocated” means “compute stopped,” not “account guaranteed at zero.”
+
+### Should I enable daily shutdown?
+
+Enable it for a classroom or occasional demo where predictable offline hours are acceptable. Leave it off for a résumé link expected to work at any hour. A practical alternative is manually start it before recruiting activity and deallocate after, but that sacrifices always-on availability.
+
+### What should I inspect when a deployment fails?
+
+Read the first failing boundary in order: CI test, GHCR publication, OIDC login, Run Command, VM-side Compose, then public readiness. Do not randomly recreate resources. For VM-side errors, use Run Command to inspect `docker compose ps` and bounded logs; for OIDC errors, compare environment name and the immutable federated subject.
+
+### What does an FDE or DevOps engineer learn from this design?
+
+Delivery is a chain of evidence and permissions, not a single shell command. The artifact is immutable, identity is short-lived, RBAC is resource-scoped, releases are serialized, readiness is externally verified, database evolution is forward-only, and cost automation has documented latency and blast radius. Those decisions remain useful when moving from one VM to Container Apps or Kubernetes.
+
+## 22. Pen-and-paper exercises
 
 1. Draw the four execution locations: local PC, GitHub runner, Cloud Shell, and Azure VM.
 2. Explain why a green image publication is not proof that Azure changed.
@@ -632,10 +778,15 @@ Stable service identity is separated from replaceable software identity. CI prov
 7. Explain why a rollback cannot blindly reverse a Flyway migration.
 8. List what continues to cost money after VM deallocation.
 
-## 22. Official references
+## 23. Official references
 
 - [Azure CLI: VM Run Command](https://learn.microsoft.com/en-us/cli/azure/vm/run-command)
 - [Azure Run Command overview](https://learn.microsoft.com/en-us/azure/virtual-machines/run-command-overview)
+- [Azure CLI: VM auto-shutdown](https://learn.microsoft.com/en-us/cli/azure/vm#az-vm-auto-shutdown)
+- [Azure budgets and delayed cost data](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets)
+- [Azure budget action automation scenario](https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/cost-management-budget-scenario)
+- [Azure Logic Apps managed identity authentication](https://learn.microsoft.com/en-us/azure/logic-apps/authenticate-with-managed-identity)
+- [Azure Consumption Budget REST API](https://learn.microsoft.com/en-us/rest/api/consumption/budgets/get?view=rest-consumption-2024-08-01)
 - [Azure public IP addresses and DNS labels](https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/public-ip-addresses)
 - [Azure cloud-init for Linux VMs](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/using-cloud-init)
 - [GitHub: configuring OIDC in Azure](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-azure)
@@ -645,4 +796,3 @@ Stable service identity is separated from replaceable software identity. CI prov
 - [Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
 - [Docker Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/)
 - [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https)
-

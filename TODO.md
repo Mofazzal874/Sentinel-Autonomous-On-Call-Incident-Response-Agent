@@ -310,8 +310,9 @@ Execution checkpoints:
 
 - [x] Stop and ask the user before creating any Azure resource, registry, paid model deployment, DNS entry, or public endpoint.
 - [x] Obtain final approval for the dedicated Azure resource group, static public IP, ports 80/443, and VM spend.
-- [ ] Configure the VM hostname/custom domain plus GitHub environment secrets and enable deployment only after the first manual health check.
-- [ ] After approval, provision the chosen minimal-cost target and verify health, metrics, migrations, secrets, and end-to-end behavior.
+- [ ] Run the committed OIDC bootstrap in Cloud Shell, add the seven printed GitHub `azure-demo` environment variables, set `AZURE_DEPLOY_ENABLED=true`, and prove one full automated deployment.
+- [ ] Run the committed cost-guard bootstrap against the exact existing `$10` budget and verify its Action Group, Logic App identity, notification, and deallocation permission without forcing spend.
+- [x] Provision the approved minimal-cost target and verify the stable HTTPS console, health, migrations, secrets, and bounded end-to-end live scenario.
 - [x] Add the recruiter-facing README, architecture flow, safety model, evaluation result, demo instructions/evidence, and future work.
 - [x] Complete the final uncached suite after deployment startup wiring: 103 tests across 35 suites, zero failures/errors/skips.
 - [x] Complete all seven operability/deployment Defend This answers.

@@ -98,32 +98,34 @@ Do not prefix the hostname with `http://`; that prefix deliberately disables Cad
 
 ## GitHub CI/CD setup
 
-Current-state warning: verification and GHCR publication are active, but automatic Azure delivery is not. The existing deploy job is disabled and still uses SSH, while the VM NSG permits SSH only from the user's fixed `/32`. Follow the beginner guide's reviewed manual immutable-release procedure until the workflow is replaced with Azure OIDC plus VM Run Command.
+Automatic Azure delivery is implemented with repository-bound OIDC plus VM Run Command. It remains safely skipped until the one-time Azure identity and GitHub environment variables are configured and `AZURE_DEPLOY_ENABLED=true`. Port 22 remains restricted to the owner's fixed `/32`.
 
 `.github/workflows/deploy-azure-demo.yml` does two jobs:
 
 1. Every push to `main` runs the full regression suite, builds the application, and publishes `ghcr.io/<owner>/<repository>:<commit-sha>` plus the convenience `:main` tag.
-2. When deployment is enabled, it copies only the versioned deployment bundle, pulls the immutable SHA image on the existing VM, recreates changed containers, and verifies the same stable readiness URL.
+2. When deployment is enabled, it exchanges the workflow identity for a short-lived Azure token, invokes the versioned release activator through the VM agent, pulls the immutable SHA image, recreates changed containers, and verifies the same stable readiness URL.
 
-After the first package publish, make the GHCR container package public. Public read access avoids storing a registry token on the VM. Then create a GitHub environment named `azure-demo` and configure:
+After the first package publish, make the GHCR container package public. Public read access avoids storing a registry token on the VM. Run `deployment/azure-demo/configure-github-oidc.sh` from authenticated Azure Cloud Shell, then create a GitHub environment named `azure-demo` and configure the seven values it prints:
 
-Repository/environment secrets:
+Environment variables:
 
-- `AZURE_VM_HOST`: stable Azure hostname or custom domain used for SSH.
-- `AZURE_VM_USER`: `azureuser`.
-- `AZURE_VM_SSH_KEY`: the complete private key generated for this VM.
-- `AZURE_VM_KNOWN_HOSTS`: the already-verified SSH host-key line; capture it after the first trusted manual SSH connection, not blindly during each workflow.
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+- `AZURE_RESOURCE_GROUP`
+- `AZURE_VM_NAME`
+- `AZURE_DEMO_ADDRESS`
+- `AZURE_DEMO_HEALTH_URL`
 
 Repository variables:
 
-- `AZURE_DEPLOY_ENABLED`: keep `false` until the manual deployment is healthy, then set `true`.
-- `AZURE_DEMO_HEALTH_URL`: `https://<azure-host>/actuator/health/readiness`.
+- `AZURE_DEPLOY_ENABLED`: create with value `true` only after all environment variables exist.
 
 Use environment approval protection if the repository plan supports it. A failed test never publishes or deploys. A failed deployment does not change DNS. Roll back by manually running the prior workflow/commit image tag on the VM; never use the moving `main` tag as rollback evidence.
 
 ## Budget and lifecycle
 
-The `$10` budget is a warning threshold, not a hard spending cap. With `$100` student credit, keep alerts at several levels (for example 10%, 50%, 80%, and 95%), inspect Cost Analysis daily during the demo window, and deallocate compute when continuous availability is not required. A résumé link and a deallocated VM are a direct tradeoff: the name stays stable, but the service is offline.
+The `$10` budget is not a hard spending cap. `configure-cost-guard.sh` can connect an early threshold to a separate deallocate-only Logic App identity. Azure cost data is delayed, and disk/static-IP charges can remain after deallocation, so inspect Cost Analysis during the demo window. A résumé link and a deallocated VM are a direct tradeoff: the name stays stable, but the service is offline.
 
 Never delete individual unknown resources to save space or money. This demo is intentionally isolated in `sentinel-demo-rg`, so `az resource list --resource-group sentinel-demo-rg --output table` shows its full blast radius. Deleting that resource group is the final teardown and destroys its disks, data, IP, and Azure hostname.
 
