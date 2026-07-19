@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sentinel — Autonomous Incident Response</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: #e8eef7; background: radial-gradient(circle at 20% 10%, #173052, #08111f 45%, #050a12); }
+    main { width: min(980px, calc(100% - 40px)); margin: 0 auto; padding: 72px 0; }
+    .eyebrow { color: #66e3c4; letter-spacing: .16em; text-transform: uppercase; font-size: .78rem; font-weight: 700; }
+    h1 { max-width: 760px; margin: 14px 0 18px; font-size: clamp(2.5rem, 7vw, 5.4rem); line-height: .98; letter-spacing: -.055em; }
+    .lead { max-width: 710px; color: #afbed2; font-size: 1.12rem; line-height: 1.7; }
+    .status { display: inline-flex; gap: 10px; align-items: center; margin: 22px 0 42px; padding: 9px 14px; border: 1px solid #294361; border-radius: 999px; background: #0c1929cc; color: #cad6e6; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #f0b849; box-shadow: 0 0 15px #f0b849; }
+    .dot.up { background: #66e3c4; box-shadow: 0 0 15px #66e3c4; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    article { min-height: 185px; padding: 24px; border: 1px solid #203750; border-radius: 18px; background: linear-gradient(145deg, #0f2033cc, #0a1422cc); }
+    article span { color: #66e3c4; font-family: ui-monospace, monospace; font-size: .8rem; }
+    article h2 { margin: 15px 0 10px; font-size: 1.18rem; }
+    article p { margin: 0; color: #9fb0c6; line-height: 1.58; font-size: .94rem; }
+    footer { margin-top: 36px; color: #71849e; font-size: .9rem; }
+    a { color: #89b9ff; }
+    @media (max-width: 760px) { main { padding: 44px 0; } .grid { grid-template-columns: 1fr; } article { min-height: auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Spring Boot · Distributed Systems · Safe AI</div>
+    <h1>Sentinel responds to incidents without surrendering control.</h1>
+    <p class="lead">Alerts are deduplicated, durably queued, correlated with operational evidence, and evaluated by a grounded agent. Every proposed mutation must still pass deterministic Java guardrails, idempotency checks, and an append-only audit ledger.</p>
+    <div class="status"><span class="dot" id="status-dot"></span><span id="status-text">Checking application readiness…</span></div>
+    <section class="grid">
+      <article><span>01 / RELIABILITY</span><h2>At-least-once, safely</h2><p>RabbitMQ manual acknowledgements combine with PostgreSQL uniqueness and idempotent consumers so redelivery cannot duplicate an incident.</p></article>
+      <article><span>02 / GROUNDING</span><h2>Evidence before proposals</h2><p>Bounded deploy, metric, log, and pgvector runbook retrieval ground model output. Missing evidence escalates instead of inventing a fix.</p></article>
+      <article><span>03 / SAFETY</span><h2>The model cannot authorize</h2><p>A single deterministic gate enforces kill switch, allowlists, risk, dry-run, approval, and action idempotency before any strategy can execute.</p></article>
+    </section>
+    <footer>Demo mode remains dry-run. <a href="https://github.com/Mofazzal874/Sentinel---Autonomous-On-Call---Incident-Response-Agent">Explore the architecture and source on GitHub</a>.</footer>
+  </main>
+  <script>
+    fetch('/actuator/health/readiness', { cache: 'no-store' })
+      .then(response => { if (!response.ok) throw new Error(); document.querySelector('#status-dot').classList.add('up'); document.querySelector('#status-text').textContent = 'Application ready · safety mode: dry-run'; })
+      .catch(() => { document.querySelector('#status-text').textContent = 'Application is starting or temporarily unavailable'; });
+  </script>
+</body>
+</html>

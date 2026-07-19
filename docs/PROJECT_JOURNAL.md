@@ -928,3 +928,35 @@ Two clean application builds produced identical SHA-256 `5A1B87B51234FF465F21E3C
 ### Deployment conclusion
 
 A one-VM Azure demo is realistic by tomorrow once the user supplies an active subscription, region, maximum budget, and private-tunnel versus public-TLS choice. The current image and Compose topology are locally smoke-tested. Full-agent latency will be slow on CPU; a paid/accelerated provider is a separate implementation and approval. No Azure CLI, cloud resource, registry, DNS record, or public endpoint was created.
+
+---
+
+## Session 19 — Rehearsable deployment and stable delivery identity
+
+### Goal
+
+Prepare the complete one-VM deployment bundle, prove it before Azure, and keep one résumé URL stable while later commits deploy automatically.
+
+### What changed and how it connects
+
+- Added an opt-in application startup runner that idempotently embeds all Flyway-seeded runbooks before readiness. Default/test startup remains unchanged.
+- Added an isolated deployment Compose topology with digest-pinned PostgreSQL/pgvector, Redis, RabbitMQ, and Azure-only Ollama/Caddy overlays. Only Caddy is public in Azure; the app maps to host loopback and every dependency stays on the private Docker network.
+- Added strong ignored secret generation for PowerShell and Linux, official Docker Engine bootstrap for Ubuntu 24.04, a confirmation-gated Azure provisioning script, and local start/stop/export tooling.
+- Added a public static portfolio landing page at `/`; it calls only the status-only readiness endpoint. Protected metrics and APIs retain their existing security boundary.
+- Added GitHub Actions verification, SHA-tagged GHCR publication, and opt-in SSH deployment to the existing VM. A static Azure IP/DNS or custom domain remains unchanged across releases.
+
+### Iterative verification and defect found
+
+The first rehearsal correctly failed: setting Spring AI's generic pgvector auto-configuration activated its unrelated `id/metadata` schema contract. Sentinel already owns a smaller Flyway schema and bounded JDBC retrieval implementation. Removing that unnecessary flag preserved semantic retrieval and avoided two owners for one table.
+
+The corrected exact stack passed readiness `200`, liveness `200`, anonymous Prometheus `401`, and a database assertion of three indexed 768-dimension runbooks. The public Caddy edge returned `200` for both the landing route and proxied readiness. It reused the existing E-drive Ollama/model installation and did not touch the ordinary Compose project or Windows PostgreSQL.
+
+The final uncached regression passed 103 tests across 35 suites with zero failures, errors, or skips. Both Compose combinations validated, all four Linux scripts passed `bash -n` under Ubuntu 24.04 WSL, and `git diff --check` was clean. The temporary Caddy image and all isolated rehearsal containers, network, and volumes were removed after evidence collection.
+
+### Durable lesson
+
+The service identity and release artifact must be separate. DNS/static IP is the durable address; an image tagged by commit SHA is replaceable software. A budget is an alert rather than an automatic shutdown. Continuous résumé availability therefore costs money even when no release occurs, while deallocation preserves the address but takes the demo offline.
+
+### Next safe action
+
+Request explicit approval before the confirmation-gated Azure script creates the dedicated resource group and public endpoint. The remaining user choices are the DNS label and whether to use the Azure HTTP hostname initially or point a custom domain for HTTPS.

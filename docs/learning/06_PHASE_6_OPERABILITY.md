@@ -155,3 +155,19 @@ In an interview, do not call this exactly-once processing. It is at-least-once d
 5. **Why not deploy directly to AKS?** The deadline benefits from the tested Compose topology; AKS adds cluster, ingress, identity, and storage work without validating the product better.
 6. **Why separate liveness from readiness?** Liveness decides restart; readiness decides traffic. A process can be alive while a migration or dependency is unavailable.
 7. **What is the current performance bottleneck?** CPU model generation: the grounded loop took about 100 seconds while semantic retrieval took about 0.16 seconds.
+
+## 12. Stable identity and replaceable software
+
+The résumé URL and the application image solve different problems. A static public IP plus DNS name answers “where is the service?” An immutable commit-SHA image answers “which exact software is running?” GitHub Actions can replace the second without replacing the first.
+
+Locally, Caddy is unnecessary because loopback already bounds access. In Azure, Caddy is the only public container and routes to Sentinel over a private Compose network. Databases and model servers never receive public ports. A user-owned DNS name enables automatic HTTPS; the Azure DNS label is the stable no-domain fallback.
+
+Failure modes to remember:
+
+- A moving `latest` tag makes rollback and incident reconstruction ambiguous; deploy SHA tags.
+- Recreating a dynamic IP can silently break DNS; retain a Standard static Public IP resource.
+- A budget sends notifications but does not stop a VM; monitor and deallocate deliberately.
+- CI holding an unverified SSH host key can connect to an impostor; pin the host identity after a trusted first connection.
+- An application can start before runbook embeddings exist; the deployment enables an idempotent startup index and fails before readiness when the embedding contract is unavailable.
+
+Pen-and-paper exercise: draw DNS, static IP, Caddy, Sentinel, and the four private dependencies. Now draw an update from Git commit to GHCR SHA tag to VM pull. Circle the one component whose identity must never change during an ordinary release.

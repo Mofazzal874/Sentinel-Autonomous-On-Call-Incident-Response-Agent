@@ -72,6 +72,7 @@ sentinel:
   agent:
     enabled: "${SENTINEL_AGENT_ENABLED:false}"
     retrieval-mode: "${SENTINEL_AGENT_RETRIEVAL_MODE:lexical}"
+    index-runbooks-on-startup: "${SENTINEL_AGENT_INDEX_RUNBOOKS_ON_STARTUP:false}"
     max-proposal-attempts: 3
     max-model-calls: 12
     model-call-window: 1h

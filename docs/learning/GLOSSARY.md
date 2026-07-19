@@ -83,3 +83,9 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **Readiness probe:** A platform check answering whether a replica should receive traffic now.
 - **OTLP:** OpenTelemetry Protocol, a vendor-neutral way to export traces, metrics, or logs to a collector.
 - **Holdout set:** Evaluation examples reserved until a candidate change is selected, reducing the risk of tuning to the test answers.
+- **Static public IP:** A cloud network identity retained across VM stops and application replacements until the IP resource itself is deleted.
+- **DNS label:** A human-readable name mapped to an IP address; Azure can provide a regional `cloudapp.azure.com` hostname for a public IP.
+- **Reverse proxy:** An edge server that receives public requests and forwards selected traffic to a private application service.
+- **TLS termination:** The point where HTTPS is decrypted; Caddy performs it at the edge while Sentinel remains private on the Docker network.
+- **Immutable deployment tag:** A container tag based on a commit SHA, identifying one exact source revision instead of a moving label such as `latest`.
+- **Continuous delivery:** Automatically verifying and packaging each change, with deployment controlled by an explicit environment policy or approval.

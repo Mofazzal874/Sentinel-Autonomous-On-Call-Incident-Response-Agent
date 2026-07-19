@@ -1,0 +1,106 @@
+name: sentinel-azure-demo
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.2-pg17-bookworm@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SENTINEL_DB_NAME:?Set SENTINEL_DB_NAME in the environment file}
+      POSTGRES_USER: ${SENTINEL_DB_USERNAME:?Set SENTINEL_DB_USERNAME in the environment file}
+      POSTGRES_PASSWORD: ${SENTINEL_DB_PASSWORD:?Set SENTINEL_DB_PASSWORD in the environment file}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    mem_limit: 1536m
+    networks: [sentinel-private]
+
+  redis:
+    image: redis:7.4.9-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "384mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+    networks: [sentinel-private]
+
+  rabbitmq:
+    image: rabbitmq:4.3.2-management-alpine@sha256:0753b75ce99094c385483d89449d532a0544fb85e4942a478b21cc497ab66d33
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${SENTINEL_RABBITMQ_USERNAME:?Set SENTINEL_RABBITMQ_USERNAME in the environment file}
+      RABBITMQ_DEFAULT_PASS: ${SENTINEL_RABBITMQ_PASSWORD:?Set SENTINEL_RABBITMQ_PASSWORD in the environment file}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    mem_limit: 1024m
+    networks: [sentinel-private]
+
+  sentinel:
+    image: ${SENTINEL_IMAGE:-sentinel:azure-demo}
+    pull_policy: never
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    environment:
+      SPRING_PROFILES_ACTIVE: seed
+      SENTINEL_DB_URL: jdbc:postgresql://postgres:5432/${SENTINEL_DB_NAME}
+      SENTINEL_DB_USERNAME: ${SENTINEL_DB_USERNAME}
+      SENTINEL_DB_PASSWORD: ${SENTINEL_DB_PASSWORD}
+      SENTINEL_REDIS_HOST: redis
+      SENTINEL_REDIS_PORT: "6379"
+      SENTINEL_RABBITMQ_HOST: rabbitmq
+      SENTINEL_RABBITMQ_PORT: "5672"
+      SENTINEL_RABBITMQ_USERNAME: ${SENTINEL_RABBITMQ_USERNAME}
+      SENTINEL_RABBITMQ_PASSWORD: ${SENTINEL_RABBITMQ_PASSWORD}
+      SENTINEL_JWT_SECRET: ${SENTINEL_JWT_SECRET}
+      SENTINEL_JWT_ISSUER: sentinel-azure-demo
+      SENTINEL_JWT_AUDIENCE: sentinel-api
+      SENTINEL_WEBHOOK_SECRET: ${SENTINEL_WEBHOOK_SECRET}
+      SENTINEL_REMEDIATION_DRY_RUN: "true"
+      SENTINEL_AGENT_ENABLED: "true"
+      SENTINEL_AGENT_RETRIEVAL_MODE: semantic
+      SENTINEL_AGENT_INDEX_RUNBOOKS_ON_STARTUP: "true"
+      SENTINEL_AI_CHAT_MODEL: ollama
+      SENTINEL_AI_EMBEDDING_MODEL: ollama
+      SENTINEL_OLLAMA_BASE_URL: ${SENTINEL_OLLAMA_BASE_URL}
+      SPRING_AI_OLLAMA_CHAT_MODEL: qwen3:4b
+      SPRING_AI_OLLAMA_CHAT_THINK: "false"
+      SPRING_AI_OLLAMA_CHAT_KEEP_ALIVE: 30m
+      SPRING_AI_OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+      SPRING_AI_OLLAMA_EMBEDDING_KEEP_ALIVE: 30m
+      SENTINEL_AI_MAX_OUTPUT_TOKENS: "256"
+    ports:
+      - "127.0.0.1:${SENTINEL_APP_PORT:-18080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    mem_limit: 2048m
+    networks: [sentinel-private]
+
+networks:
+  sentinel-private:
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:

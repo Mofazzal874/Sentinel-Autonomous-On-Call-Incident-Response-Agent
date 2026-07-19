@@ -285,13 +285,17 @@ Execution checkpoints:
 - [x] Build and smoke-test the image locally with a read-only root filesystem while keeping Docker data on `E:`.
 - [x] Document environment variables, secret injection, resource limits, migrations, rollback, recovery, and cost controls.
 - [x] Compare a one-VM demo, Azure Container Apps managed topology, and AKS using current official sources.
+- [x] Add a locally rehearsable one-VM bundle with pinned services, generated ignored secrets, semantic startup indexing, and E-drive model reuse.
+- [x] Add a stable edge identity design, public landing page, immutable GHCR images, and opt-in GitHub deployment automation.
 
 ### 4. Deployment and portfolio gate
 
 - [ ] Stop and ask the user before creating any Azure resource, registry, paid model deployment, DNS entry, or public endpoint.
+- [ ] Obtain final approval for the dedicated Azure resource group, static public IP, ports 80/443, and VM spend.
+- [ ] Configure the VM hostname/custom domain plus GitHub environment secrets and enable deployment only after the first manual health check.
 - [ ] After approval, provision the chosen minimal-cost target and verify health, metrics, migrations, secrets, and end-to-end behavior.
 - [x] Add the recruiter-facing README, architecture flow, safety model, evaluation result, demo instructions/evidence, and future work.
-- [x] Complete the final uncached suite after the live-adapter wiring regression fix: 102 tests, zero failures/errors/skips.
+- [x] Complete the final uncached suite after deployment startup wiring: 103 tests across 35 suites, zero failures/errors/skips.
 - [x] Complete all seven operability/deployment Defend This answers.
 
 Operability/deployment gate: **deployment handoff open** — local observability, layered evaluation, packaging, learning defense, and smoke evidence are complete. Cloud provisioning, public access, and paid resources remain intentionally unstarted pending the user's subscription, region, budget, and access approval.

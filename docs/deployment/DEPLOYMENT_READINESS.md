@@ -2,6 +2,9 @@
 
 ## Verified local artifact
 
+- The deployment-specific `sentinel:azure-demo` image ID is `9fc9da4697728200b59c4a28a696494cd23cf239c9ccebd09ec4cf82218370f7`, 200,462,107 bytes, and runs as `10001:10001`.
+- The isolated full topology reached readiness/liveness `200`, kept Prometheus at `401`, and indexed all three runbooks through the real host Ollama embedding model. The Caddy landing/proxy edge also returned `200`.
+- The final uncached regression passed 103 tests across 35 suites with zero failures, errors, or skips.
 - Two clean `bootJar --no-build-cache` runs produced the same SHA-256: `5A1B87B51234FF465F21E3CA816A358DEF6A120CACB10F4612F6B03870F7DD61`.
 - Final `sentinel:local` image ID is `fdbfe1198c88759141f2d45b9771386a0e48016f27e8d74d2036779f25322295`, 200,461,161 bytes, and runs as `10001:10001` with a read-only root filesystem.
 - A real container reached both liveness and readiness against the isolated Compose PostgreSQL/pgvector, Redis, and RabbitMQ services.
@@ -20,11 +23,12 @@ AKS is not recommended for this deadline. It adds cluster, ingress, identity, st
 
 ## Current blockers to an actual deployment
 
-1. Azure CLI is not installed and no Azure login/subscription has been verified.
-2. The user must choose a region, maximum demo budget, and private SSH-tunnel versus public TLS endpoint.
-3. No registry or cloud resource may be created until the user explicitly approves provisioning.
-4. The local agent baseline is measured, but CPU-only grounded triage took about 100 seconds. A cloud demo must accept that latency or use a separately implemented and approved accelerated/managed provider.
-5. Ollama 0.32.1, Qwen3 4B, and `nomic-embed-text` are installed on `E:` locally. A full-agent VM must install/pull those models on the VM; local Windows model files are not automatically available inside Azure.
+1. Azure for Students is active with about `$100` remaining; Central India has six regional vCPUs and four Standard BS-family vCPUs. `Standard_B4as_v2` is available for a non-zonal deployment, while zone 3 is restricted and `Standard_B4ms` is unavailable.
+2. The user created a `$10` budget alert. It is useful but does not cap or stop spending.
+3. No registry package, VM, resource group, DNS record, or public endpoint may be created until the user explicitly approves the reviewed bundle.
+4. The stable hostname label must be selected. A custom domain is optional but recommended for a permanent HTTPS résumé URL.
+5. GitHub deployment secrets and the opt-in repository variable remain intentionally unset.
+6. CPU-only grounded triage took about 100 seconds locally. The VM demo must accept that latency or later adopt a separately implemented and approved accelerated/managed provider.
 
 ## Required secret/configuration set
 
@@ -34,7 +38,7 @@ AKS is not recommended for this deadline. It adds cluster, ingress, identity, st
 - Identity: random base64 `SENTINEL_JWT_SECRET`, issuer, audience. The HS256 local implementation is acceptable for the demo only; production should use an external issuer and asymmetric JWK validation.
 - Alert intake: independent random base64 `SENTINEL_WEBHOOK_SECRET`.
 - Safety: leave `SENTINEL_REMEDIATION_DRY_RUN=true` for deployment verification.
-- Agent: keep disabled until the model and embeddings are present and the live evaluation is recorded.
+- Agent: the deployment enables it only after the one-shot Ollama model initialization completes; an idempotent startup runner creates and verifies all runbook embeddings before readiness.
 
 Never pass secrets as Docker build arguments or bake them into the image. Use the platform secret store or a permission-restricted environment file on the demo VM.
 
