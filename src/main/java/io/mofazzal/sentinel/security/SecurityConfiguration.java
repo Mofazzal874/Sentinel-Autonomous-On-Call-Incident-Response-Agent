@@ -33,7 +33,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/v1/alerts").permitAll()
                         .requestMatchers(HttpMethod.GET,
-                                "/actuator/health/liveness", "/actuator/health/readiness").permitAll()
+                                "/actuator/health/liveness", "/actuator/health/readiness",
+                                "/api/v1/demo/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/incidents/*/approve")
                         .hasRole("SRE_APPROVER")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

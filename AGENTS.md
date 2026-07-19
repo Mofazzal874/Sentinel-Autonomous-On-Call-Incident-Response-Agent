@@ -78,6 +78,14 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Secrets come from environment variables or a secret manager and are never committed.
 - Default local remediation mode should remain dry-run until Phase 5 tests demonstrate the safety invariants.
 
+## Public demo rules
+
+- The public site must demonstrate the real persisted alert-to-agent-to-gate workflow, not only describe it.
+- Seeded showcase records are deterministic synthetic operations data and must be labeled as such; never imply they are customer incidents.
+- Public users may select only fixed, validated scenarios. Do not expose arbitrary model prompts or infrastructure mutation inputs.
+- Keep the demo dry-run. Public read models must be bounded and redact secrets, raw credentials, and unrestricted internal records.
+- Existing fleet, incident, approval, administration, metrics, and actuator APIs remain authenticated unless a narrowly reviewed demo projection explicitly exposes safe fields.
+
 ## Testing strategy
 
 - Test deterministic components normally and thoroughly; do not involve a model in safety tests.

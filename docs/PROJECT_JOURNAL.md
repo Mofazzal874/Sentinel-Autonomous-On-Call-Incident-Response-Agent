@@ -974,3 +974,34 @@ The service identity and release artifact must be separate. DNS/static IP is the
 ### Next safe action
 
 Request explicit approval before the confirmation-gated Azure script creates the dedicated resource group and public endpoint. The remaining user choices are the DNS label and whether to use the Azure HTTP hostname initially or point a custom domain for HTTPS.
+
+---
+
+## Session 21 — Safe operational digital-twin foundation
+
+### Goal and product value
+
+Replace the blank/static public demonstration with traceable operational stories. Sentinel's real use is to reduce on-call investigation time while preventing an AI-generated suggestion from becoming an unsafe infrastructure mutation. A portfolio deployment is a reference implementation of that control plane; production adoption would add adapters to a company's actual monitoring, deployment, identity, runbook, and execution systems.
+
+### Plan and implementation
+
+- Defined three reviewer journeys: a grounded faulty-release rollback stopped by dry-run, an ambiguous dependency outage escalated for missing grounding, and a bounded scale-out held for human approval.
+- Added the forward-only `demo_run` registry. It stores a public identifier and reference instead of copying mutable incident state.
+- Added a `demo`-profile startup seeder that writes coherent synthetic history to the authoritative deployment, incident, agent-run, transcript, remediation-request, and action-ledger tables.
+- Enabled `seed,demo` only in the Azure demo Compose bundle. Normal profiles and unrelated databases are unchanged.
+- Added bounded public GET projections for registered demo runs. Ordinary incident, approval, metrics, administrative, and fleet APIs remain protected by JWT.
+- Added an explicit synthetic-data disclaimer and recorded the public demo constraints in repository memory and ADR 0013.
+
+### Verification and iteration
+
+The first verification attempt found Docker Desktop stopped. The compatible E-drive installation was located and started; nothing was downloaded or reinstalled. The initial database assertions passed, while the append-only assertion was too strict because PostgreSQL appended trigger context to the expected message. The assertion was corrected to match the stable error content.
+
+The focused real PostgreSQL/pgvector integration then passed. It proves three public histories, fourteen ordered transcript entries, the dry-run and approval-requested ledger events, zero action claims, repeatable seeding, anonymous curated reads, `404` for an unknown run, `401` for the ordinary incident API, and rejection of ledger updates. The complete regression then passed 106 tests across 36 suites with zero failures, errors, or skips.
+
+### Learning insight
+
+Useful seed data is a causal graph, not a pile of rows. A reviewer should be able to follow alert evidence into a proposal, deterministic decision, and audit fact. The small `demo_run` registry is an access boundary: it identifies what may be shown publicly while the source of truth remains the normal domain tables.
+
+### Next safe action
+
+Implement server-owned live scenarios with strict rate/concurrency controls, then build the operator console on the recorded and live read models. The environment remains dry-run throughout.

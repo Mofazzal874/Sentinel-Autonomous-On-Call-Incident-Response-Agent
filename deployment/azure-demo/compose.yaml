@@ -58,7 +58,7 @@ services:
     tmpfs:
       - /tmp:size=256m,mode=1777
     environment:
-      SPRING_PROFILES_ACTIVE: seed
+      SPRING_PROFILES_ACTIVE: seed,demo
       SENTINEL_DB_URL: jdbc:postgresql://postgres:5432/${SENTINEL_DB_NAME}
       SENTINEL_DB_USERNAME: ${SENTINEL_DB_USERNAME}
       SENTINEL_DB_PASSWORD: ${SENTINEL_DB_PASSWORD}

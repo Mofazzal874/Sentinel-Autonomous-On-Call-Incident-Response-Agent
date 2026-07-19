@@ -2,6 +2,17 @@
 
 This is the active, phase-gated task list. Complete and verify each phase before moving to the next one.
 
+## Recruiter operator console
+
+- [x] Define three coherent reviewer journeys: grounded dry-run, ungrounded escalation, and human approval required.
+- [x] Add a forward-only public run registry and profile-gated, idempotent synthetic incident histories.
+- [x] Prove the records use authoritative incident/transcript/remediation/ledger tables and retain append-only enforcement.
+- [x] Add bounded anonymous read projections while keeping ordinary operational APIs authenticated.
+- [ ] Add fixed live scenario submission with per-IP and global limits; never accept arbitrary prompts or actions.
+- [ ] Build the operator console around incident, evidence, proposal, gate, and ledger facts.
+- [ ] Prove concurrency limits, redaction, dry-run, and end-to-end browser behavior.
+- [ ] Replace runner-IP SSH deployment with Azure OIDC plus VM Run Command, then deploy and verify the stable URL.
+
 ## Phase 0 — Repository and build bootstrap
 
 - [x] Read all project-plan documents in full.
