@@ -1005,3 +1005,48 @@ Useful seed data is a causal graph, not a pile of rows. A reviewer should be abl
 ### Next safe action
 
 Implement server-owned live scenarios with strict rate/concurrency controls, then build the operator console on the recorded and live read models. The environment remains dry-run throughout.
+
+---
+
+## Session 22 — Operator console foundation
+
+### Goal
+
+Turn the public experience from an architectural landing page into an actual incident operations product while preserving the existing Azure hostname, backend authority, dry-run safety, and E-drive storage policy.
+
+### Planning and data decision
+
+The user requested phase-by-phase delivery, substantial realistic data, and generated-ID CRUD. `docs/OPERATOR_CONSOLE_IMPLEMENTATION_PLAN.md` now defines seven gated phases, users, routes, a CRUD matrix, and a target digital twin of 12 services, 50+ deployments, 30+ incidents, 10+ runbooks, 10,000+ metrics, and 750+ logs.
+
+Alibaba production microservice traces, Tsinghua NetMan AIOps datasets, and Microsoft AIOpsLab informed the topology and failure-distribution decision. Sentinel will generate an original deterministic dataset rather than copying large research downloads with mismatched schemas or ambiguous distribution constraints. Catalog/configuration resources receive generated persistent UUIDs and CRUD; incidents and audit facts remain non-deletable.
+
+### Implementation
+
+- Added pinned Next.js 16.2.10 and React 19.2.7 under `frontend/`, using static export so Azure needs no Node runtime process.
+- Built a responsive console with a service state header, incident metrics, selectable incident queue, investigation timeline, grounding confidence, risk visualization, gate outcome, append-only ledger, loading/error/empty states, and explicit synthetic-data labeling.
+- The frontend contains only typed API contracts. All incident content comes from the bounded Spring demo projections.
+- Embedded the generated export into the Spring Boot artifact and opened only `/`, static Next assets, and the already reviewed demo GET projection.
+- Simplified Caddy to one same-origin TLS proxy and removed the obsolete standalone landing-page file and mount.
+- Updated CI and the local rehearsal to build the frontend before the JAR and verify the real console/API boundary.
+- Added a project-specific social preview that represents evidence flowing through a deterministic gate into an audit ledger.
+
+### Iterative findings
+
+The first build exposed that the newest TypeScript 7 release was ahead of the current Next build worker. TypeScript was pinned to compatible 5.9.3. The dependency audit then exposed an older transitive PostCSS; a safe 8.5.10 override removed the advisory. The first interaction test used a case-sensitive text assertion against deliberately uppercase visual copy; the assertion was corrected without changing product behavior.
+
+### Verification
+
+- Frontend: 2 interaction tests pass, strict type checking passes, static export succeeds, and `npm audit` reports zero vulnerabilities.
+- Packaged artifact: the executable JAR contains `static/index.html`, hashed Next assets, and the social preview.
+- Exact isolated stack: console `200`, three real demo runs, protected incidents `401`, readiness/liveness `200`, Prometheus `401`, and three semantic runbook embeddings.
+- Complete backend regression: 106 tests across 36 suites, zero failures, errors, or skips.
+- Azure Compose merge validates and `git diff --check` passes.
+- The isolated rehearsal containers, network, and volumes were deleted after verification. No global package or second Node installation was created; npm cache remained on `E:`.
+
+### Learning insight
+
+A frontend does not make the browser authoritative. The console explains and requests; Spring Boot still owns identity, validation, transactions, state transitions, and safety. Static export is a deployment optimization, not a reduction in interactivity.
+
+### Next action
+
+Expand the persistent digital twin to the documented scale before adding catalog/runbook CRUD and live incident creation.

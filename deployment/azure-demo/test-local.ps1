@@ -27,6 +27,13 @@ if (-not (Test-Path -LiteralPath $env:JAVA_HOME)) { throw "Java 25 was not found
 
 Push-Location $repoRoot
 try {
+    $env:npm_config_cache = 'E:\DevCaches\npm'
+    & npm --prefix frontend ci --no-audit --no-fund
+    if ($LASTEXITCODE -ne 0) { throw 'Frontend npm ci failed.' }
+
+    & npm --prefix frontend run build
+    if ($LASTEXITCODE -ne 0) { throw 'Frontend production export failed.' }
+
     & .\gradlew.bat bootJar
     if ($LASTEXITCODE -ne 0) { throw 'Gradle bootJar failed.' }
 
@@ -55,7 +62,13 @@ try {
         throw "Expected 3 indexed runbooks, received: $embeddingCount"
     }
 
-    Write-Host 'Local deployment rehearsal passed: readiness=200, liveness=200, Prometheus=401, indexed-runbooks=3.'
+    $consoleStatus = & curl.exe --silent --output NUL --write-out '%{http_code}' --max-time 5 'http://127.0.0.1:18080/'
+    if ($consoleStatus -ne '200') { throw "Operator console returned HTTP $consoleStatus." }
+
+    $demoRunsStatus = & curl.exe --silent --output NUL --write-out '%{http_code}' --max-time 5 'http://127.0.0.1:18080/api/v1/demo/runs'
+    if ($demoRunsStatus -ne '200') { throw "Demo runs API returned HTTP $demoRunsStatus." }
+
+    Write-Host 'Local deployment rehearsal passed: console=200, demo-runs=200, readiness=200, liveness=200, Prometheus=401, indexed-runbooks=3.'
     Write-Host 'The isolated rehearsal stack is still running. Use stop-local.ps1 when finished.'
 } catch {
     docker compose --project-name $projectName --env-file $environmentFile --file $composeFile ps

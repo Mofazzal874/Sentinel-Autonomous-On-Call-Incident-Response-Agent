@@ -86,6 +86,15 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Keep the demo dry-run. Public read models must be bounded and redact secrets, raw credentials, and unrestricted internal records.
 - Existing fleet, incident, approval, administration, metrics, and actuator APIs remain authenticated unless a narrowly reviewed demo projection explicitly exposes safe fields.
 
+## Frontend baseline
+
+- The operator console lives under `frontend/` and uses pinned Next.js/React with `output: "export"`; Azure runs no Node server.
+- `frontend/out` is generated and ignored. Gradle packages it under Spring Boot static resources only after the frontend build has run.
+- Caddy owns the stable hostname and TLS but proxies all requests to the single Spring Boot image. Spring serves the console and API from the same origin.
+- CI and deployment rehearsals must run frontend install, tests, type checking, and export before `bootJar`.
+- Public UI content comes from bounded Spring DTOs. Do not hard-code duplicate incident records into the frontend.
+- Operational CRUD follows domain semantics: catalog/configuration resources may be edited; incidents, transcripts, and ledger facts are archived or append-only, never erased.
+
 ## Testing strategy
 
 - Test deterministic components normally and thoroughly; do not involve a model in safety tests.

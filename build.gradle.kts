@@ -49,6 +49,12 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
+tasks.processResources {
+    from("frontend/out") {
+        into("static")
+    }
+}
+
 tasks.named<Test>("test") {
     useJUnitPlatform {
         excludeTags("live-evaluation")

@@ -33,6 +33,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/v1/alerts").permitAll()
                         .requestMatchers(HttpMethod.GET,
+                                "/", "/index.html", "/404.html", "/_next/**", "/favicon.ico",
                                 "/actuator/health/liveness", "/actuator/health/readiness",
                                 "/api/v1/demo/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/incidents/*/approve")

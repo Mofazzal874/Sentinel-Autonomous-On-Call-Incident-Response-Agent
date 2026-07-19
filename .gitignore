@@ -40,6 +40,13 @@ logs/
 *.log
 tmp/
 
+# Next.js operator console
+/frontend/node_modules/
+/frontend/.next/
+/frontend/out/
+/frontend/.env.local
+*.tsbuildinfo
+
 # OS metadata
 .DS_Store
 Thumbs.db

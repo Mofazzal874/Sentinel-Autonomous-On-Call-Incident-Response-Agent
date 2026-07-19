@@ -30,7 +30,11 @@ jobs:
           cache: gradle
 
       - name: Run regression suite and build artifact
-        run: bash ./gradlew clean test bootJar
+        run: |
+          npm ci --prefix frontend --no-audit --no-fund
+          npm run --prefix frontend typecheck
+          npm run --prefix frontend build
+          bash ./gradlew clean test bootJar
 
       - name: Determine immutable image name
         id: image

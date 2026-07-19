@@ -5,12 +5,5 @@
         Referrer-Policy no-referrer
         -Server
     }
-    handle / {
-        root * /srv
-        file_server
-    }
-
-    handle {
-        reverse_proxy sentinel:8080
-    }
+    reverse_proxy sentinel:8080
 }
