@@ -24,7 +24,7 @@ public class DemoLiveSubmissionStore {
     @Transactional(readOnly = true)
     public Optional<DemoLiveSubmissionView> findExisting(String clientHash, String idempotencyHash) {
         return jdbc.query("""
-                SELECT submission.public_id, template.scenario_key, template.display_name,
+                SELECT submission.public_id, template.scenario_key, submission.display_title,
                        submission.state, incident.status AS incident_status,
                        submission.submitted_at, submission.completed_at, submission.failure_reason
                 FROM demo_live_submission submission
@@ -38,7 +38,7 @@ public class DemoLiveSubmissionStore {
     @Transactional(readOnly = true)
     public Optional<DemoLiveSubmissionView> find(UUID publicId) {
         return jdbc.query("""
-                SELECT submission.public_id, template.scenario_key, template.display_name,
+                SELECT submission.public_id, template.scenario_key, submission.display_title,
                        submission.state, incident.status AS incident_status,
                        submission.submitted_at, submission.completed_at, submission.failure_reason
                 FROM demo_live_submission submission
@@ -50,15 +50,19 @@ public class DemoLiveSubmissionStore {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void insert(UUID publicId, UUID templateId, String fingerprint,
+    public void insert(UUID publicId, DemoInvestigationConfiguration configuration, String fingerprint,
                        String clientHash, String idempotencyHash, Instant submittedAt) {
         jdbc.update("""
                 INSERT INTO demo_live_submission (
                     public_id, template_id, fingerprint, client_hash, idempotency_key_hash,
-                    state, submitted_at, version
-                ) VALUES (?, ?, ?, ?, ?, 'ACCEPTED', ?, 0)
-                """, publicId, templateId, fingerprint, clientHash, idempotencyHash,
-                Timestamp.from(submittedAt));
+                    state, submitted_at, service_id, scenario_type, severity, signal_intensity,
+                    customer_impact, deployment_context, display_title, summary, version
+                ) VALUES (?, ?, ?, ?, ?, 'ACCEPTED', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                """, publicId, configuration.template().getId(), fingerprint, clientHash, idempotencyHash,
+                Timestamp.from(submittedAt), configuration.service().getId(), configuration.symptom().name(),
+                configuration.severity().name(), configuration.signalIntensity().name(),
+                configuration.customerImpact().name(), configuration.deploymentContext().name(),
+                configuration.title(), configuration.summary());
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -75,8 +79,11 @@ public class DemoLiveSubmissionStore {
                 INSERT INTO demo_run (
                     public_id, scenario_key, incident_id, source, started_at, display_title, summary
                 )
-                SELECT submission.public_id, template.scenario_key, ?, 'LIVE',
-                       submission.submitted_at, template.display_name, template.description
+                SELECT submission.public_id,
+                       CASE WHEN submission.display_title = template.display_name
+                            THEN template.scenario_key
+                            ELSE 'custom-' || lower(submission.scenario_type) END, ?, 'LIVE',
+                       submission.submitted_at, submission.display_title, submission.summary
                 FROM demo_live_submission submission
                 JOIN demo_scenario_template template ON template.id = submission.template_id
                 WHERE submission.fingerprint = ?
@@ -104,7 +111,7 @@ public class DemoLiveSubmissionStore {
         Timestamp completed = result.getTimestamp("completed_at");
         UUID publicId = result.getObject("public_id", UUID.class);
         return new DemoLiveSubmissionView(publicId, result.getString("scenario_key"),
-                result.getString("display_name"), result.getString("state"),
+                result.getString("display_title"), result.getString("state"),
                 result.getString("incident_status"), result.getTimestamp("submitted_at").toInstant(),
                 completed == null ? null : completed.toInstant(), result.getString("failure_reason"),
                 "/api/v1/demo/runs/" + publicId);

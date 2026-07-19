@@ -42,6 +42,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @Testcontainers
 @Import(DemoLiveScenarioIntegrationTest.LiveAgentConfiguration.class)
@@ -107,13 +108,27 @@ class DemoLiveScenarioIntegrationTest {
     }
 
     @Test
-    void publicFixedScenarioFlowsThroughBrokerAndDurableIncidentWithIdempotencyAndLimits() throws Exception {
+    void publicConfiguredInvestigationFlowsThroughBrokerWithEvidenceIdempotencyAndLimits() throws Exception {
         mockMvc.perform(get("/api/v1/demo/scenarios"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0].id").isNotEmpty());
 
-        String first = mockMvc.perform(post("/api/v1/demo/scenarios/{id}/runs", BAD_DEPLOY)
+        mockMvc.perform(get("/api/v1/demo/investigation-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.services.length()").value(12))
+                .andExpect(jsonPath("$.symptoms.length()").value(4))
+                .andExpect(jsonPath("$.evidencePlan.metricSeries").value(5))
+                .andExpect(jsonPath("$.evidencePlan.executionMode").value("DRY_RUN"));
+
+        String request = """
+                {"serviceId":"20000000-0000-0000-0000-000000000001",
+                 "symptom":"BAD_DEPLOY","severity":"SEV1","signalIntensity":"CRITICAL",
+                 "customerImpact":"FULL_OUTAGE","deploymentContext":"RECENT_CHANGE"}
+                """;
+
+        String first = mockMvc.perform(post("/api/v1/demo/investigations")
+                        .contentType(APPLICATION_JSON).content(request)
                         .header("Idempotency-Key", "browser-run-1")
                         .header("X-Forwarded-For", "198.51.100.10"))
                 .andExpect(status().isAccepted())
@@ -122,7 +137,8 @@ class DemoLiveScenarioIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         String publicId = com.jayway.jsonpath.JsonPath.read(first, "$.publicId");
 
-        String replay = mockMvc.perform(post("/api/v1/demo/scenarios/{id}/runs", BAD_DEPLOY)
+        String replay = mockMvc.perform(post("/api/v1/demo/investigations")
+                        .contentType(APPLICATION_JSON).content(request)
                         .header("Idempotency-Key", "browser-run-1")
                         .header("X-Forwarded-For", "198.51.100.10"))
                 .andExpect(status().isAccepted())
@@ -140,10 +156,22 @@ class DemoLiveScenarioIntegrationTest {
         mockMvc.perform(get("/api/v1/demo/runs/{id}", publicId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.source").value("LIVE"))
-                .andExpect(jsonPath("$.scenarioKey").value("live-bad-deploy"))
+                .andExpect(jsonPath("$.scenarioKey").value("custom-bad_deploy"))
                 .andExpect(jsonPath("$.timeline.length()").value(5))
                 .andExpect(jsonPath("$.remediation.status").value("DRY_RUN"))
+                .andExpect(jsonPath("$.evidence.metrics.length()").value(5))
+                .andExpect(jsonPath("$.evidence.logs.length()").value(8))
+                .andExpect(jsonPath("$.evidence.deployments.length()").value(1))
                 .andExpect(jsonPath("$.ledger[0].eventType").value("DRY_RUN"));
+
+        assertThat(jdbc.queryForMap("""
+                select scenario_type, severity, signal_intensity, customer_impact, deployment_context
+                from demo_live_submission where public_id = ?::uuid
+                """, publicId)).containsEntry("scenario_type", "BAD_DEPLOY")
+                .containsEntry("severity", "SEV1")
+                .containsEntry("signal_intensity", "CRITICAL")
+                .containsEntry("customer_impact", "FULL_OUTAGE")
+                .containsEntry("deployment_context", "RECENT_CHANGE");
 
         assertThat(jdbc.queryForObject("""
                 select count(*) from incident incident
@@ -159,13 +187,13 @@ class DemoLiveScenarioIntegrationTest {
         assertThat(jdbc.queryForObject("""
                 select count(*) from metric_sample metric
                 join demo_live_submission submission on submission.public_id = ?::uuid
-                join demo_scenario_template template on template.id = submission.template_id
-                where metric.service_id = template.service_id
+                where metric.service_id = submission.service_id
                   and metric.recorded_at between submission.submitted_at - interval '12 minutes'
                                              and submission.submitted_at
                 """, Integer.class, publicId)).isGreaterThanOrEqualTo(60);
 
-        mockMvc.perform(post("/api/v1/demo/scenarios/{id}/runs", BAD_DEPLOY)
+        mockMvc.perform(post("/api/v1/demo/investigations")
+                        .contentType(APPLICATION_JSON).content(request)
                         .header("Idempotency-Key", "another-client-run")
                         .header("X-Forwarded-For", "198.51.100.11"))
                 .andExpect(status().isTooManyRequests())

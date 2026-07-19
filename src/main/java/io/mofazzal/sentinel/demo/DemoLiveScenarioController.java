@@ -1,6 +1,7 @@
 package io.mofazzal.sentinel.demo;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -42,14 +43,25 @@ public class DemoLiveScenarioController {
         return scenarios.listTemplates();
     }
 
+    @GetMapping("/investigation-options")
+    public DemoInvestigationOptions options() {
+        return scenarios.options();
+    }
+
+    @PostMapping("/investigations")
+    public ResponseEntity<DemoLiveSubmissionView> submitInvestigation(
+            @Valid @org.springframework.web.bind.annotation.RequestBody DemoInvestigationRequest investigation,
+            @RequestHeader("Idempotency-Key") @Size(max = 100) String idempotencyKey,
+            HttpServletRequest request) {
+        return ResponseEntity.accepted().body(scenarios.submit(investigation, idempotencyKey, clientAddress(request)));
+    }
+
     @PostMapping("/scenarios/{templateId}/runs")
     public ResponseEntity<DemoLiveSubmissionView> submit(
             @PathVariable UUID templateId,
             @RequestHeader("Idempotency-Key") @Size(max = 100) String idempotencyKey,
             HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        String client = forwarded == null ? request.getRemoteAddr() : forwarded.split(",", 2)[0];
-        return ResponseEntity.accepted().body(scenarios.submit(templateId, idempotencyKey, client));
+        return ResponseEntity.accepted().body(scenarios.submit(templateId, idempotencyKey, clientAddress(request)));
     }
 
     @GetMapping("/submissions/{publicId}")
@@ -72,5 +84,10 @@ public class DemoLiveScenarioController {
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<Map<String, String>> invalid(IllegalArgumentException exception) {
         return ResponseEntity.badRequest().body(Map.of("code", "INVALID_REQUEST", "message", exception.getMessage()));
+    }
+
+    private static String clientAddress(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        return forwarded == null ? request.getRemoteAddr() : forwarded.split(",", 2)[0];
     }
 }

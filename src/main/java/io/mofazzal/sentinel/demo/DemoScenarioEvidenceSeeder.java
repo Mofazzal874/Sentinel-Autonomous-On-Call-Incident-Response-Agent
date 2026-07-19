@@ -20,12 +20,17 @@ public class DemoScenarioEvidenceSeeder {
     }
 
     @Transactional
-    public void seed(UUID runId, ScenarioTemplate template, Instant firedAt) {
-        if (template.getScenarioType() == ScenarioTemplate.ScenarioType.BAD_DEPLOY) {
+    public void seed(UUID runId, DemoInvestigationConfiguration configuration, Instant firedAt) {
+        double intensity = switch (configuration.signalIntensity()) {
+            case ELEVATED -> 0.75;
+            case HIGH -> 1.0;
+            case CRITICAL -> 1.35;
+        };
+        if (configuration.deploymentContext() == DemoInvestigationRequest.DeploymentContext.RECENT_CHANGE) {
             jdbc.update("""
                     INSERT INTO deployment (id, service_id, version, git_sha, deployed_at, deployed_by, status)
                     VALUES (?, ?, ?, ?, ?, 'demo-release-bot', 'SUCCEEDED') ON CONFLICT DO NOTHING
-                    """, stable(runId, "deployment"), template.getService().getId(),
+                    """, stable(runId, "deployment"), configuration.service().getId(),
                     "live-" + runId.toString().substring(0, 8), "live-" + runId,
                     Timestamp.from(firedAt.minusSeconds(300)));
         }
@@ -35,23 +40,23 @@ public class DemoScenarioEvidenceSeeder {
                 SELECT md5(? || ':metric:' || metric.name || ':' || sample.n)::uuid, ?, metric.name,
                        CASE metric.name
                            WHEN 'error_rate' THEN CASE WHEN sample.n < 9 THEN 0.01 ELSE
-                               CASE ? WHEN 'BAD_DEPLOY' THEN 0.19 WHEN 'DEPENDENCY_TIMEOUT' THEN 0.12 ELSE 0.04 END END
+                               (CASE ? WHEN 'BAD_DEPLOY' THEN 0.19 WHEN 'DEPENDENCY_TIMEOUT' THEN 0.12 ELSE 0.04 END) * ? END
                            WHEN 'latency_p99_ms' THEN CASE WHEN sample.n < 9 THEN 220 ELSE
-                               CASE ? WHEN 'CAPACITY_SATURATION' THEN 2100 WHEN 'DEPENDENCY_TIMEOUT' THEN 1750 ELSE 980 END END
+                               (CASE ? WHEN 'CAPACITY_SATURATION' THEN 2100 WHEN 'DEPENDENCY_TIMEOUT' THEN 1750 ELSE 980 END) * ? END
                            WHEN 'cpu_saturation' THEN CASE WHEN sample.n < 9 THEN 0.42 ELSE
-                               CASE ? WHEN 'CAPACITY_SATURATION' THEN 0.94 ELSE 0.61 END END
+                               LEAST(0.99, (CASE ? WHEN 'CAPACITY_SATURATION' THEN 0.94 ELSE 0.61 END) * ?) END
                            WHEN 'queue_depth' THEN CASE WHEN sample.n < 9 THEN 12 ELSE
-                               CASE ? WHEN 'CAPACITY_SATURATION' THEN 380 ELSE 75 END END
-                           ELSE CASE WHEN sample.n < 9 THEN 0.999 ELSE 0.965 END
+                               (CASE ? WHEN 'CAPACITY_SATURATION' THEN 380 ELSE 75 END) * ? END
+                           ELSE CASE WHEN sample.n < 9 THEN 0.999 ELSE GREATEST(0.85, 1 - (0.035 * ?)) END
                        END,
                        ?::timestamptz + (sample.n - 12) * interval '1 minute'
                 FROM (VALUES ('error_rate'), ('latency_p99_ms'), ('cpu_saturation'),
                              ('queue_depth'), ('availability')) metric(name)
                 CROSS JOIN generate_series(1, 12) sample(n)
                 ON CONFLICT DO NOTHING
-                """, runId.toString(), template.getService().getId(), template.getScenarioType().name(),
-                template.getScenarioType().name(), template.getScenarioType().name(),
-                template.getScenarioType().name(), Timestamp.from(firedAt));
+                """, runId.toString(), configuration.service().getId(), configuration.symptom().name(), intensity,
+                configuration.symptom().name(), intensity, configuration.symptom().name(), intensity,
+                configuration.symptom().name(), intensity, intensity, Timestamp.from(firedAt));
 
         jdbc.update("""
                 INSERT INTO log_event (id, service_id, level, message, occurred_at, trace_id)
@@ -67,7 +72,7 @@ public class DemoScenarioEvidenceSeeder {
                        'live-' || substring(? from 1 for 8) || '-' || sample.n
                 FROM generate_series(1, 8) sample(n)
                 ON CONFLICT DO NOTHING
-                """, runId.toString(), template.getService().getId(), template.getScenarioType().name(),
+                """, runId.toString(), configuration.service().getId(), configuration.symptom().name(),
                 Timestamp.from(firedAt), runId.toString());
     }
 

@@ -14,10 +14,14 @@ This is the active, phase-gated task list. Complete and verify each phase before
 - [x] Expose a bounded read-only system overview so portfolio scale is measured from PostgreSQL rather than hard-coded in the frontend.
 - [x] Raise the frontend readability baseline, add responsive hierarchy and reduced-motion-safe interaction, and render remediation rationale/risk notes already owned by the backend.
 - [x] Add frontend interaction tests, type checking, static export, dependency audit, and exact-stack HTTP rehearsal.
+- [x] Replace fixed-only launch with a bounded parameterized investigation builder across 12 seeded services, four failure families, severity, signal strength, impact, and deployment context.
+- [x] Persist every visitor selection and expose the resulting bounded metrics, logs, deployment facts, runbook, agent transcript, and gate ledger through one read projection.
+- [x] Add an evidence terminal with filtering/copy/wrapping, an actionable response brief, saved light/dark appearance, and a six-module interactive learning path.
+- [x] Research current incident-investigation products and record why Sentinel follows scoped input, observable queries, hypotheses, recommendations, deterministic policy, and a shareable record.
 - [x] Expand the digital twin to the documented 12-service/30-incident/10,000-metric baseline.
 - [x] Add generated-ID catalog/runbook/scenario CRUD with optimistic locking and safe archive rules.
 - [ ] Prove concurrency limits, redaction, dry-run, and end-to-end browser behavior.
-- [ ] Replace runner-IP SSH deployment with Azure OIDC plus VM Run Command, then deploy and verify the stable URL.
+- [x] Replace runner-IP SSH deployment with Azure OIDC plus VM Run Command, then deploy and verify the stable URL.
 - [x] Consolidate the complete Azure provisioning, manual release, CI/GHCR, verification, rollback, troubleshooting, cost, and future OIDC process into a beginner learning guide.
 
 Detailed delivery and dataset contract: `docs/OPERATOR_CONSOLE_IMPLEMENTATION_PLAN.md`.

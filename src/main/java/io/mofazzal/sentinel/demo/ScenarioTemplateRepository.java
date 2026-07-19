@@ -17,4 +17,8 @@ public interface ScenarioTemplateRepository extends JpaRepository<ScenarioTempla
 
     @EntityGraph(attributePaths = "service")
     Optional<ScenarioTemplate> findByIdAndEnabledTrueAndArchivedAtIsNull(UUID id);
+
+    @EntityGraph(attributePaths = "service")
+    Optional<ScenarioTemplate> findFirstByScenarioTypeAndEnabledTrueAndArchivedAtIsNull(
+            ScenarioTemplate.ScenarioType scenarioType);
 }

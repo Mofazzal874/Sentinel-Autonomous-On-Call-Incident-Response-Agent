@@ -43,7 +43,28 @@ export type DemoRun = DemoRunSummary & {
   disclaimer: string;
   timeline: TimelineEntry[];
   remediation: RemediationView | null;
+  evidence: {
+    deployments: { version: string; gitSha: string; status: string; deployedBy: string; deployedAt: string }[];
+    metrics: { metric: string; points: { value: number; recordedAt: string }[] }[];
+    logs: { level: string; message: string; traceId: string; occurredAt: string }[];
+    runbooks: { title: string; symptom: string; action: string; steps: string[] }[];
+  };
   ledger: LedgerEntry[];
+};
+
+export type DemoChoice = { value: string; label: string; description: string };
+export type DemoInvestigationOptions = {
+  services: { id: string; name: string; team: string; tier: string; allowedActions: string[] }[];
+  symptoms: DemoChoice[];
+  severities: DemoChoice[];
+  signalIntensities: DemoChoice[];
+  customerImpacts: DemoChoice[];
+  deploymentContexts: DemoChoice[];
+  evidencePlan: { metricSeries: number; samplesPerSeries: number; logEvents: number; persistence: string; executionMode: string };
+};
+export type DemoInvestigationRequest = {
+  serviceId: string; symptom: string; severity: string; signalIntensity: string;
+  customerImpact: string; deploymentContext: string;
 };
 
 export type DemoScenario = {
@@ -113,6 +134,23 @@ export function getDemoRun(publicId: string, signal?: AbortSignal) {
 
 export function listDemoScenarios(signal?: AbortSignal) {
   return request<DemoScenario[]>("/api/v1/demo/scenarios", signal);
+}
+
+export function getDemoInvestigationOptions(signal?: AbortSignal) {
+  return request<DemoInvestigationOptions>("/api/v1/demo/investigation-options", signal);
+}
+
+export async function submitDemoInvestigation(payload: DemoInvestigationRequest, idempotencyKey: string) {
+  const response = await fetch("/api/v1/demo/investigations", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(problem?.message ?? `Investigation API returned ${response.status}`);
+  }
+  return response.json() as Promise<DemoSubmission>;
 }
 
 export async function submitDemoScenario(templateId: string, idempotencyKey: string) {

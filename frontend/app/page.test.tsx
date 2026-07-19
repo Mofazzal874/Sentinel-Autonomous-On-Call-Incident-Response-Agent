@@ -25,10 +25,16 @@ vi.mock("../lib/demo-api", async (importOriginal) => {
       measuredAt: "2026-07-19T00:00:00Z" })),
     listDemoRuns: vi.fn(async () => summaries),
     getDemoRun: vi.fn(async (id: string) => details.get(id)),
-    listDemoScenarios: vi.fn(async () => [{ id: "scenario-1", scenarioKey: "live-bad-deploy",
-      displayName: "Faulty payment release", description: "Fresh bounded evidence", scenarioType: "BAD_DEPLOY",
-      service: "payments-api", severity: "SEV1" }]),
-    submitDemoScenario: vi.fn(async () => ({ publicId: "live-run-1", scenarioKey: "live-bad-deploy",
+    getDemoInvestigationOptions: vi.fn(async () => ({
+      services: [{ id: "service-1", name: "payments-api", team: "payments", tier: "TIER_1", allowedActions: ["ROLLBACK_DEPLOYMENT"] }],
+      symptoms: [{ value: "BAD_DEPLOY", label: "Release regression", description: "Errors rose after deployment." }],
+      severities: [{ value: "SEV2", label: "SEV2 · Major", description: "Major impact." }],
+      signalIntensities: [{ value: "HIGH", label: "High", description: "Strong signals." }],
+      customerImpacts: [{ value: "PARTIAL_OUTAGE", label: "Partial outage", description: "Some requests fail." }],
+      deploymentContexts: [{ value: "RECENT_CHANGE", label: "Recent deployment", description: "A release is present." }],
+      evidencePlan: { metricSeries: 5, samplesPerSeries: 12, logEvents: 8, persistence: "PostgreSQL", executionMode: "DRY_RUN" },
+    })),
+    submitDemoInvestigation: vi.fn(async () => ({ publicId: "live-run-1", scenarioKey: "custom-bad_deploy",
       scenarioTitle: "Faulty payment release", state: "COMPLETED", incidentStatus: "ESCALATED",
       submittedAt: "2026-07-19T00:00:00Z", completedAt: "2026-07-19T00:00:10Z",
       failureReason: null, runUrl: "/api/v1/demo/runs/live-run-1" })),
@@ -79,21 +85,23 @@ describe("operator console", () => {
     render(<OperatorConsole />);
     fireEvent.click(screen.getByRole("button", { name: "Learn" }));
 
-    expect(await screen.findByText(/Understand Sentinel/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /2. Understand the AI boundary/i }));
-    expect(screen.getByText(/The model can classify evidence and propose/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /3. Run the live lab/i }));
-    expect(screen.getByText(/Choose a fixed failure scenario/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Learn the system by/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Understand the AI/i }));
+    expect(screen.getByText(/organize and critique a proposal/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Read the raw evidence/i }));
+    expect(screen.getByText(/A conclusion is defensible/i)).toBeInTheDocument();
   });
 
-  it("submits only a listed fixed scenario and reports durable completion", async () => {
+  it("creates a configured incident and offers its persisted report", async () => {
     render(<OperatorConsole />);
     fireEvent.click(screen.getByRole("button", { name: /^Live lab$/i }));
-    const button = await screen.findByRole("button", { name: "Run this incident" });
+    const button = await screen.findByRole("button", { name: "Create investigation" });
     await waitFor(() => expect(button).toBeEnabled());
 
     fireEvent.click(button);
 
+    const report = await screen.findByRole("button", { name: /Open evidence-backed report/i });
+    fireEvent.click(report);
     expect(await screen.findByText("Incident explorer")).toBeInTheDocument();
   });
 });
@@ -122,6 +130,7 @@ function detail(base: DemoRunSummary, action: string | null, status: string | nu
       status: status!,
       decisionNote: "risk exceeds automatic threshold",
     } : null,
+    evidence: { deployments: [], metrics: [], logs: [], runbooks: [] },
     ledger: action ? [{ eventType: status === "DRY_RUN" ? "DRY_RUN" : "APPROVAL_REQUESTED",
       decision: status, mode: status === "DRY_RUN" ? "DRY_RUN" : "NONE", actor: "AGENT",
       details: "Recorded decision", recordedAt: base.startedAt }] : [],

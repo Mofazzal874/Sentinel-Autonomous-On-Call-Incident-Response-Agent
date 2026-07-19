@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,7 +49,7 @@ public class DemoRunQueryService {
         return jdbc.query("""
                 SELECT demo.public_id, demo.scenario_key, demo.display_title, demo.summary,
                        demo.source, demo.started_at,
-                       demo.incident_id, service.name AS service_name,
+                       demo.incident_id, incident.service_id, service.name AS service_name,
                        incident.severity, incident.status
                 FROM demo_run demo
                 JOIN incident ON incident.id = demo.incident_id
@@ -56,6 +57,8 @@ public class DemoRunQueryService {
                 WHERE demo.public_id = ?
                 """, (result, row) -> {
             UUID incidentId = result.getObject("incident_id", UUID.class);
+            UUID serviceId = result.getObject("service_id", UUID.class);
+            var startedAt = result.getTimestamp("started_at").toInstant();
             return new DemoRunView(
                     result.getObject("public_id", UUID.class),
                     result.getString("scenario_key"),
@@ -65,10 +68,11 @@ public class DemoRunQueryService {
                     result.getString("service_name"),
                     result.getString("severity"),
                     result.getString("status"),
-                    result.getTimestamp("started_at").toInstant(),
+                    startedAt,
                     DISCLAIMER,
                     timeline(incidentId),
                     remediation(incidentId).orElse(null),
+                    evidence(incidentId, serviceId, startedAt),
                     ledger(incidentId));
         }, publicId).stream().findFirst();
     }
@@ -128,6 +132,57 @@ public class DemoRunQueryService {
                 result.getString("actor"),
                 result.getString("details"),
                 result.getTimestamp("recorded_at").toInstant()), incidentId);
+    }
+
+    private DemoRunView.EvidenceView evidence(UUID incidentId, UUID serviceId, java.time.Instant startedAt) {
+        var startedTimestamp = java.sql.Timestamp.from(startedAt);
+        var deployments = jdbc.query("""
+                SELECT version, git_sha, status, deployed_by, deployed_at
+                FROM deployment
+                WHERE service_id = ? AND deployed_at BETWEEN ?::timestamptz - interval '30 minutes'
+                    AND ?::timestamptz + interval '5 minutes'
+                ORDER BY deployed_at DESC LIMIT 10
+                """, (result, row) -> new DemoRunView.DeploymentEvidence(
+                result.getString("version"), result.getString("git_sha"), result.getString("status"),
+                result.getString("deployed_by"), result.getTimestamp("deployed_at").toInstant()),
+                serviceId, startedTimestamp, startedTimestamp);
+
+        record MetricRow(String name, double value, java.time.Instant recordedAt) {}
+        var metricRows = jdbc.query("""
+                SELECT metric_name, value, recorded_at
+                FROM metric_sample
+                WHERE service_id = ? AND recorded_at BETWEEN ?::timestamptz - interval '15 minutes'
+                    AND ?::timestamptz + interval '5 minutes'
+                ORDER BY metric_name, recorded_at LIMIT 150
+                """, (result, row) -> new MetricRow(result.getString("metric_name"),
+                result.getDouble("value"), result.getTimestamp("recorded_at").toInstant()),
+                serviceId, startedTimestamp, startedTimestamp);
+        var groupedMetrics = new LinkedHashMap<String, List<DemoRunView.MetricPoint>>();
+        metricRows.forEach(row -> groupedMetrics.computeIfAbsent(row.name(), ignored -> new java.util.ArrayList<>())
+                .add(new DemoRunView.MetricPoint(row.value(), row.recordedAt())));
+        var metrics = groupedMetrics.entrySet().stream()
+                .map(entry -> new DemoRunView.MetricSeries(entry.getKey(), List.copyOf(entry.getValue())))
+                .toList();
+
+        var logs = jdbc.query("""
+                SELECT level, message, trace_id, occurred_at
+                FROM log_event
+                WHERE service_id = ? AND occurred_at BETWEEN ?::timestamptz - interval '10 minutes'
+                    AND ?::timestamptz + interval '5 minutes'
+                ORDER BY occurred_at LIMIT 50
+                """, (result, row) -> new DemoRunView.LogEvidence(result.getString("level"),
+                result.getString("message"), result.getString("trace_id"),
+                result.getTimestamp("occurred_at").toInstant()), serviceId, startedTimestamp, startedTimestamp);
+
+        var runbooks = jdbc.query("""
+                SELECT runbook.title, runbook.symptom_description, runbook.action_type, runbook.steps
+                FROM remediation_request request
+                JOIN runbook ON runbook.id = request.runbook_id
+                WHERE request.incident_id = ? LIMIT 5
+                """, (result, row) -> new DemoRunView.RunbookEvidence(result.getString("title"),
+                result.getString("symptom_description"), result.getString("action_type"),
+                result.getString("steps").lines().toList()), incidentId);
+        return new DemoRunView.EvidenceView(deployments, metrics, logs, runbooks);
     }
 
 }

@@ -17,6 +17,7 @@ public record DemoRunView(
         String disclaimer,
         List<TimelineEntry> timeline,
         RemediationView remediation,
+        EvidenceView evidence,
         List<LedgerEntry> ledger
 ) {
     public record TimelineEntry(int sequence, String type, int iteration, String content, Instant recordedAt) {
@@ -43,5 +44,29 @@ public record DemoRunView(
             String details,
             Instant recordedAt
     ) {
+    }
+
+    public record EvidenceView(
+            List<DeploymentEvidence> deployments,
+            List<MetricSeries> metrics,
+            List<LogEvidence> logs,
+            List<RunbookEvidence> runbooks
+    ) {
+    }
+
+    public record DeploymentEvidence(String version, String gitSha, String status,
+                                     String deployedBy, Instant deployedAt) {
+    }
+
+    public record MetricSeries(String metric, List<MetricPoint> points) {
+    }
+
+    public record MetricPoint(double value, Instant recordedAt) {
+    }
+
+    public record LogEvidence(String level, String message, String traceId, Instant occurredAt) {
+    }
+
+    public record RunbookEvidence(String title, String symptom, String action, List<String> steps) {
     }
 }

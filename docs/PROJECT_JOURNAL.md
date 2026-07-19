@@ -1323,3 +1323,42 @@ A technically real backend does not automatically create a believable product. A
 ### Next action
 
 Run the full backend regression and dependency audit, inspect the final source diff, commit and push the coherent redesign, then watch the existing OIDC workflow deploy it to the stable Azure URL. The separate `$10` cost-guard bootstrap remains the only owner-side deployment prerequisite not yet verified.
+
+---
+
+## Session 30 — Configurable investigation workbench
+
+### Goal
+
+Turn the attractive but fixed portfolio walkthrough into a tool a real reviewer can operate: choose a meaningful incident, create durable evidence, inspect raw observations, understand the recommendation, learn the system, and revisit the generated record.
+
+### Product research and decision
+
+Current primary documentation from Google Cloud Assist, AWS DevOps Agent, Azure SRE Agent, and Datadog Bits was compared in `docs/research/2026_INCIDENT_INVESTIGATION_PRODUCT_RESEARCH.md`. Their useful common loop is scoped incident context, visible observations and queries, hypotheses, recommended verification or mitigation, permissions separate from intelligence, and a durable/shareable record. ADR 0012 applies that loop without granting a public visitor arbitrary prompts, commands, targets, or mutations.
+
+### Real workflow implemented
+
+- Added a forward-only migration that records selected service, symptom, severity, signal intensity, customer impact, deployment context, display title, and summary on every live submission.
+- Added `GET /api/v1/demo/investigation-options` and `POST /api/v1/demo/investigations`. Options come from the active 12-service catalog; request fields are enums or known UUIDs.
+- Preserved database idempotency, Redis limits, RabbitMQ delivery, deterministic fingerprinting, and dry-run-only public execution.
+- Generalized evidence generation across four incident families and three intensities. The API publishes its evidence contract: five metric series, 12 samples each, eight log rows, optional deployment, PostgreSQL persistence, and dry-run mode.
+- Extended the run projection with bounded deployment, metric, log, and runbook queries around the incident window. Queries use indexes, strict limits, DTOs, and a read-only service transaction.
+- Rebuilt the Live Lab as a parameterized incident composer with a review step, API-state event stream, explicit completion, and generated public identifier.
+- Added an operator response brief and a raw console whose query, metric, log, agent, and policy lines all come from the selected run projection. Filtering, copying, and wrapping do not mutate backend state.
+- Added saved light/dark presentation and a six-module interactive learning workspace with knowledge checks, progress, concrete examples, production integration guidance, glossary, and direct practice routes.
+
+### Verification and defect found
+
+Frontend tests initially exposed a missing `matchMedia` implementation in the test browser and obsolete fixed-scenario expectations. The theme now safely falls back when that API is unavailable, and tests exercise configured creation plus explicit report navigation.
+
+The first PostgreSQL/RabbitMQ/Redis integration run found that JDBC could not infer a SQL type for `Instant` parameters in the new evidence windows. The query now binds `Timestamp` explicitly. The second full integration run passed and proves option discovery, selected-field persistence, 60 metrics, eight logs, one deployment, durable completion, idempotent replay, rate limiting, transcript, dry-run gate, and ledger projection.
+
+Verified: the complete backend regression passes 113 tests across 38 suites with zero failures, errors, or skips; the targeted container integration passes; all six frontend tests pass; Next.js production export and strict TypeScript compilation pass; the npm audit reports zero vulnerabilities; and `git diff --check` is clean. Test-container shutdown still emits the previously documented non-failing Redis/Netty cleanup noise after assertions. In-app visual automation was attempted but no browser surface was available in this session, so final visual confirmation remains part of the deployed-URL check rather than being falsely claimed.
+
+### Learning insight
+
+A synthetic incident is valuable when it is a durable, operator-chosen experiment—not a hard-coded story. The realism boundary is the system behavior: generated identifiers, persisted telemetry, delivery and retry semantics, evidence queries, grounded proposal, deterministic authorization, and auditable outcome. The public boundary remains deliberately synthetic and dry-run so usefulness does not require production access.
+
+### Next action
+
+Run the complete backend regression and dependency audit, review the release diff, commit and push the coherent workbench, then verify the existing OIDC deployment on the stable Azure hostname. The separate Azure cost-guard bootstrap remains an owner-side task.

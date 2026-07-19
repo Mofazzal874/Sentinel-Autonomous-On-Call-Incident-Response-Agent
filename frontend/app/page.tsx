@@ -11,12 +11,15 @@ import {
   DemoRun, DemoRunSummary, DemoSystemOverview, getDemoOverview, getDemoRun, listDemoRuns,
 } from "../lib/demo-api";
 import CatalogWorkspace from "./CatalogWorkspace";
+import EvidenceConsole from "./EvidenceConsole";
+import LearningCenter from "./LearningCenter";
 import ScenarioLauncher from "./ScenarioLauncher";
+import ThemeControl from "./ThemeControl";
 import "./experience.css";
 
 type LoadState = "loading" | "ready" | "error";
 type View = "overview" | "lab" | "incidents" | "learn" | "admin";
-type DetailTab = "story" | "evidence" | "safety" | "audit";
+type DetailTab = "story" | "evidence" | "console" | "safety" | "audit";
 
 const pipeline = [
   ["Ingest", "Accept and fingerprint the alert", Siren],
@@ -81,7 +84,7 @@ export default function OperatorConsole() {
         <NavButton active={view === "learn"} onClick={() => navigate("learn")}><BookOpen /> Learn</NavButton>
         <NavButton active={view === "admin"} onClick={() => navigate("admin")}>Admin</NavButton>
       </nav>
-      <div className={`apiState ${listState}`}><i />{listState === "ready" ? "System live" : listState === "error" ? "API unavailable" : "Connecting"}</div>
+      <div className="navUtilities"><div className={`apiState ${listState}`}><i />{listState === "ready" ? "System live" : listState === "error" ? "API unavailable" : "Connecting"}</div><ThemeControl /></div>
     </header>
 
     <AnimatePresence mode="wait">
@@ -89,7 +92,7 @@ export default function OperatorConsole() {
         {view === "overview" && <Overview overview={overview} runs={runs} onLab={() => navigate("lab")} onLearn={() => navigate("learn")} />}
         {view === "lab" && <LiveLab onCompleted={openCompletedRun} />}
         {view === "incidents" && <IncidentExplorer runs={runs} selectedId={selectedId} selected={selected} listState={listState} detailState={detailState} onSelect={setSelectedId} onRetry={() => void loadData()} />}
-        {view === "learn" && <LearningCenter onLab={() => navigate("lab")} />}
+        {view === "learn" && <LearningCenter onLab={() => navigate("lab")} onIncidents={() => navigate("incidents")} />}
         {view === "admin" && <div className="legacyWrap"><CatalogWorkspace /></div>}
       </motion.div>
     </AnimatePresence>
@@ -152,28 +155,14 @@ function IncidentExplorer({ runs, selectedId, selected, listState, detailState, 
 function Investigation({ run, tab, setTab }: { run: DemoRun; tab: DetailTab; setTab: (tab: DetailTab) => void }) {
   const remediation = run.remediation;
   return <><header className="detailHeader"><div><div className="detailMeta"><Severity value={run.severity} /><span className={`source ${run.source.toLowerCase()}`}>{run.source}</span><code>{run.service}</code></div><h2>{run.scenarioTitle}</h2><p>{run.summary}</p></div><Status value={run.incidentStatus} /></header>
-    <nav className="detailTabs" aria-label="Investigation sections">{([['story','Incident story'],['evidence','Evidence & AI'],['safety','Safety decision'],['audit','Audit ledger']] as [DetailTab,string][]).map(([id,label]) => <button className={tab === id ? "active" : ""} onClick={() => setTab(id)} key={id}>{label}{id === "audit" && <span>{run.ledger.length}</span>}</button>)}</nav>
+    <nav className="detailTabs" aria-label="Investigation sections">{([['story','Response brief'],['evidence','Evidence & AI'],['console','Raw console'],['safety','Safety decision'],['audit','Audit ledger']] as [DetailTab,string][]).map(([id,label]) => <button className={tab === id ? "active" : ""} onClick={() => setTab(id)} key={id}>{label}{id === "audit" && <span>{run.ledger.length}</span>}</button>)}</nav>
     <AnimatePresence mode="wait"><motion.div className="detailBody" key={tab} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}>
-      {tab === "story" && <div className="readableTimeline">{run.timeline.map(entry => <article key={entry.sequence}><span>{entry.sequence}</span><div><header><strong>{friendly(entry.type)}</strong><time>{formatClock(entry.recordedAt)}</time></header><p>{entry.content}</p></div></article>)}</div>}
+      {tab === "story" && <><div className="responseBrief"><article><span>CUSTOMER IMPACT</span><strong>{run.summary}</strong></article><article><span>LIKELY INCIDENT TYPE</span><strong>{run.timeline.find(entry => entry.type === "CLASSIFICATION")?.content ?? "Escalated for operator classification"}</strong></article><article><span>RECOMMENDED NEXT MOVE</span><strong>{remediation ? `${friendly(remediation.action)} · ${friendly(remediation.status)}` : "Escalate; no grounded action"}</strong></article></div><h3 className="sectionLabel">How Sentinel reached this result</h3><div className="readableTimeline">{run.timeline.map(entry => <article key={entry.sequence}><span>{entry.sequence}</span><div><header><strong>{friendly(entry.type)}</strong><time>{formatClock(entry.recordedAt)}</time></header><p>{entry.content}</p></div></article>)}</div></>}
       {tab === "evidence" && <><Explainer title="What did the agent do?" text="It classified the incident, gathered bounded evidence, retrieved a runbook, proposed an action and critiqued that proposal. It did not authorize execution." /><div className="evidenceGrid">{run.timeline.filter(entry => entry.type !== "OUTCOME").map(entry => <article key={entry.sequence}><span>{friendly(entry.type)}</span><p>{entry.content}</p>{entry.iteration > 0 && <small>Evaluator pass {entry.iteration}</small>}</article>)}</div>{remediation && <div className="reasonGrid"><article><span>Why this action?</span><p>{remediation.rationale}</p></article><article><span>Known risk</span><p>{remediation.riskNotes}</p></article></div>}</>}
+      {tab === "console" && <EvidenceConsole run={run} />}
       {tab === "safety" && (remediation ? <><Explainer title="Who made the final decision?" text="Deterministic Java code—not the AI model—scored risk and applied kill-switch, allowlist, grounding, approval and idempotency rules." /><div className="decisionHero"><div><small>PROPOSED ACTION</small><h3>{friendly(remediation.action)}</h3><p>{remediation.runbook}</p></div><div className="score"><strong>{remediation.riskScore ?? "—"}</strong><span>risk / 100</span></div><div className="score safe"><strong>{Math.round(remediation.groundingSimilarity * 100)}%</strong><span>grounded</span></div></div><ol className="actionSteps">{remediation.steps.map((step,index) => <li key={step}><span>{index + 1}</span>{step}</li>)}</ol><div className="gateBanner"><ShieldCheck /><div><small>DETERMINISTIC GATE RESULT</small><strong>{friendly(remediation.status)}</strong><p>{remediation.decisionNote ?? "The proposal remained inside the configured safety boundary."}</p></div></div></> : <div className="noRemediation"><ShieldCheck /><h3>No grounded remediation was allowed</h3><p>Sentinel escalated instead of inventing a fix. Missing authoritative evidence is a hard safety stop.</p></div>)}
       {tab === "audit" && <><Explainer title="Why an append-only ledger?" text="An action is never erased or rewritten. Later compensation becomes a new fact, preserving who decided what and when." /><div className="auditTable">{run.ledger.length ? run.ledger.map((entry,index) => <article key={`${entry.recordedAt}-${index}`}><time>{formatClock(entry.recordedAt)}</time><span className="auditDot" /><div><strong>{friendly(entry.eventType)}</strong><p>{entry.details}</p><small>{entry.actor} · {friendly(entry.mode)}</small></div></article>) : <div className="largeEmpty"><strong>No mutation was claimed</strong><p>The safe outcome itself is visible in the investigation timeline.</p></div>}</div></>}
     </motion.div></AnimatePresence></>;
-}
-
-function LearningCenter({ onLab }: { onLab: () => void }) {
-  const [open, setOpen] = useState(0);
-  const lessons = [
-    ["1. Start with the user problem", "An alert says something is wrong, but not why. An engineer normally jumps among monitoring, logs, deployment history and runbooks. Sentinel joins that evidence into one durable incident."],
-    ["2. Understand the AI boundary", "The model can classify evidence and propose a remediation. It cannot call a mutating tool, lower its own risk score, approve itself or bypass the deterministic GuardrailGate."],
-    ["3. Run the live lab", "Choose a fixed failure scenario and click Run. The browser sends one idempotent request; the backend creates fresh evidence, publishes work to RabbitMQ and processes it at least once without creating duplicate incidents."],
-    ["4. Read the investigation", "Incident Story is the sequence. Evidence & AI shows reasoning inputs and critique. Safety Decision explains why a proposal was blocked, dry-run or sent for approval. Audit Ledger proves the outcome."],
-    ["5. Know what is simulated", "The organization and failures are synthetic so a public visitor cannot damage real infrastructure. The Spring services, PostgreSQL writes, Redis limits, RabbitMQ delivery, agent orchestration and Java guardrails are real."],
-  ];
-  return <section className="pageSection learnPage"><div className="pageIntro"><p>DOCUMENTATION & TUTORIAL</p><h1>Understand Sentinel<br /><em>without reading the code.</em></h1><span>A guided tour of the product, its system design, and the safety boundary that makes an incident-response agent defensible.</span><button className="primaryCta" onClick={onLab}>Start the hands-on tutorial <ArrowRight /></button></div>
-    <div className="learningLayout"><aside><span>IN THIS GUIDE</span>{lessons.map(([title],index) => <button className={open === index ? "active" : ""} onClick={() => setOpen(index)} key={title}>{title}</button>)}</aside><article className="lesson"><span>LESSON {open + 1} OF {lessons.length}</span><h2>{lessons[open][0]}</h2><p>{lessons[open][1]}</p><div className="lessonExample"><strong>Concrete example</strong><p>A payments deployment finishes at 10:02. Errors spike at 10:04. Sentinel finds the temporal correlation, retrieves the approved rollback runbook, proposes rollback, then records a dry-run because this public environment cannot mutate infrastructure.</p></div><div className="lessonNav"><button disabled={open === 0} onClick={() => setOpen(open - 1)}>Previous</button><button disabled={open === lessons.length - 1} onClick={() => setOpen(open + 1)}>Next lesson <ArrowRight /></button></div></article></div>
-    <div className="glossary"><div><p>PLAIN-LANGUAGE GLOSSARY</p><h2>Words you will see in the console</h2></div><Glossary term="Grounding" meaning="Supporting a proposal with retrieved operational evidence instead of model memory." /><Glossary term="Idempotency" meaning="Repeating the same request cannot create a duplicate incident or action." /><Glossary term="Dry-run" meaning="Evaluate and record an action without changing infrastructure." /><Glossary term="Compensation" meaning="A new action that reverses an earlier action without erasing history." /></div>
-  </section>;
 }
 
 const rise = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
@@ -183,7 +172,6 @@ function Persona({ icon: Icon, title, text }: { icon: typeof Siren; title: strin
 function Severity({ value }: { value: string }) { return <span className={`newSeverity ${value.toLowerCase()}`}>{value}</span>; }
 function Status({ value }: { value: string }) { return <span className={`newStatus ${value.toLowerCase()}`}>{friendly(value)}</span>; }
 function Explainer({ title, text }: { title: string; text: string }) { return <div className="explainer"><BookOpen /><div><strong>{title}</strong><p>{text}</p></div></div>; }
-function Glossary({ term, meaning }: { term: string; meaning: string }) { return <article><strong>{term}</strong><p>{meaning}</p></article>; }
 function LoadingRows() { return <div className="newLoading">{[1,2,3].map(row => <div key={row}><i /><span /><span /></div>)}</div>; }
 function InvestigationSkeleton() { return <div className="detailSkeleton"><i /><i /><i /><i /></div>; }
 function friendly(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase()); }
