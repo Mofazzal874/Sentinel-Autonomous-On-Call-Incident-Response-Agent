@@ -8,6 +8,7 @@ import {
   listDemoRuns,
 } from "../lib/demo-api";
 import CatalogWorkspace from "./CatalogWorkspace";
+import ScenarioLauncher from "./ScenarioLauncher";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -58,6 +59,12 @@ export default function OperatorConsole() {
     approvals: runs.filter((run) => run.incidentStatus === "AWAITING_APPROVAL").length,
     critical: runs.filter((run) => run.severity === "SEV1").length,
   }), [runs]);
+
+  const openCompletedRun = useCallback(async (publicId: string) => {
+    await loadRuns();
+    setSelectedId(publicId);
+    setView("operations");
+  }, [loadRuns]);
 
   return (
     <main className="shell">
@@ -111,6 +118,8 @@ export default function OperatorConsole() {
           <Metric label="Awaiting approval" value={counts.approvals} note="Human decision required" tone="blue" />
           <Metric label="Critical severity" value={counts.critical} note="SEV1 investigations" tone="danger" />
         </section>
+
+        <ScenarioLauncher onCompleted={openCompletedRun} />
 
         <section className="consoleGrid" id="incidents">
           <div className="panel incidentPanel">

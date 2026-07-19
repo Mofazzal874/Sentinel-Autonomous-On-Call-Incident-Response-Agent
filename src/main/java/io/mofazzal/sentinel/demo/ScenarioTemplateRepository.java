@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;
+import java.util.Optional;
 
 public interface ScenarioTemplateRepository extends JpaRepository<ScenarioTemplate, UUID> {
     @EntityGraph(attributePaths = "service")
@@ -13,4 +14,7 @@ public interface ScenarioTemplateRepository extends JpaRepository<ScenarioTempla
 
     @EntityGraph(attributePaths = "service")
     Page<ScenarioTemplate> findAllBy(Pageable pageable);
+
+    @EntityGraph(attributePaths = "service")
+    Optional<ScenarioTemplate> findByIdAndEnabledTrueAndArchivedAtIsNull(UUID id);
 }

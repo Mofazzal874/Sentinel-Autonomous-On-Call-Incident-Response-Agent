@@ -46,6 +46,28 @@ export type DemoRun = DemoRunSummary & {
   ledger: LedgerEntry[];
 };
 
+export type DemoScenario = {
+  id: string;
+  scenarioKey: string;
+  displayName: string;
+  description: string;
+  scenarioType: string;
+  service: string;
+  severity: DemoRunSummary["severity"];
+};
+
+export type DemoSubmission = {
+  publicId: string;
+  scenarioKey: string;
+  scenarioTitle: string;
+  state: "ACCEPTED" | "QUEUED" | "COMPLETED" | "FAILED";
+  incidentStatus: string | null;
+  submittedAt: string;
+  completedAt: string | null;
+  failureReason: string | null;
+  runUrl: string;
+};
+
 const API_ROOT = "/api/v1/demo/runs";
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -66,4 +88,24 @@ export function listDemoRuns(signal?: AbortSignal) {
 
 export function getDemoRun(publicId: string, signal?: AbortSignal) {
   return request<DemoRun>(`${API_ROOT}/${encodeURIComponent(publicId)}`, signal);
+}
+
+export function listDemoScenarios(signal?: AbortSignal) {
+  return request<DemoScenario[]>("/api/v1/demo/scenarios", signal);
+}
+
+export async function submitDemoScenario(templateId: string, idempotencyKey: string) {
+  const response = await fetch(`/api/v1/demo/scenarios/${encodeURIComponent(templateId)}/runs`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Idempotency-Key": idempotencyKey },
+  });
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(problem?.message ?? `Scenario API returned ${response.status}`);
+  }
+  return response.json() as Promise<DemoSubmission>;
+}
+
+export function getDemoSubmission(publicId: string, signal?: AbortSignal) {
+  return request<DemoSubmission>(`/api/v1/demo/submissions/${encodeURIComponent(publicId)}`, signal);
 }

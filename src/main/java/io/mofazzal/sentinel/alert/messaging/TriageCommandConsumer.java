@@ -9,6 +9,7 @@ import io.mofazzal.sentinel.agent.application.IncidentAgentDispatcher;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.CannotCreateTransactionException;
 
@@ -21,15 +22,18 @@ public class TriageCommandConsumer {
     private final IncidentAgentDispatcher agentDispatcher;
     private final TriageCommandPublisher publisher;
     private final int maxAttempts;
+    private final ObjectProvider<TriageCommandLifecycleListener> lifecycleListeners;
 
     public TriageCommandConsumer(IncidentCreationService incidentCreationService,
                                  IncidentAgentDispatcher agentDispatcher,
                                  TriageCommandPublisher publisher,
-                                 AlertMessagingProperties properties) {
+                                 AlertMessagingProperties properties,
+                                 ObjectProvider<TriageCommandLifecycleListener> lifecycleListeners) {
         this.incidentCreationService = incidentCreationService;
         this.agentDispatcher = agentDispatcher;
         this.publisher = publisher;
         this.maxAttempts = properties.maxConsumerAttempts();
+        this.lifecycleListeners = lifecycleListeners;
     }
 
     @RabbitListener(queues = AlertMessagingTopology.TRIAGE_QUEUE)
@@ -38,11 +42,13 @@ public class TriageCommandConsumer {
         try {
             incidentCreationService.createIfAbsent(command);
             agentDispatcher.dispatchIfEnabled(command);
+            lifecycleListeners.orderedStream().forEach(listener -> listener.completed(command));
             channel.basicAck(deliveryTag, false);
         } catch (TransientDataAccessException | CannotCreateTransactionException
                  | AgentDispatchInProgressException exception) {
             retryOrDeadLetter(command, message, channel, deliveryTag);
         } catch (RuntimeException exception) {
+            notifyFailed(command, exception);
             channel.basicNack(deliveryTag, false, false);
         }
     }
@@ -51,6 +57,8 @@ public class TriageCommandConsumer {
                                    long deliveryTag) throws IOException {
         int retries = retryCount(message);
         if (retries + 1 >= maxAttempts) {
+            lifecycleListeners.orderedStream().forEach(listener ->
+                    listener.failed(command, "Triage exhausted its bounded retry policy"));
             channel.basicNack(deliveryTag, false, false);
             return;
         }
@@ -59,8 +67,14 @@ public class TriageCommandConsumer {
             publisher.publishRetry(command, retries + 1);
             channel.basicAck(deliveryTag, false);
         } catch (AlertPublishException exception) {
+            notifyFailed(command, exception);
             channel.basicNack(deliveryTag, false, false);
         }
+    }
+
+    private void notifyFailed(TriageCommand command, RuntimeException failure) {
+        String reason = failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage();
+        lifecycleListeners.orderedStream().forEach(listener -> listener.failed(command, reason));
     }
 
     private int retryCount(Message message) {

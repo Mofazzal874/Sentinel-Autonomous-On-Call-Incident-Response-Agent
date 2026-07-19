@@ -21,6 +21,14 @@ vi.mock("../lib/demo-api", async (importOriginal) => {
     ...actual,
     listDemoRuns: vi.fn(async () => summaries),
     getDemoRun: vi.fn(async (id: string) => details.get(id)),
+    listDemoScenarios: vi.fn(async () => [{ id: "scenario-1", scenarioKey: "live-bad-deploy",
+      displayName: "Faulty payment release", description: "Fresh bounded evidence", scenarioType: "BAD_DEPLOY",
+      service: "payments-api", severity: "SEV1" }]),
+    submitDemoScenario: vi.fn(async () => ({ publicId: "live-run-1", scenarioKey: "live-bad-deploy",
+      scenarioTitle: "Faulty payment release", state: "COMPLETED", incidentStatus: "ESCALATED",
+      submittedAt: "2026-07-19T00:00:00Z", completedAt: "2026-07-19T00:00:10Z",
+      failureReason: null, runUrl: "/api/v1/demo/runs/live-run-1" })),
+    getDemoSubmission: vi.fn(),
   };
 });
 
@@ -55,6 +63,16 @@ describe("operator console", () => {
     expect(screen.getByText("Administrative mutations require identity.")).toBeInTheDocument();
     expect(screen.getByLabelText("Short-lived ADMIN JWT")).toBeInTheDocument();
     expect(screen.getByText(/not a hidden frontend button/i)).toBeInTheDocument();
+  });
+
+  it("submits only a listed fixed scenario and reports durable completion", async () => {
+    render(<OperatorConsole />);
+    const button = await screen.findByRole("button", { name: "Run safe scenario" });
+
+    fireEvent.click(button);
+
+    expect(await screen.findByText(/Investigation complete/i)).toBeInTheDocument();
+    expect(screen.getByText("live-run-1")).toBeInTheDocument();
   });
 });
 

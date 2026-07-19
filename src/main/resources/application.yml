@@ -80,6 +80,12 @@ sentinel:
     run-recovery-scan-delay: 1m
   alerts:
     dedup-window: 10m
+  demo:
+    sandbox:
+      per-client-per-minute: 3
+      global-concurrency: 2
+      daily-accepted: 25
+      lease-timeout: 15m
   messaging:
     publisher-confirm-timeout: 5s
     max-consumer-attempts: 3

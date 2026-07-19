@@ -1115,3 +1115,42 @@ CRUD is not one universal deletion rule. A dependency edge describes current top
 ### Next action
 
 Build the public fixed-scenario execution pipeline through existing alert ingestion, durable messaging, agent workflow, guardrail gate, and demo-run registry. Add per-client/global/daily bounds before exposing its submit endpoint.
+
+---
+
+## Session 25 — Bounded public live-scenario pipeline
+
+### Goal
+
+Let a recruiter create a fresh, realistic incident from the operator console while keeping anonymous input, resource use, and remediation authority tightly bounded.
+
+### Implementation
+
+- Added four server-owned scenario templates and a durable submission table with generated public UUIDs, state, completion linkage, and hashed retry identity.
+- Added one atomic Redis admission decision for per-client minute, global daily, and concurrent lease limits. New work fails closed if Redis cannot enforce the boundary.
+- Generated causal metrics, structured logs, and deployment evidence for each accepted run, then reused the existing fingerprinting, Redis alert suppression, RabbitMQ, incident, agent, guardrail, and ledger path.
+- Extended the RabbitMQ consumer with ordered lifecycle listeners. A live submission completes or fails and releases capacity before the message is acknowledged or terminally dead-lettered.
+- Added a public launcher that lists only fixed templates, generates an idempotency key, polls bounded status, and opens the resulting authoritative incident view.
+- Kept the public safety mode at dry-run and exposed no prompt, alert body, action, tool argument, or policy mutation.
+
+### Iterative findings
+
+The first migration attempted to insert scenario templates before the demo operations seeder had created their service rows. Flyway must own schema while the profile seeder owns demo data, so the migration became schema-only and seeder ordering was made explicit.
+
+The stronger integration test initially expected six transcript entries by copying a pre-seeded narrative's shape. A real successful one-pass workflow has five authoritative stages: classification, evidence, proposal, critique, and outcome. The oracle was corrected and strengthened to prove dry-run creates no executable action claim.
+
+### Verification
+
+The focused gate passes against real PostgreSQL 17/pgvector, Redis 7, and RabbitMQ 4. It proves fixed public discovery, durable retry idempotency, queued processing, generated evidence, agent escalation, five transcript facts, deterministic dry-run, an append-only ledger event, zero action claims, a global daily rejection, protected ordinary APIs, and acknowledgement ordering on success and every terminal failure path.
+
+Frontend verification passes five interaction tests across two files, strict type checking, production static export, and a zero-vulnerability dependency audit.
+
+The final clean backend regression passes 113 tests across 38 suites with zero failures, errors, or skips. `git diff --check` is clean, and the private project plan plus Claude memory files remain ignored.
+
+### Learning insight
+
+An interactive demo should exercise the real system without granting the public its authority. Sentinel separates selection, identity, capacity, delivery, reasoning, and authorization so each failure has a specific boundary. The browser asks for a reviewed story; it never defines or approves remediation.
+
+### Next action
+
+Run the complete regression suite, then build the approval/safety/topology views. Deployment remains deferred until those operator journeys and final browser rehearsal pass.

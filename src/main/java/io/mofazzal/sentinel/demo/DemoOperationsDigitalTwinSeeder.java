@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Profile("demo")
-@Order(Ordered.LOWEST_PRECEDENCE)
+@Order(Ordered.LOWEST_PRECEDENCE - 1)
 public class DemoOperationsDigitalTwinSeeder implements ApplicationRunner {
 
     static final int DATASET_VERSION = 1;

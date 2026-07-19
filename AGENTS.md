@@ -113,6 +113,14 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Scenario templates select only a closed server-owned `ScenarioType`. Never add arbitrary prompts, shell commands, action names, or user-provided tool arguments to this contract.
 - The browser keeps a pasted development ADMIN token only in component memory. Production identity remains an external-issuer responsibility; never persist bearer tokens in local storage.
 
+## Live demo sandbox baseline
+
+- Anonymous visitors may list active fixed scenarios, submit one by generated scenario UUID, and poll only their generated public submission UUID. They cannot submit alert payloads, prompts, action types, tool arguments, or remediation commands.
+- A submission has durable PostgreSQL identity and idempotency. Hashed client identity plus a hashed `Idempotency-Key` prevents browser retries from creating another run; the existing alert fingerprint and incident uniqueness remain the final correctness boundaries.
+- One atomic Redis script enforces the per-client minute limit, global daily allowance, and concurrent-work lease. Redis failure closes public submission rather than bypassing limits.
+- Synthetic evidence is generated before the existing alert ingestion path. RabbitMQ acknowledgement happens only after incident/agent processing and the demo lifecycle transaction complete; terminal delivery failure records a failed submission and releases its lease.
+- Public execution remains dry-run. The end-to-end gate must prove a ledger decision exists and no executable `action_claim` is created.
+
 ## Testing strategy
 
 - Test deterministic components normally and thoroughly; do not involve a model in safety tests.

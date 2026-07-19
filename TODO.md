@@ -8,7 +8,7 @@ This is the active, phase-gated task list. Complete and verify each phase before
 - [x] Add a forward-only public run registry and profile-gated, idempotent synthetic incident histories.
 - [x] Prove the records use authoritative incident/transcript/remediation/ledger tables and retain append-only enforcement.
 - [x] Add bounded anonymous read projections while keeping ordinary operational APIs authenticated.
-- [ ] Add fixed live scenario submission with per-IP and global limits; never accept arbitrary prompts or actions.
+- [x] Add fixed live scenario submission with per-client and global limits; never accept arbitrary prompts or actions.
 - [x] Build and package the first operator console around incident, evidence, proposal, gate, and ledger facts.
 - [x] Add frontend interaction tests, type checking, static export, dependency audit, and exact-stack HTTP rehearsal.
 - [x] Expand the digital twin to the documented 12-service/30-incident/10,000-metric baseline.

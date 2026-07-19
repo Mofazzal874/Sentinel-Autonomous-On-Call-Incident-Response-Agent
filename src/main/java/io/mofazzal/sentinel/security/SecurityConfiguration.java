@@ -32,6 +32,7 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/v1/alerts").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/demo/scenarios/*/runs").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/", "/index.html", "/404.html", "/_next/**", "/favicon.ico",
                                 "/actuator/health/liveness", "/actuator/health/readiness",

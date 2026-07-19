@@ -89,3 +89,6 @@ Add terms when they first appear in implementation. Definitions should explain p
 - **TLS termination:** The point where HTTPS is decrypted; Caddy performs it at the edge while Sentinel remains private on the Docker network.
 - **Immutable deployment tag:** A container tag based on a commit SHA, identifying one exact source revision instead of a moving label such as `latest`.
 - **Continuous delivery:** Automatically verifying and packaging each change, with deployment controlled by an explicit environment policy or approval.
+- **Idempotency key:** A client-supplied retry identity whose repeated use returns the original operation instead of creating another one.
+- **Concurrency lease:** A capacity reservation with an expiration time, allowing a crashed worker's slot to recover automatically.
+- **Fail closed:** Refusing an operation when a required safety dependency is unavailable instead of silently weakening the policy.
