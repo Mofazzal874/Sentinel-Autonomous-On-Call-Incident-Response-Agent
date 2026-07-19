@@ -287,6 +287,7 @@ Execution checkpoints:
 - [x] Compare a one-VM demo, Azure Container Apps managed topology, and AKS using current official sources.
 - [x] Add a locally rehearsable one-VM bundle with pinned services, generated ignored secrets, semantic startup indexing, and E-drive model reuse.
 - [x] Add a stable edge identity design, public landing page, immutable GHCR images, and opt-in GitHub deployment automation.
+- [x] Prove the GitHub Linux regression, image build, and GHCR publish job; confirm Azure deployment stays skipped while disabled.
 
 ### 4. Deployment and portfolio gate
 

@@ -955,6 +955,8 @@ The final uncached regression passed 103 tests across 35 suites with zero failur
 
 The first GitHub runner stopped immediately with exit code 126 because the repository's Windows-origin Gradle wrapper lacks the Unix executable bit. CI now invokes the checked-in wrapper explicitly through `bash`, preserving the wrapper checksum/version while avoiding an unnecessary permission mutation. Azure deployment was disabled, so the failed verification created no cloud resource or public endpoint.
 
+The corrected GitHub run `29679568345` completed successfully: Linux regression, executable JAR, OCI build, and commit-SHA/main GHCR publication all passed. The deploy job remained skipped because `AZURE_DEPLOY_ENABLED` is not set to `true`, proving the cloud mutation boundary works as intended.
+
 ### Durable lesson
 
 The service identity and release artifact must be separate. DNS/static IP is the durable address; an image tagged by commit SHA is replaceable software. A budget is an alert rather than an automatic shutdown. Continuous résumé availability therefore costs money even when no release occurs, while deallocation preserves the address but takes the demo offline.
