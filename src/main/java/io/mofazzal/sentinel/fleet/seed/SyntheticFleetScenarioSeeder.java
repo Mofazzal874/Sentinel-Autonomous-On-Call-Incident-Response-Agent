@@ -47,7 +47,7 @@ public class SyntheticFleetScenarioSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments arguments) {
-        FleetService payments = serviceRepository.findByName("payments-api")
+        FleetService payments = serviceRepository.findByNameAndArchivedAtIsNull("payments-api")
                 .orElseThrow(() -> new IllegalStateException("Reference service payments-api is missing"));
 
         if (deploymentRepository.existsByServiceIdAndGitSha(payments.getId(), BAD_DEPLOY_GIT_SHA)) {

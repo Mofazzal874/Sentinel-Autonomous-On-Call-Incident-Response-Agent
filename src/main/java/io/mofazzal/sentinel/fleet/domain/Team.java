@@ -6,7 +6,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -23,6 +25,13 @@ public class Team {
 
     @Column(name = "contact_channel", nullable = false, length = 200)
     private String contactChannel;
+
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     protected Team() {
     }
@@ -42,6 +51,31 @@ public class Team {
 
     public String getContactChannel() {
         return contactChannel;
+    }
+
+    public Instant getArchivedAt() {
+        return archivedAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public void update(String name, String contactChannel) {
+        requireActive();
+        this.name = requireText(name, "name");
+        this.contactChannel = requireText(contactChannel, "contactChannel");
+    }
+
+    public void archive(Instant archivedAt) {
+        requireActive();
+        this.archivedAt = Objects.requireNonNull(archivedAt, "archivedAt");
+    }
+
+    private void requireActive() {
+        if (archivedAt != null) {
+            throw new IllegalStateException("team is archived");
+        }
     }
 
     private static String requireText(String value, String field) {

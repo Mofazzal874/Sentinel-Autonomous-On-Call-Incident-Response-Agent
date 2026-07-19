@@ -12,7 +12,7 @@ This is the active, phase-gated task list. Complete and verify each phase before
 - [x] Build and package the first operator console around incident, evidence, proposal, gate, and ledger facts.
 - [x] Add frontend interaction tests, type checking, static export, dependency audit, and exact-stack HTTP rehearsal.
 - [x] Expand the digital twin to the documented 12-service/30-incident/10,000-metric baseline.
-- [ ] Add generated-ID catalog/runbook CRUD with optimistic locking and safe archive rules.
+- [x] Add generated-ID catalog/runbook/scenario CRUD with optimistic locking and safe archive rules.
 - [ ] Prove concurrency limits, redaction, dry-run, and end-to-end browser behavior.
 - [ ] Replace runner-IP SSH deployment with Azure OIDC plus VM Run Command, then deploy and verify the stable URL.
 

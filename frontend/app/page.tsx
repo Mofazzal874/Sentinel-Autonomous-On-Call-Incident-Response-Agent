@@ -7,10 +7,12 @@ import {
   getDemoRun,
   listDemoRuns,
 } from "../lib/demo-api";
+import CatalogWorkspace from "./CatalogWorkspace";
 
 type LoadState = "loading" | "ready" | "error";
 
 export default function OperatorConsole() {
+  const [view, setView] = useState<"operations" | "catalog">("operations");
   const [runs, setRuns] = useState<DemoRunSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<DemoRun | null>(null);
@@ -65,10 +67,11 @@ export default function OperatorConsole() {
           <span>Sentinel</span>
         </a>
         <nav>
-          <a className="navItem active" href="#overview"><span>01</span> Operations</a>
+          <button className={`navItem ${view === "operations" ? "active" : ""}`} onClick={() => setView("operations")}><span>01</span> Operations</button>
           <a className="navItem" href="#incidents"><span>02</span> Incidents</a>
           <a className="navItem" href="#investigation"><span>03</span> Investigation</a>
           <a className="navItem" href="#safety"><span>04</span> Safety</a>
+          <button className={`navItem ${view === "catalog" ? "active" : ""}`} onClick={() => setView("catalog")}><span>05</span> Catalog</button>
         </nav>
         <div className="sidebarFoot">
           <div className="environment"><span className="pulse" /> Portfolio sandbox</div>
@@ -89,7 +92,7 @@ export default function OperatorConsole() {
           </div>
         </header>
 
-        <section className="mission">
+        {view === "catalog" ? <CatalogWorkspace /> : <><section className="mission">
           <div>
             <span className="kicker">SAFETY-FIRST INCIDENT RESPONSE</span>
             <h2>Investigate quickly.<br /><em>Keep humans in control.</em></h2>
@@ -155,6 +158,7 @@ export default function OperatorConsole() {
           </div>
         </section>
 
+        </>}
         <footer>
           <span>SENTINEL / SAFE AUTONOMOUS RESPONSE</span>
           <span>Spring Boot · PostgreSQL · RabbitMQ · Redis · pgvector</span>

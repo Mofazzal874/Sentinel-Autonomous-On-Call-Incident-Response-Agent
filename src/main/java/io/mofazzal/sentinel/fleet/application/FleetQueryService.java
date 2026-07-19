@@ -18,7 +18,7 @@ public class FleetQueryService {
 
     @Transactional(readOnly = true)
     public List<FleetServiceResponse> listServices() {
-        return serviceRepository.findAllByOrderByNameAsc().stream()
+        return serviceRepository.findAllByArchivedAtIsNullOrderByNameAsc().stream()
                 .map(FleetServiceResponse::from)
                 .toList();
     }

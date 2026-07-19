@@ -103,6 +103,16 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Synthetic evidence must remain causal: deployments cannot occur after their incidents, and each incident needs bounded nearby metrics and logs.
 - Seeders run only under the `demo` profile and write the same authoritative domain tables used by normal workflows. Never enable this profile against a real operational database.
 
+## Catalog administration baseline
+
+- `/api/v1/catalog/**` is authenticated. `VIEWER`, `SRE_APPROVER`, and `ADMIN` may read; only `ADMIN` may create, update, archive, or delete catalog configuration.
+- Team, service, runbook, dependency, and fixed scenario IDs are generated and persisted UUIDs. Clients never choose IDs.
+- Team, service, runbook, and scenario removal means archive; their historical foreign-key references remain valid. A dependency edge is configuration and may be hard-deleted.
+- Updates and removals require the current JPA `@Version`; stale clients receive `409 Conflict` rather than overwriting newer work.
+- Archived services are excluded from active fleet reads. Archived runbooks are excluded from lexical/vector retrieval and their stored embedding is removed.
+- Scenario templates select only a closed server-owned `ScenarioType`. Never add arbitrary prompts, shell commands, action names, or user-provided tool arguments to this contract.
+- The browser keeps a pasted development ADMIN token only in component memory. Production identity remains an external-issuer responsibility; never persist bearer tokens in local storage.
+
 ## Testing strategy
 
 - Test deterministic components normally and thoroughly; do not involve a model in safety tests.

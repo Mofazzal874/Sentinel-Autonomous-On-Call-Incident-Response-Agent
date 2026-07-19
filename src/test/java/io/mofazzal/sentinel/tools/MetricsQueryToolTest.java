@@ -33,7 +33,7 @@ class MetricsQueryToolTest {
         FleetService service = service();
         Instant from = Instant.parse("2026-07-15T11:50:00Z");
         Instant to = from.plus(Duration.ofMinutes(30));
-        when(services.findByName("payments-api")).thenReturn(Optional.of(service));
+        when(services.findByNameAndArchivedAtIsNull("payments-api")).thenReturn(Optional.of(service));
         when(metrics.recentWindow(any(), any(), any(), any(), any()))
                 .thenReturn(descendingSamples(service, from));
 

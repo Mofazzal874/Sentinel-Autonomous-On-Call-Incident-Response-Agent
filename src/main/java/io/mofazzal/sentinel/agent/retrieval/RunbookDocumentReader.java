@@ -17,7 +17,7 @@ public class RunbookDocumentReader {
 
     @Transactional(readOnly = true)
     public List<RunbookDocument> readAll() {
-        return runbooks.findAll().stream()
+        return runbooks.findByArchivedAtIsNull(org.springframework.data.domain.Pageable.unpaged()).stream()
                 .map(runbook -> new RunbookDocument(runbook.getId(), runbook.getTitle(),
                         runbook.getSymptomDescription(), runbook.getSteps(), runbook.getActionType()))
                 .toList();

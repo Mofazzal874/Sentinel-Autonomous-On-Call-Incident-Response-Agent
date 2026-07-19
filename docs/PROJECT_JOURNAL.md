@@ -1082,3 +1082,36 @@ A useful incident dataset is a causal graph, not a collection of random rows. Se
 ### Next action
 
 Add authenticated generated-ID catalog and runbook CRUD with validation, optimistic locking, archive rules, pagination, authorization tests, and an administration UI. Do not expose safety-policy mutation to anonymous portfolio visitors.
+
+---
+
+## Session 24 — Durable catalog administration
+
+### Goal
+
+Make the fleet, topology, runbooks, allowlists, and future sandbox scenarios editable as real persisted resources while protecting history and concurrent administrator work.
+
+### Implementation
+
+- Added generated-UUID create/read/update/archive APIs for teams, services, runbooks, and fixed scenarios, plus create/read/hard-delete for dependency edges.
+- Added forward-only lifecycle/version columns and a fixed-scenario table whose type is a closed server-owned enum.
+- Added service-layer transactions, bounded pagination, input validation, explicit stale-version checks, database optimistic locking, and stable `400`/`404`/`409` errors.
+- Preserved historical references through archive semantics. Active fleet and runbook retrieval now exclude archived records; runbook update/archive removes stale embeddings.
+- Enforced read access for operational roles and mutation access only for `ADMIN` at the method boundary.
+- Added a responsive Catalog workspace with a memory-only short-lived token field, generated-ID forms, edit/archive/delete actions, version display, and conflict feedback.
+
+### Verification and iteration
+
+The real PostgreSQL/MockMvc lifecycle test passes. It proves generated IDs, anonymous `401`, viewer mutation `403`, administrator success, stale update `409`, archive preservation, dependency hard-delete, duplicate-edge conflict, and rejection of an arbitrary `SHELL_COMMAND` scenario type.
+
+The final complete regression passes 109 tests across 37 suites with zero failures, errors, or skips. Frontend verification passes 4 tests across 2 files, strict type checking, production static export, and a zero-vulnerability dependency audit.
+
+The in-app browser service was unavailable during this session. The temporary local Next process was stopped and its process tree removed. Component interaction tests cover navigation, the locked state, token connection, and form submission; visual browser rehearsal remains in the final deployment gate.
+
+### Learning insight
+
+CRUD is not one universal deletion rule. A dependency edge describes current topology and can disappear. A service or runbook explains past incidents and must remain as an archived fact. Optimistic locking turns a dangerous silent overwrite into a visible human decision.
+
+### Next action
+
+Build the public fixed-scenario execution pipeline through existing alert ingestion, durable messaging, agent workflow, guardrail gate, and demo-run registry. Add per-client/global/daily bounds before exposing its submit endpoint.

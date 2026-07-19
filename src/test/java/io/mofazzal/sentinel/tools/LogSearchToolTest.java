@@ -31,7 +31,7 @@ class LogSearchToolTest {
     void clustersEquivalentErrorsAndBoundsTraceEvidence() {
         FleetService service = service();
         Instant at = Instant.parse("2026-07-15T12:05:00Z");
-        when(services.findByName("payments-api")).thenReturn(Optional.of(service));
+        when(services.findByNameAndArchivedAtIsNull("payments-api")).thenReturn(Optional.of(service));
         when(logs.recentWindowByLevel(any(), any(), any(), any(), any())).thenReturn(List.of(
                 new LogEvent(service, LogLevel.ERROR, "Request 123 timed out", at, "trace-1"),
                 new LogEvent(service, LogLevel.ERROR, "Request 456 timed out", at.minusSeconds(1), "trace-2")

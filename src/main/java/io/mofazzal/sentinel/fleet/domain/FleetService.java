@@ -13,7 +13,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import org.hibernate.annotations.BatchSize;
 
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
@@ -42,7 +45,15 @@ public class FleetService {
     @CollectionTable(name = "service_allowed_action", joinColumns = @JoinColumn(name = "service_id"))
     @Column(name = "action_type", nullable = false, length = 40)
     @Enumerated(EnumType.STRING)
+    @BatchSize(size = 100)
     private Set<RemediationActionType> allowedActions = EnumSet.noneOf(RemediationActionType.class);
+
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     protected FleetService() {
     }
@@ -74,6 +85,36 @@ public class FleetService {
 
     public Set<RemediationActionType> getAllowedActions() {
         return Set.copyOf(allowedActions);
+    }
+
+    public Instant getArchivedAt() {
+        return archivedAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public void update(String name, Team ownerTeam, ServiceTier tier,
+                       Set<RemediationActionType> allowedActions) {
+        requireActive();
+        this.name = requireText(name);
+        this.ownerTeam = Objects.requireNonNull(ownerTeam, "ownerTeam");
+        this.tier = Objects.requireNonNull(tier, "tier");
+        this.allowedActions = allowedActions == null || allowedActions.isEmpty()
+                ? EnumSet.noneOf(RemediationActionType.class)
+                : EnumSet.copyOf(allowedActions);
+    }
+
+    public void archive(Instant archivedAt) {
+        requireActive();
+        this.archivedAt = Objects.requireNonNull(archivedAt, "archivedAt");
+    }
+
+    private void requireActive() {
+        if (archivedAt != null) {
+            throw new IllegalStateException("service is archived");
+        }
     }
 
     private static String requireText(String value) {

@@ -47,6 +47,15 @@ describe("operator console", () => {
     expect(screen.getByText("Escalated to a human operator")).toBeInTheDocument();
     expect(screen.getByText("No infrastructure action was proposed or claimed.")).toBeInTheDocument();
   });
+
+  it("shows a real authentication boundary before catalog administration", async () => {
+    render(<OperatorConsole />);
+    fireEvent.click(screen.getByRole("button", { name: /05 Catalog/i }));
+
+    expect(screen.getByText("Administrative mutations require identity.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Short-lived ADMIN JWT")).toBeInTheDocument();
+    expect(screen.getByText(/not a hidden frontend button/i)).toBeInTheDocument();
+  });
 });
 
 function summary(publicId: string, scenarioKey: string, scenarioTitle: string, service: string,

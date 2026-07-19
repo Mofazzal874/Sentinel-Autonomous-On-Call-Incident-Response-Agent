@@ -30,7 +30,7 @@ class FleetQueryServiceTest {
                 ServiceTier.CRITICAL,
                 Set.of(RemediationActionType.SCALE_OUT, RemediationActionType.RESTART_SERVICE)
         );
-        when(repository.findAllByOrderByNameAsc()).thenReturn(List.of(service));
+        when(repository.findAllByArchivedAtIsNullOrderByNameAsc()).thenReturn(List.of(service));
 
         List<FleetServiceResponse> result = queryService.listServices();
 
@@ -43,6 +43,6 @@ class FleetQueryServiceTest {
                     RemediationActionType.SCALE_OUT
             );
         });
-        verify(repository).findAllByOrderByNameAsc();
+        verify(repository).findAllByArchivedAtIsNullOrderByNameAsc();
     }
 }

@@ -13,7 +13,7 @@ abstract class FleetToolSupport {
 
     protected FleetService requireService(String suppliedName) {
         String name = ToolInputs.serviceName(suppliedName);
-        return services.findByName(name)
+        return services.findByNameAndArchivedAtIsNull(name)
                 .orElseThrow(() -> new ToolInputException("Unknown fleet service: " + name));
     }
 }

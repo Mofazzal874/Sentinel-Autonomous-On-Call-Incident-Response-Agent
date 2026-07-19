@@ -24,7 +24,8 @@ public class RunbookVectorQuery {
                        1 - (e.embedding <=> ?::vector) AS similarity
                 FROM runbook_embedding e
                 JOIN runbook r ON r.id = e.runbook_id
-                WHERE 1 - (e.embedding <=> ?::vector) >= ?
+                WHERE r.archived_at IS NULL
+                  AND 1 - (e.embedding <=> ?::vector) >= ?
                 ORDER BY e.embedding <=> ?::vector
                 LIMIT ?
                 """, (result, row) -> new RunbookSearchEngine.RunbookMatch(

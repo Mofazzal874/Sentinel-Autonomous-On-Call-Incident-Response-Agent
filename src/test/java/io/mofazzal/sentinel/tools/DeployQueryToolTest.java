@@ -34,7 +34,7 @@ class DeployQueryToolTest {
         Instant before = Instant.parse("2026-07-15T12:05:00Z");
         Deployment bad = new Deployment(service, "2026.07.15.1", "bad-sha",
                 before.minusSeconds(300), "release-bot", DeploymentStatus.SUCCEEDED);
-        when(services.findByName("payments-api")).thenReturn(Optional.of(service));
+        when(services.findByNameAndArchivedAtIsNull("payments-api")).thenReturn(Optional.of(service));
         when(deployments.recentBefore(any(), any(), any())).thenReturn(List.of(bad));
 
         List<DeployQueryTool.DeploySummary> result = tool.recentDeploys(" Payments-API ", before);
@@ -49,7 +49,7 @@ class DeployQueryToolTest {
 
     @Test
     void rejectsUnknownServiceWithRecoverableMessage() {
-        when(services.findByName("missing-api")).thenReturn(Optional.empty());
+        when(services.findByNameAndArchivedAtIsNull("missing-api")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> tool.recentDeploys("missing-api", Instant.now()))
                 .isInstanceOf(ToolInputException.class)

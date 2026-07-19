@@ -29,7 +29,7 @@ public class IncidentCreationService {
     @Transactional
     public boolean createIfAbsent(TriageCommand command) {
         String serviceName = command.payload().service().trim().toLowerCase(Locale.ROOT);
-        FleetService service = serviceRepository.findByName(serviceName)
+        FleetService service = serviceRepository.findByNameAndArchivedAtIsNull(serviceName)
                 .orElseThrow(() -> new UnknownFleetServiceException(serviceName));
 
         int inserted = incidentRepository.insertIfAbsent(

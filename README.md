@@ -84,6 +84,14 @@ Invoke-RestMethod 'http://localhost:8080/api/v1/incidents?status=OPEN&limit=20' 
 
 The token helper permits only the four declared roles and a maximum 60-minute lifetime. It is a local-development convenience, not an authorization server. Production deployment must use externally managed asymmetric keys and issuer/JWK discovery.
 
+To use the protected Catalog workspace locally, create an administrator token and paste it into the Catalog screen. The token remains only in page memory:
+
+```powershell
+$token = .\scripts\new-dev-token.ps1 -Role ADMIN -Subject local-admin
+```
+
+Teams, services, runbooks, dependencies, and fixed sandbox scenarios use generated PostgreSQL UUIDs. Historical resources archive instead of being erased, and stale edits return `409 Conflict`.
+
 ## Engineering rules
 
 The durable architecture, safety invariants, phase gates, environment policy, and contribution workflow are recorded in [AGENTS.md](AGENTS.md). The chronological build record is maintained in [docs/PROJECT_JOURNAL.md](docs/PROJECT_JOURNAL.md), while the beginner curriculum starts at [docs/learning/README.md](docs/learning/README.md). Key constraints include:
