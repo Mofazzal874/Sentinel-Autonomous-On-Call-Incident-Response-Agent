@@ -953,6 +953,8 @@ The corrected exact stack passed readiness `200`, liveness `200`, anonymous Prom
 
 The final uncached regression passed 103 tests across 35 suites with zero failures, errors, or skips. Both Compose combinations validated, all four Linux scripts passed `bash -n` under Ubuntu 24.04 WSL, and `git diff --check` was clean. The temporary Caddy image and all isolated rehearsal containers, network, and volumes were removed after evidence collection.
 
+The first GitHub runner stopped immediately with exit code 126 because the repository's Windows-origin Gradle wrapper lacks the Unix executable bit. CI now invokes the checked-in wrapper explicitly through `bash`, preserving the wrapper checksum/version while avoiding an unnecessary permission mutation. Azure deployment was disabled, so the failed verification created no cloud resource or public endpoint.
+
 ### Durable lesson
 
 The service identity and release artifact must be separate. DNS/static IP is the durable address; an image tagged by commit SHA is replaceable software. A budget is an alert rather than an automatic shutdown. Continuous résumé availability therefore costs money even when no release occurs, while deallocation preserves the address but takes the demo offline.
