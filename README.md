@@ -4,7 +4,7 @@ Sentinel is an autonomous on-call and incident-response system. It combines a tr
 
 ## Current status
 
-The complete local system is implemented and verified through alert intake, durable triage, grounded proposal, deterministic guardrails, dry-run/human approval, observability, evaluation, and non-root container packaging. Cloud provisioning is the remaining user-approved handoff. Detailed evidence is recorded in [TODO.md](TODO.md) and [the project journal](docs/PROJECT_JOURNAL.md).
+The transactional control plane is implemented through alert intake, durable triage, grounded proposals, deterministic guardrails, dry-run/human approval, observability, evaluation, and non-root packaging. The Azure student VM and stable DNS name exist. The repository now also contains a substantial operations digital twin, an incident console, and protected catalog administration; the public fixed-scenario runner and final redeployment remain in progress. Detailed evidence is recorded in [TODO.md](TODO.md) and [the project journal](docs/PROJECT_JOURNAL.md).
 
 ## Architecture
 
@@ -61,11 +61,17 @@ Sentinel's PostgreSQL is published on `localhost:55432` because another local Po
 
 Live-model evaluation is opt-in and excluded from that command. See [the evaluation method](docs/evaluation/README.md) and [the measured Qwen3 4B baseline](docs/evaluation/2026-07-19-qwen3-4b-baseline.md).
 
-Run the application with the repeatable synthetic incident evidence:
+Build the static Next.js console and run the application with the full repeatable demo dataset:
 
 ```powershell
-.\gradlew.bat bootRun --args="--spring.profiles.active=seed"
+$env:npm_config_cache='E:\DevCaches\npm'
+npm --prefix frontend ci
+npm --prefix frontend run build
+
+.\gradlew.bat bootRun --args="--spring.profiles.active=seed,demo"
 ```
+
+Open http://localhost:8080. The public incident console reads the same PostgreSQL records used by the backend. The `demo` profile is for synthetic environments only; never enable it against a real operational database.
 
 Create a short-lived local viewer token and call the protected fleet API:
 
