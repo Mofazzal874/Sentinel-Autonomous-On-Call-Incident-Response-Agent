@@ -6,6 +6,11 @@ environment_file="$repo_root/.sentinel/azure-demo.env"
 base_compose="$repo_root/deployment/azure-demo/compose.yaml"
 azure_compose="$repo_root/deployment/azure-demo/compose.azure.yaml"
 
+# Azure Run Command starts in a root-only waagent directory. Compose also
+# inspects the current directory, so enter the repository before dropping to
+# the unprivileged deployment user.
+cd "$repo_root"
+
 [[ -f "$environment_file" ]] || "$repo_root/deployment/azure-demo/new-env.sh"
 sentinel_image="${SENTINEL_IMAGE:-sentinel:azure-demo}"
 docker image inspect "$sentinel_image" >/dev/null 2>&1 || {

@@ -965,6 +965,8 @@ The user has no custom domain. The Azure DNS label still produces a qualifying p
 
 The user confirmed `sentinel-mofazzal874` is available in Central India, made the GHCR package public, privately recorded the SSH source IPv4 address, and explicitly approved the reviewed Azure resource scope and spend. That authorization covers only `sentinel-demo-rg`, one non-zonal `Standard_B4as_v2` Ubuntu VM, 64 GB Standard SSD, static IP/DNS, VNet/subnet/NIC/NSG, public TCP 80/443, and SSH from the user's `/32`. It does not authorize AKS, ACR, Azure OpenAI, managed data services, a custom domain, or changes to unrelated resources. Resource creation still requires the user to execute the confirmation-gated script inside their authenticated Azure Cloud Shell.
 
+Azure created the approved resources successfully at `sentinel-mofazzal874.centralindia.cloudapp.azure.com`, and cloud-init completed. The first application attempt correctly created the permission-restricted VM environment file and anonymously pulled the verified GHCR image, then stopped before Compose startup: Azure Run Command uses a root-only waagent working directory, which the unprivileged `azureuser` could not inspect. The launcher now changes to the repository directory explicitly before invoking Compose. The retry reuses the same secrets and image rather than reinstalling or regenerating them.
+
 ### Durable lesson
 
 The service identity and release artifact must be separate. DNS/static IP is the durable address; an image tagged by commit SHA is replaceable software. A budget is an alert rather than an automatic shutdown. Continuous résumé availability therefore costs money even when no release occurs, while deallocation preserves the address but takes the demo offline.
