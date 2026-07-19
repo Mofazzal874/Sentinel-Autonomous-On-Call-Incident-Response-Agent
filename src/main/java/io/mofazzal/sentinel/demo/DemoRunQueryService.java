@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,12 +14,6 @@ import java.util.UUID;
 public class DemoRunQueryService {
 
     static final String DISCLAIMER = "Deterministic synthetic operations data; no customer or production data.";
-    private static final Map<String, String> TITLES = Map.of(
-            "faulty-deployment", "Faulty payment release",
-            "ambiguous-dependency", "Ambiguous checkout dependency",
-            "capacity-approval", "Capacity change awaiting approval"
-    );
-
     private final JdbcTemplate jdbc;
 
     public DemoRunQueryService(JdbcTemplate jdbc) {
@@ -30,17 +23,19 @@ public class DemoRunQueryService {
     @Transactional(readOnly = true)
     public List<DemoRunSummary> list() {
         return jdbc.query("""
-                SELECT demo.public_id, demo.scenario_key, demo.source, demo.started_at,
+                SELECT demo.public_id, demo.scenario_key, demo.display_title, demo.summary,
+                       demo.source, demo.started_at,
                        service.name AS service_name, incident.severity, incident.status
                 FROM demo_run demo
                 JOIN incident ON incident.id = demo.incident_id
                 JOIN fleet_service service ON service.id = incident.service_id
                 ORDER BY demo.started_at DESC
-                LIMIT 20
+                LIMIT 50
                 """, (result, row) -> new DemoRunSummary(
                 result.getObject("public_id", UUID.class),
                 result.getString("scenario_key"),
-                title(result.getString("scenario_key")),
+                result.getString("display_title"),
+                result.getString("summary"),
                 result.getString("source"),
                 result.getString("service_name"),
                 result.getString("severity"),
@@ -51,7 +46,8 @@ public class DemoRunQueryService {
     @Transactional(readOnly = true)
     public Optional<DemoRunView> find(UUID publicId) {
         return jdbc.query("""
-                SELECT demo.public_id, demo.scenario_key, demo.source, demo.started_at,
+                SELECT demo.public_id, demo.scenario_key, demo.display_title, demo.summary,
+                       demo.source, demo.started_at,
                        demo.incident_id, service.name AS service_name,
                        incident.severity, incident.status
                 FROM demo_run demo
@@ -60,11 +56,11 @@ public class DemoRunQueryService {
                 WHERE demo.public_id = ?
                 """, (result, row) -> {
             UUID incidentId = result.getObject("incident_id", UUID.class);
-            String scenarioKey = result.getString("scenario_key");
             return new DemoRunView(
                     result.getObject("public_id", UUID.class),
-                    scenarioKey,
-                    title(scenarioKey),
+                    result.getString("scenario_key"),
+                    result.getString("display_title"),
+                    result.getString("summary"),
                     result.getString("source"),
                     result.getString("service_name"),
                     result.getString("severity"),
@@ -134,7 +130,4 @@ public class DemoRunQueryService {
                 result.getTimestamp("recorded_at").toInstant()), incidentId);
     }
 
-    private static String title(String scenarioKey) {
-        return TITLES.getOrDefault(scenarioKey, "Incident response run");
-    }
 }

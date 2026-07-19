@@ -51,7 +51,8 @@ describe("operator console", () => {
 
 function summary(publicId: string, scenarioKey: string, scenarioTitle: string, service: string,
                  severity: DemoRunSummary["severity"], incidentStatus: string): DemoRunSummary {
-  return { publicId, scenarioKey, scenarioTitle, source: "RECORDED", service, severity,
+  return { publicId, scenarioKey, scenarioTitle, summary: "Persistent scenario summary.",
+    source: "RECORDED", service, severity,
     incidentStatus, startedAt: "2026-07-18T20:41:18Z" };
 }
 

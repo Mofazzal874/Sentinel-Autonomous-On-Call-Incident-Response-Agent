@@ -1050,3 +1050,35 @@ A frontend does not make the browser authoritative. The console explains and req
 ### Next action
 
 Expand the persistent digital twin to the documented scale before adding catalog/runbook CRUD and live incident creation.
+
+---
+
+## Session 23 — Versioned operations digital twin
+
+### Goal
+
+Make a fresh demo database substantial and immediately explorable without turning the browser into a mock-data store or importing unrelated customer/research records.
+
+### Implementation
+
+- Added a forward-only dependency graph and database-owned public run title/summary fields.
+- Added a dataset-version marker and an idempotent `demo`-profile generator that writes the authoritative fleet, telemetry, incident, transcript, remediation, claim, and append-only ledger tables in one transaction.
+- Expanded the baseline to 4 teams, 12 services, 18 dependencies, at least 60 deployments, 10 runbooks, 30 incidents, 10,800 metrics, and 1,080 structured logs.
+- Added histories for missing-grounding escalation, dry-run, human approval, automatic simulated resolution, and compensation.
+- Removed the last frontend-facing hard-coded scenario summary map; titles and summaries now come from PostgreSQL through the bounded demo DTO.
+
+### Correctness evidence
+
+The focused real PostgreSQL/pgvector integration test passes. It proves exact baseline cardinalities, repeatable seeding, 30 bounded public records, no correlated deployment after an incident, all five metric series near every generated incident, at least one traceable log near every generated incident, protected ordinary APIs, and database rejection of ledger mutation.
+
+The complete backend regression passes 106 tests across 36 suites with zero failures, errors, or skips. The frontend's two interaction tests, strict type check, production static export, and dependency audit also pass; the audit reports zero vulnerabilities. `git diff --check` is clean.
+
+The data is synthetic and deterministic, not copied production traffic. Its topology and failure mix are informed by public AIOps research, while its schema and causal histories are original and tailored to Sentinel.
+
+### Learning insight
+
+A useful incident dataset is a causal graph, not a collection of random rows. Service ownership, dependency direction, release time, telemetry window, proposal grounding, deterministic gate result, and audit outcome must agree. Reproducibility makes that graph testable and explainable.
+
+### Next action
+
+Add authenticated generated-ID catalog and runbook CRUD with validation, optimistic locking, archive rules, pagination, authorization tests, and an administration UI. Do not expose safety-policy mutation to anonymous portfolio visitors.

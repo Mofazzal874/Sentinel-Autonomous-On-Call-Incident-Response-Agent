@@ -2,6 +2,7 @@ export type DemoRunSummary = {
   publicId: string;
   scenarioKey: string;
   scenarioTitle: string;
+  summary: string;
   source: "RECORDED" | "LIVE";
   service: string;
   severity: "SEV1" | "SEV2" | "SEV3" | "SEV4";

@@ -10,12 +10,6 @@ import {
 
 type LoadState = "loading" | "ready" | "error";
 
-const scenarioExplanations: Record<string, string> = {
-  "faulty-deployment": "Release correlation and a grounded rollback stopped by dry-run.",
-  "ambiguous-dependency": "Insufficient evidence forces escalation instead of an invented fix.",
-  "capacity-approval": "A bounded scale-out remains blocked until an SRE approves it.",
-};
-
 export default function OperatorConsole() {
   const [runs, setRuns] = useState<DemoRunSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -135,7 +129,7 @@ export default function OperatorConsole() {
                   <span className={`severity ${run.severity.toLowerCase()}`}>{run.severity}</span>
                   <span className="incidentCopy">
                     <strong>{run.scenarioTitle}</strong>
-                    <small>{scenarioExplanations[run.scenarioKey]}</small>
+                    <small>{run.summary}</small>
                     <span className="incidentMeta"><code>{run.service}</code><time>{formatTime(run.startedAt)}</time></span>
                   </span>
                   <StatusBadge value={run.incidentStatus} />

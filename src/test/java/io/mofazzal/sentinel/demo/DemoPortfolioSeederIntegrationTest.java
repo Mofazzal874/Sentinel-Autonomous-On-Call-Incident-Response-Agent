@@ -49,6 +49,9 @@ class DemoPortfolioSeederIntegrationTest {
     private DemoPortfolioSeeder seeder;
 
     @Autowired
+    private DemoOperationsDigitalTwinSeeder digitalTwinSeeder;
+
+    @Autowired
     private JdbcTemplate jdbc;
 
     @Autowired
@@ -64,15 +67,20 @@ class DemoPortfolioSeederIntegrationTest {
     }
 
     @Test
-    void seedsThreeTraceableStoriesAndRemainsIdempotent() throws Exception {
+    void seedsASubstantialTraceableDigitalTwinAndRemainsIdempotent() throws Exception {
         ApplicationArguments noArguments = new DefaultApplicationArguments(new String[0]);
         seeder.run(noArguments);
+        digitalTwinSeeder.run(noArguments);
 
-        assertThat(jdbc.queryForObject("select count(*) from demo_run", Integer.class)).isEqualTo(3);
-        assertThat(jdbc.queryForList("""
-                select scenario_key from demo_run order by started_at
-                """, String.class)).containsExactly(
-                "faulty-deployment", "ambiguous-dependency", "capacity-approval");
+        assertThat(jdbc.queryForObject("select count(*) from team", Integer.class)).isEqualTo(4);
+        assertThat(jdbc.queryForObject("select count(*) from fleet_service", Integer.class)).isEqualTo(12);
+        assertThat(jdbc.queryForObject("select count(*) from service_dependency", Integer.class)).isEqualTo(18);
+        assertThat(jdbc.queryForObject("select count(*) from deployment", Integer.class)).isGreaterThanOrEqualTo(60);
+        assertThat(jdbc.queryForObject("select count(*) from runbook", Integer.class)).isEqualTo(10);
+        assertThat(jdbc.queryForObject("select count(*) from metric_sample", Integer.class)).isEqualTo(10_800);
+        assertThat(jdbc.queryForObject("select count(*) from log_event", Integer.class)).isEqualTo(1_080);
+        assertThat(jdbc.queryForObject("select count(*) from incident", Integer.class)).isEqualTo(30);
+        assertThat(jdbc.queryForObject("select count(*) from demo_run", Integer.class)).isEqualTo(30);
         assertThat(jdbc.queryForList("""
                 select status from incident
                 where id in (?, ?, ?)
@@ -88,11 +96,34 @@ class DemoPortfolioSeederIntegrationTest {
                 join incident on incident.id = demo.incident_id
                 join agent_run run on run.incident_id = incident.id
                 join agent_transcript_entry entry on entry.run_id = run.id
-                """, Integer.class)).isEqualTo(14);
-        assertThat(jdbc.queryForList("""
-                select event_type from action_ledger order by recorded_at
-                """, String.class)).containsExactly("DRY_RUN", "APPROVAL_REQUESTED");
-        assertThat(jdbc.queryForObject("select count(*) from action_claim", Integer.class)).isZero();
+                """, Integer.class)).isEqualTo(149);
+        assertThat(jdbc.queryForObject("select count(*) from action_ledger", Integer.class)).isEqualTo(54);
+        assertThat(jdbc.queryForList("select distinct event_type from action_ledger", String.class))
+                .contains("DRY_RUN", "APPROVAL_REQUESTED", "IN_PROGRESS", "APPLIED", "COMPENSATED");
+        assertThat(jdbc.queryForObject("select count(*) from action_claim", Integer.class)).isEqualTo(10);
+        assertThat(jdbc.queryForObject("select count(*) from demo_dataset_version", Integer.class)).isOne();
+        assertThat(jdbc.queryForObject("""
+                select count(*) from incident
+                where fingerprint like 'demo:v2:%'
+                  and correlated_deployment_id is not null
+                  and (select deployed_at from deployment where id = correlated_deployment_id) > created_at
+                """, Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("""
+                select count(*) from incident
+                where fingerprint like 'demo:v2:%'
+                  and (select count(distinct metric_name) from metric_sample
+                       where service_id = incident.service_id
+                         and recorded_at between incident.created_at - interval '5 minutes'
+                                             and incident.created_at + interval '5 minutes') < 5
+                """, Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("""
+                select count(*) from incident
+                where fingerprint like 'demo:v2:%'
+                  and not exists (select 1 from log_event
+                                  where service_id = incident.service_id
+                                    and occurred_at between incident.created_at - interval '5 minutes'
+                                                        and incident.created_at + interval '5 minutes')
+                """, Integer.class)).isZero();
     }
 
     @Test
@@ -109,8 +140,9 @@ class DemoPortfolioSeederIntegrationTest {
     void exposesOnlyCuratedDemoViewsWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/demo/runs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].scenarioKey").value("capacity-approval"));
+                .andExpect(jsonPath("$.length()").value(30))
+                .andExpect(jsonPath("$[0].scenarioKey").value("capacity-approval"))
+                .andExpect(jsonPath("$[0].summary").isNotEmpty());
 
         mockMvc.perform(get("/api/v1/demo/runs/45000000-0000-0000-0000-000000000001"))
                 .andExpect(status().isOk())

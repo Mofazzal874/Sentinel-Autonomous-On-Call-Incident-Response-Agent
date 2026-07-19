@@ -199,11 +199,25 @@ public class DemoPortfolioSeeder implements ApplicationRunner {
     }
 
     private void insertDemoRun(UUID publicId, String scenarioKey, UUID incidentId, Instant startedAt) {
+        String title = switch (scenarioKey) {
+            case "faulty-deployment" -> "Faulty payment release";
+            case "ambiguous-dependency" -> "Ambiguous checkout dependency";
+            case "capacity-approval" -> "Capacity change awaiting approval";
+            default -> "Incident response run";
+        };
+        String summary = switch (scenarioKey) {
+            case "faulty-deployment" -> "Release correlation and a grounded rollback stopped by dry-run.";
+            case "ambiguous-dependency" -> "Insufficient evidence forces escalation instead of an invented fix.";
+            case "capacity-approval" -> "A bounded scale-out remains blocked until an SRE approves it.";
+            default -> "Recorded synthetic incident-response history.";
+        };
         jdbc.update("""
-                INSERT INTO demo_run (public_id, scenario_key, incident_id, source, started_at)
-                VALUES (?, ?, ?, 'RECORDED', ?)
+                INSERT INTO demo_run (
+                    public_id, scenario_key, incident_id, source, started_at, display_title, summary
+                )
+                VALUES (?, ?, ?, 'RECORDED', ?, ?, ?)
                 ON CONFLICT DO NOTHING
-                """, publicId, scenarioKey, incidentId, Timestamp.from(startedAt));
+                """, publicId, scenarioKey, incidentId, Timestamp.from(startedAt), title, summary);
     }
 
     private static UUID uuid(String value) {

@@ -95,6 +95,14 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Public UI content comes from bounded Spring DTOs. Do not hard-code duplicate incident records into the frontend.
 - Operational CRUD follows domain semantics: catalog/configuration resources may be edited; incidents, transcripts, and ledger facts are archived or append-only, never erased.
 
+## Demo dataset baseline
+
+- The `demo` profile owns a versioned, deterministic operations digital twin: 4 teams, 12 services, 18 dependencies, at least 60 deployments, 10 runbooks, 30 incidents, 10,800 metric samples, and 1,080 structured logs.
+- `demo_dataset_version` is the idempotence marker. Changing an already-recorded dataset requires a new generator version; do not silently rewrite an existing version.
+- Generated incident histories cover dry-run, human approval, automatic simulated resolution, compensation, and missing-grounding escalation. They are synthetic and must remain labeled as such.
+- Synthetic evidence must remain causal: deployments cannot occur after their incidents, and each incident needs bounded nearby metrics and logs.
+- Seeders run only under the `demo` profile and write the same authoritative domain tables used by normal workflows. Never enable this profile against a real operational database.
+
 ## Testing strategy
 
 - Test deterministic components normally and thoroughly; do not involve a model in safety tests.
