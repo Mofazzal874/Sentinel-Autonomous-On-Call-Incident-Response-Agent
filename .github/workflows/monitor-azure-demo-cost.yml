@@ -1,0 +1,61 @@
+name: Monitor Azure demo cost state
+
+on:
+  schedule:
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-cost-state:
+    if: ${{ vars.AZURE_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: azure-demo
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Exchange GitHub identity for a short-lived Azure token
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify the reviewed size and deallocated state
+        shell: bash
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_VM_NAME: ${{ vars.AZURE_VM_NAME }}
+        run: |
+          size="$(az vm show \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_VM_NAME" \
+            --query hardwareProfile.vmSize \
+            --output tsv)"
+          state="$(az vm get-instance-view \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_VM_NAME" \
+            --query "instanceView.statuses[?starts_with(code,'PowerState/')].displayStatus | [0]" \
+            --output tsv)"
+
+          {
+            echo '## Azure demo cost-state check'
+            echo
+            echo "- VM size: \`$size\`"
+            echo "- Power state: \`$state\`"
+            echo "- Expected nightly state: \`Standard_B2as_v2\`, \`VM deallocated\`"
+            echo
+            echo 'This is read-only drift detection. The owner-session and budget Logic Apps enforce deallocation.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          [[ "$size" == "Standard_B2as_v2" ]] || {
+            echo "::error::Unexpected VM size: $size. The reviewed low-cost size is Standard_B2as_v2."
+            exit 1
+          }
+          [[ "$state" == "VM deallocated" ]] || {
+            echo "::error::Unexpected nightly power state: $state. Investigate the owner-session Logic App and deallocate the VM."
+            exit 1
+          }

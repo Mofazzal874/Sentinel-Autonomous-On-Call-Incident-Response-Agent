@@ -74,7 +74,7 @@ export CONFIRM_CREATE_AZURE_RESOURCES=yes
 bash deployment/azure-demo/provision-azure.sh
 ```
 
-The script deliberately refuses to create anything without the confirmation value. It creates only the dedicated resource group, VNet/subnet, NSG, static IP/DNS, NIC, and non-zonal `Standard_B4as_v2` VM. SSH is allowed only from the supplied `/32`; ports 80 and 443 are public. It uses Ubuntu 24.04, a 64 GB Standard SSD, and the reviewed Docker bootstrap. No ACR, managed database, AKS, Azure OpenAI, or unrelated project resource is created.
+The script deliberately refuses to create anything without the confirmation value. It creates only the dedicated resource group, VNet/subnet, NSG, static IP/DNS, NIC, and non-zonal `Standard_B2as_v2` VM. SSH is allowed only from the supplied `/32`; ports 80 and 443 are public. It uses Ubuntu 24.04, a 64 GB Standard SSD, and the reviewed Docker bootstrap. No ACR, managed database, AKS, Azure OpenAI, or unrelated project resource is created.
 
 Wait for bootstrap and reconnect so Docker group membership applies:
 
@@ -126,6 +126,10 @@ Use environment approval protection if the repository plan supports it. A failed
 ## Budget and lifecycle
 
 The `$10` budget is not a hard spending cap. `configure-cost-guard.sh` can connect an early threshold to a separate deallocate-only Logic App identity. Azure cost data is delayed, and disk/static-IP charges can remain after deallocation, so inspect Cost Analysis during the demo window. A résumé link and a deallocated VM are a direct tradeoff: the name stays stable, but the service is offline.
+
+For normal operation, run `configure-on-demand-session.sh` once from authenticated Cloud Shell. It captures a safe runtime snapshot, resizes the existing VM to `Standard_B2as_v2`, leaves it deallocated, and creates a separate owner-only Logic App that starts the exact VM for at most two hours. Keep the signed callback URL private. Boot selects the latest `main` SHA only when that exact GHCR image already exists, so a failed build cannot become active.
+
+Run `audit-runtime-and-cost.sh` after the migration and on several later days. It prints VM/disk/IP state, bounded container CPU/memory and Docker storage when the VM is running, delayed Cost Management daily rows, recent start/deallocate events, and the retail-rate projection.
 
 Never delete individual unknown resources to save space or money. This demo is intentionally isolated in `sentinel-demo-rg`, so `az resource list --resource-group sentinel-demo-rg --output table` shows its full blast radius. Deleting that resource group is the final teardown and destroys its disks, data, IP, and Azure hostname.
 

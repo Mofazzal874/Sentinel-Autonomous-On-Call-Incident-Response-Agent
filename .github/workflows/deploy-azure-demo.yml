@@ -22,6 +22,9 @@ jobs:
       - name: Check out source
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
+      - name: Verify deployment cost invariants
+        run: bash deployment/azure-demo/verify-cost-controls.sh
+
       - name: Set up Java 25
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95
         with:
@@ -79,7 +82,28 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Check whether the cost-controlled VM is running
+        id: power
+        shell: bash
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_VM_NAME: ${{ vars.AZURE_VM_NAME }}
+        run: |
+          state="$(az vm get-instance-view \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_VM_NAME" \
+            --query "instanceView.statuses[?starts_with(code,'PowerState/')].displayStatus | [0]" \
+            --output tsv)"
+          echo "VM power state: $state"
+          if [[ "$state" == "VM running" ]]; then
+            echo "activate=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "activate=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release activation is deferred because the cost-controlled VM is $state. The boot activator will select the latest verified commit-SHA image at the next owner-started session."
+          fi
+
       - name: Activate the exact verified release through Azure Run Command
+        if: ${{ steps.power.outputs.activate == 'true' }}
         shell: bash
         env:
           SENTINEL_IMAGE: ${{ needs.verify-and-publish.outputs.image }}
@@ -100,6 +124,7 @@ jobs:
             --output tsv
 
       - name: Verify stable public readiness URL
+        if: ${{ steps.power.outputs.activate == 'true' }}
         shell: bash
         env:
           DEMO_HEALTH_URL: ${{ vars.AZURE_DEMO_HEALTH_URL }}

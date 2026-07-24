@@ -8,23 +8,24 @@ Do not paste the whole document into a terminal. Run one checkpoint at a time, r
 
 ## 1. Current state
 
-As of 20 July 2026:
+As of 24 July 2026:
 
 - Azure subscription: `Azure for Students`.
 - Region: `centralindia`.
 - Resource group: `sentinel-demo-rg`.
-- VM: `sentinel-demo-vm`, non-zonal `Standard_B4as_v2`, Ubuntu 24.04.
+- VM: `sentinel-demo-vm`, non-zonal `Standard_B4as_v2`, Ubuntu 24.04; the committed one-time cost migration targets `Standard_B2as_v2`.
 - Public hostname: `sentinel-mofazzal874.centralindia.cloudapp.azure.com`.
 - Stable HTTPS URL: `https://sentinel-mofazzal874.centralindia.cloudapp.azure.com/`.
 - Container registry: public GitHub Container Registry package under `ghcr.io/mofazzal874/`.
 - Safety mode: `SENTINEL_REMEDIATION_DRY_RUN=true`.
 - CI: active. Each `main` push verifies and publishes an immutable image.
-- CD implementation: OIDC plus Azure VM Run Command is committed; one-time Azure/GitHub configuration must be completed before enabling it.
+- CD: active. OIDC plus Azure VM Run Command has deployed multiple exact-SHA releases successfully.
 - Cost guard implementation: an early budget action can deallocate the VM; it must be connected to the user's existing budget once from Cloud Shell.
+- On-demand implementation: B2as-v2 memory/log limits, deferred deployment, boot-time exact-SHA activation, a private two-hour session workflow, and cost auditing are committed. Authenticated Cloud Shell must run the confirmation-gated migration once.
 - OIDC Azure setup: completed on 20 July 2026; Entra application, immutable federated credential, custom role, and exact-VM assignment were created without a client secret.
 - GitHub setup: the seven `azure-demo` environment variables and repository enable switch were entered by the owner. Workflow run `29699411314` proved both jobs green for SHA `7a05a88f6024cf6d5a050a4bd4efb47b39d32a72`; independent HTTPS checks returned readiness `200 {"status":"UP"}` and console `200`.
 
-Until `AZURE_DEPLOY_ENABLED=true` is added, the site can be older than the latest Git commit. After it is enabled, a green workflow means the exact commit-SHA image was published, activated, and checked at the stable readiness URL.
+When the VM is running, a green workflow means the exact commit-SHA image was published, activated, and checked at the stable readiness URL. When the VM is deallocated, CI and publication remain green but activation is explicitly deferred. At the next owner-started session, boot accepts the current `main` SHA only if its exact GHCR image already exists.
 
 ## 2. Mental model
 
@@ -162,7 +163,7 @@ Check the chosen SKU:
 az vm list-skus \
   --location centralindia \
   --resource-type virtualMachines \
-  --size Standard_B4as_v2 \
+  --size Standard_B2as_v2 \
   --query "[].{Name:name,Restrictions:restrictions}" \
   --output json
 ```
@@ -264,7 +265,7 @@ The script creates only:
 - NSG with public TCP 80/443 and TCP 22 only from the recorded `/32`;
 - Standard static Public IP plus DNS label;
 - NIC;
-- non-zonal Ubuntu 24.04 `Standard_B4as_v2` VM;
+- non-zonal Ubuntu 24.04 `Standard_B2as_v2` VM;
 - 64 GB Standard SSD OS disk.
 
 It does not create AKS, ACR, Azure OpenAI, managed PostgreSQL, managed Redis, or resources in another project.
@@ -576,9 +577,10 @@ This variable is deliberately last. Before it exists, `verify-and-publish` succe
 2. It builds and publishes `ghcr.io/...:<full commit SHA>`.
 3. The deploy job requests an OIDC token for the `azure-demo` environment.
 4. Microsoft Entra checks the immutable subject and gives a short-lived Azure token.
-5. Run Command sends `activate-release.sh` and three non-secret positional arguments to the VM agent.
-6. The script validates that image tag and source SHA are identical, refuses tracked VM edits, checks out the exact commit, pulls the image, and converges Compose.
-7. GitHub checks the stable public readiness URL. Only then is the deployment green.
+5. GitHub reads the VM power state without changing it.
+6. If the VM is running, Run Command sends `activate-release.sh` and three non-secret positional arguments to the VM agent. The script validates that image tag and source SHA are identical, refuses tracked VM edits, checks out the exact commit, pulls the image, converges Compose, and retains only the current and previous Sentinel application images.
+7. GitHub checks the stable public readiness URL. Only then is an online deployment green.
+8. If the VM is deallocated, activation and readiness are deliberately skipped with a notice. The verified image remains published, and the boot activator selects it during the next owner-started session.
 
 The workflow concurrency group serializes releases. If commits A and B arrive close together, B waits; they do not race two Compose updates. `id-token: write` only lets the job request identity proof. The exact Azure role assignment decides what that proof can do.
 
@@ -591,11 +593,7 @@ curl --fail --silent \
   https://sentinel-mofazzal874.centralindia.cloudapp.azure.com/actuator/health/readiness
 ```
 
-If OIDC succeeds but Run Command says the VM is deallocated, that is expected after a cost guard or manual stop. Start it manually only after checking the budget:
-
-```bash
-az vm start --resource-group sentinel-demo-rg --name sentinel-demo-vm
-```
+If the VM is deallocated, the workflow now reports deferred activation rather than failing or starting compute. After the on-demand control is configured, use only the private bounded-session command in the next section. A normal source push never overrides a financial stop.
 
 ## 18. Automated cost containment
 
@@ -617,12 +615,13 @@ sed -n '1,340p' deployment/azure-demo/configure-cost-guard.sh
 
 export AZURE_BUDGET_NAME='PUT YOUR EXACT EXISTING BUDGET NAME HERE'
 export AZURE_COST_GUARD_THRESHOLD_PERCENT='50'
+export AZURE_BUDGET_EMAIL='YOUR EMAIL ADDRESS'
 export CONFIRM_CONFIGURE_COST_GUARD='yes'
 
 bash deployment/azure-demo/configure-cost-guard.sh
 ```
 
-The script preserves the existing budget and adds a `SentinelEarlyDeallocate` notification. It creates a Consumption Logic App, Action Group, narrowly scoped custom role, and VM-scope assignment. The default 50% threshold is deliberately conservative: with a `$10` budget the signal nominally starts at `$5`, leaving room for delayed cost records. Even this cannot guarantee a final amount below `$10`.
+The script preserves the existing budget and adds a `SentinelEarlyDeallocate` notification. It creates a Consumption Logic App, Action Group, narrowly scoped custom role, and VM-scope assignment. When `AZURE_BUDGET_EMAIL` is set, the same notification also emails the owner. The default 50% threshold is deliberately conservative: with a `$10` budget the signal nominally starts at `$5`, leaving room for delayed cost records. Even this cannot guarantee a final amount below `$10`.
 
 The Logic App is a Consumption resource and an invocation can itself have a small cost. Action Group notification limits and pricing also depend on the subscription. Inspect the resulting resources in Cost Analysis rather than assuming they are free.
 
@@ -682,7 +681,141 @@ Expected: `VM deallocated`. `VM stopped` is not sufficient evidence; a stopped-b
 
 Never automate resource-group deletion for this portfolio without a separate backup and retirement decision.
 
-## 19. Security boundaries to defend
+## 19. On-demand operation below `$0.50/day`
+
+### Why an idle server still cost about `$2.50/day`
+
+Azure bills an allocated VM for its selected CPU and memory capacity, not for the percentage used. On 24 July 2026, the official USD retail API returned:
+
+| Resource | Retail rate | Daily model |
+|---|---:|---:|
+| `Standard_B4as_v2` Linux VM | `$0.0984/hour` | `$2.3616` at 24 hours |
+| 64-GiB Standard SSD E6 LRS | `$5.28/month` | `$0.1760` using a 30-day model |
+| Standard static IPv4 | `$0.005/hour` | `$0.1200` |
+| Existing always-on total | — | **`$2.6576/day`** |
+
+The containers can report almost zero CPU and the VM still costs `$0.0984` each allocated hour. Docker log growth and unused images can fill the fixed disk, but they do not explain a new `$2.36` compute meter each day.
+
+The reviewed target uses `Standard_B2as_v2` at `$0.0492/hour`. It preserves the 64-GiB disk and static IP, so the unavoidable deallocated floor is approximately `$0.296/day`. One two-hour session adds `$0.0984`, producing a modeled **`$0.3944/day`**. Taxes, the student's offer, exchange rates, month length, and later pricing can differ.
+
+### What changed inside the stack
+
+- Aggregate container memory ceilings are 6.66 GiB, leaving more than 1 GiB for Ubuntu and Docker on an 8-GiB VM.
+- Ollama loads one model at a time, handles one inference at a time, uses a 4,096-token context ceiling, keeps chat resident for two minutes, and keeps embeddings for 30 seconds.
+- Every container uses three rotating 10-MiB JSON logs.
+- A successful release retains the current and immediately previous Sentinel images only. It does not globally prune shared Docker storage.
+- The Java container is limited to 1,280 MiB and caps heap at 65% of container RAM.
+
+Inference on two vCPUs is expected to be slower than the measured five-minute B4as-v2 run. The existing 14-minute browser polling limit and 15-minute server lease provide room, but the first real B2as-v2 investigation must be measured before claiming a new latency.
+
+### One-time owner setup
+
+Run this only in authenticated Azure Cloud Shell:
+
+```bash
+cd ~
+
+if [ -d sentinel-deploy/.git ]; then
+  cd sentinel-deploy
+  git pull --ff-only
+else
+  git clone \
+    https://github.com/Mofazzal874/Sentinel-Autonomous-On-Call-Incident-Response-Agent.git \
+    sentinel-deploy
+  cd sentinel-deploy
+fi
+
+export AZURE_TARGET_VM_SIZE='Standard_B2as_v2'
+export AZURE_SESSION_HOURS='2'
+export CONFIRM_CONFIGURE_ON_DEMAND_SESSION='yes'
+
+bash deployment/azure-demo/configure-on-demand-session.sh
+```
+
+The script:
+
+1. confirms `Standard_B2as_v2` is an available resize option, deallocating and re-checking another allocation cluster when necessary;
+2. captures `free`, filesystem, `docker stats`, Docker storage, and log-size evidence while the old VM is still running;
+3. deallocates and resizes the existing VM without replacing its disk, NIC, static IP, DNS label, or database volumes;
+4. creates `sentinel-demo-session`, a Consumption Logic App with a system-assigned identity;
+5. grants that identity start/read/deallocate permission on this VM only;
+6. saves the signed callback to `~/.sentinel-demo-wake-url`, mode `600`;
+7. leaves the VM deallocated so compute billing stops immediately.
+
+If B2 capacity is still unavailable after deallocation, the script exits with the VM safely deallocated and makes no resize. That stops B4 compute billing while preserving every attached resource and gives you time to retry later.
+
+The signed callback URL is equivalent to an owner credential. Never put it in GitHub variables, source code, frontend JavaScript, screenshots, chat messages, or the README.
+
+### Start one bounded session
+
+```bash
+curl \
+  --fail \
+  --show-error \
+  --silent \
+  --request POST \
+  "$(cat ~/.sentinel-demo-wake-url)"
+```
+
+Expected response:
+
+```json
+{
+  "state": "START_REQUEST_ACCEPTED",
+  "sessionHours": 2,
+  "message": "The stable Sentinel URL normally becomes ready within several minutes..."
+}
+```
+
+The public URL is unchanged. Docker restarts the installed stack, and `sentinel-activate-latest.service` checks GitHub `main`. It activates only when the matching public `ghcr.io/...:<40-character SHA>` image exists. If CI failed and that image does not exist, the previous installed release remains.
+
+The lease cannot be extended by calling it again. That is deliberate: overlapping requests must not let an old session keep billing indefinitely. After two hours, the workflow calls Azure's **deallocate** API even if the demo was forgotten.
+
+### Why public visitors cannot wake the VM
+
+A public wake button would let crawlers, vulnerability scanners, or a malicious loop spend Azure credit. Sentinel therefore separates:
+
+- **public application URL:** safe to share, but offline while compute is deallocated;
+- **private owner wake URL:** can spend money and must remain private;
+- **GitHub deployer:** can activate a release only while the VM is already running;
+- **budget identity:** can only deallocate.
+
+This is the same authority-separation principle used inside Sentinel: intelligence and convenience do not receive unrestricted mutation authority.
+
+### Audit repeatedly
+
+Run immediately after configuration, during the first B2as-v2 session, after automatic deallocation, and once daily for at least three days:
+
+```bash
+cd ~/sentinel-deploy
+git pull --ff-only
+bash deployment/azure-demo/audit-runtime-and-cost.sh
+```
+
+The report includes:
+
+- VM size and exact power state;
+- disk and public-IP SKU;
+- live container CPU, memory, PIDs, disk space, Docker image/storage totals, and largest logs when running;
+- delayed daily Cost Management rows;
+- recent start/deallocate operations;
+- session and budget Logic App existence;
+- deallocated, two-hour, and always-on retail projections.
+
+Cost Management data normally arrives later than runtime activity. Do not judge the result from one hour. The success gate is:
+
+1. first live investigation completes without OOM/restart;
+2. VM becomes `VM deallocated` at lease expiry;
+3. three consecutive cost snapshots trend toward the `$0.3944/day` model;
+4. no day exceeds `$0.50` without a recorded longer/manual session or a pricing difference.
+
+### Nightly drift detection
+
+`.github/workflows/monitor-azure-demo-cost.yml` runs at `20:30 UTC`, which is `02:30` in Bangladesh. It exchanges the same secretless OIDC identity for a short-lived Azure token and reads only the exact VM's size and power state. The job succeeds only for `Standard_B2as_v2` plus `VM deallocated`.
+
+This monitor is deliberately not an enforcement identity. It cannot start, stop, deallocate, resize, run a command, or deploy. If it fails, open the run summary, inspect the owner-session Logic App, and use the authenticated Cloud Shell audit. A deliberately running session that overlaps 02:30 will also produce a failure; that is an auditable reminder that the daily cost model assumed a bounded session.
+
+## 20. Security boundaries to defend
 
 - Only Caddy publishes ports 80/443.
 - Sentinel maps only to VM loopback; dependencies remain on the private Compose network.
@@ -695,7 +828,7 @@ Never automate resource-group deletion for this portfolio without a separate bac
 - GitHub build permission and Azure deployment permission are separate.
 - OIDC should be constrained to the exact repository/environment and VM scope.
 
-## 20. Three-level explanation
+## 21. Three-level explanation
 
 ### Locally
 
@@ -703,13 +836,13 @@ GitHub turns one commit into one tested image. Azure pulls that exact image and 
 
 ### System design
 
-Stable service identity is separated from replaceable software identity. CI proves an artifact; CD promotes it. Caddy owns the edge, Compose isolates dependencies, Flyway owns schema evolution, and readiness decides whether the release can serve traffic.
+Stable service identity is separated from replaceable software identity. CI proves an artifact; CD promotes it only when compute is intentionally online. Caddy owns the edge, Compose isolates dependencies, Flyway owns schema evolution, readiness decides whether the release can serve traffic, and a separate owner lease bounds the compute lifecycle.
 
 ### Interview defense
 
-“I deployed a Spring Boot/Next.js incident-response control plane to an isolated Azure VM. GitHub Actions tests both stacks, publishes commit-SHA images to GHCR, exchanges repository-bound OIDC for a short-lived Azure token, and activates the exact release through VM Run Command without exposing SSH. A separate least-privilege budget action deallocates compute early, while immutable tags, forward-only migrations, readiness checks, and durable volumes make delivery explainable and recoverable.”
+“I deployed a Spring Boot/Next.js incident-response control plane to an isolated, normally deallocated Azure VM. GitHub Actions tests both stacks and publishes commit-SHA images without receiving start authority. An owner-only Logic App opens a two-hour B2as-v2 session; boot activates only a main-branch SHA whose exact GHCR image already passed CI. A separate identity deallocates the VM when the lease expires, while the static IP, disk, database volumes, immutable tags, forward-only migrations, and readiness checks remain stable and auditable.”
 
-## 21. Beginner questions, answers, and scenarios
+## 22. Beginner questions, answers, and scenarios
 
 ### Why was `deploy` skipped even though the workflow was green?
 
@@ -717,7 +850,7 @@ The job had `if: vars.AZURE_DEPLOY_ENABLED == 'true'`. GitHub correctly complete
 
 ### Does automated deployment mean every edit instantly reaches production?
 
-No. Only a commit pushed to `main` triggers this workflow. It must pass frontend and backend checks, publish an image, authenticate to Azure, activate the image, and pass public readiness. A failing test stops before Azure. A failed readiness check leaves the run red and visible even if Compose attempted the update.
+No. Only a commit pushed to `main` triggers this workflow. It must pass frontend and backend checks and publish an image. If the VM is running, it must also authenticate to Azure, activate the image, and pass public readiness. If the VM is deallocated, activation is deferred until the next owner session. A failing test stops before publication.
 
 Example: commit A has a TypeScript error. `npm run typecheck` fails, so no A image is published and the VM remains on the previous healthy SHA.
 
@@ -761,7 +894,15 @@ Compute allocation stops, but the OS disk and retained Standard static Public IP
 
 ### Should I enable daily shutdown?
 
-Enable it for a classroom or occasional demo where predictable offline hours are acceptable. Leave it off for a résumé link expected to work at any hour. A practical alternative is manually start it before recruiting activity and deallocate after, but that sacrifices always-on availability.
+The two-hour owner session is stronger than a fixed daily shutdown because its lifetime is relative to each explicit start. Keep Azure's fixed auto-shutdown only as an optional second fallback. In both cases, the résumé URL is offline while deallocated.
+
+### Why does visiting the public URL not automatically start the VM?
+
+Starting compute is a billable mutation. Giving that ability to an anonymous request would let search crawlers, scanners, or abuse loops consume the student credit. The owner privately opens a two-hour window before sharing or demonstrating the link.
+
+### Will the stable link or database change after deallocation?
+
+No. The Standard static IP, Azure DNS label, OS disk, Docker named volumes, and Caddy state remain. The link becomes unavailable while compute is deallocated and returns after the VM and containers start. Only explicit resource-group retirement destroys those retained resources.
 
 ### What should I inspect when a deployment fails?
 
@@ -771,7 +912,7 @@ Read the first failing boundary in order: CI test, GHCR publication, OIDC login,
 
 Delivery is a chain of evidence and permissions, not a single shell command. The artifact is immutable, identity is short-lived, RBAC is resource-scoped, releases are serialized, readiness is externally verified, database evolution is forward-only, and cost automation has documented latency and blast radius. Those decisions remain useful when moving from one VM to Container Apps or Kubernetes.
 
-## 22. Pen-and-paper exercises
+## 23. Pen-and-paper exercises
 
 1. Draw the four execution locations: local PC, GitHub runner, Cloud Shell, and Azure VM.
 2. Explain why a green image publication is not proof that Azure changed.
@@ -782,11 +923,14 @@ Delivery is a chain of evidence and permissions, not a single shell command. The
 7. Explain why a rollback cannot blindly reverse a Flyway migration.
 8. List what continues to cost money after VM deallocation.
 
-## 23. Official references
+## 24. Official references
 
 - [Azure CLI: VM Run Command](https://learn.microsoft.com/en-us/cli/azure/vm/run-command)
 - [Azure Run Command overview](https://learn.microsoft.com/en-us/azure/virtual-machines/run-command-overview)
 - [Azure CLI: VM auto-shutdown](https://learn.microsoft.com/en-us/cli/azure/vm#az-vm-auto-shutdown)
+- [Azure VM states and billing](https://learn.microsoft.com/en-us/azure/virtual-machines/states-billing)
+- [Azure B-family VM sizes](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/general-purpose/b-family)
+- [Azure Retail Prices API](https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices)
 - [Azure budgets and delayed cost data](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets)
 - [Azure budget action automation scenario](https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/cost-management-budget-scenario)
 - [Azure Logic Apps managed identity authentication](https://learn.microsoft.com/en-us/azure/logic-apps/authenticate-with-managed-identity)

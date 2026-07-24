@@ -3,6 +3,7 @@ set -eu
 
 repository_url="https://github.com/Mofazzal874/Sentinel-Autonomous-On-Call-Incident-Response-Agent.git"
 release_directory="/opt/sentinel/release"
+image_repository="ghcr.io/mofazzal874/sentinel-autonomous-on-call-incident-response-agent"
 
 release_sha="${1:-}"
 image="${2:-}"
@@ -42,6 +43,14 @@ if ! command -v git >/dev/null 2>&1; then
   DEBIAN_FRONTEND=noninteractive apt-get install -y git
 fi
 
+if command -v flock >/dev/null 2>&1; then
+  exec 9>/var/lock/sentinel-release.lock
+  flock -w 900 9 || {
+    echo 'Another Sentinel release activation still owns the deployment lock.' >&2
+    exit 4
+  }
+fi
+
 install -d -o azureuser -g azureuser "$release_directory"
 
 if [ -d "$release_directory/.git" ]; then
@@ -72,7 +81,22 @@ export SENTINEL_DEMO_ADDRESS="$demo_address"
 export SENTINEL_IMAGE="$image"
 
 bash "$release_directory/deployment/azure-demo/new-env.sh"
+previous_image="$(docker inspect --format '{{.Config.Image}}' sentinel-azure-demo-sentinel-1 2>/dev/null || true)"
 docker pull "$image"
 bash "$release_directory/deployment/azure-demo/start-azure.sh"
+bash "$release_directory/deployment/azure-demo/install-boot-activation.sh"
+
+docker image ls "$image_repository" --format '{{.Repository}}:{{.Tag}}' |
+  while IFS= read -r candidate; do
+    [ -n "$candidate" ] || continue
+    [ "$candidate" = "$image" ] && continue
+    [ -n "$previous_image" ] && [ "$candidate" = "$previous_image" ] && continue
+    candidate_tag="${candidate#"$image_repository":}"
+    case "$candidate_tag" in
+      ''|*[!0-9a-f]*) continue ;;
+    esac
+    [ "${#candidate_tag}" -eq 40 ] || continue
+    docker image rm "$candidate" >/dev/null 2>&1 || true
+  done
 
 echo "Activated source and image for commit $release_sha"

@@ -19,6 +19,7 @@ resource_group="${AZURE_RESOURCE_GROUP:-sentinel-demo-rg}"
 vm_name="${AZURE_VM_NAME:-sentinel-demo-vm}"
 location="${AZURE_LOCATION:-centralindia}"
 threshold="${AZURE_COST_GUARD_THRESHOLD_PERCENT:-50}"
+budget_email="${AZURE_BUDGET_EMAIL:-}"
 workflow_name="sentinel-budget-deallocate"
 action_group_name="sentinel-budget-stop"
 role_name="Sentinel Demo VM Deallocator"
@@ -163,6 +164,7 @@ az rest --method get \
 
 jq \
   --arg action_group_id "$action_group_id" \
+  --arg budget_email "$budget_email" \
   --argjson threshold "$threshold" \
   '{
     properties: {
@@ -178,7 +180,7 @@ jq \
             operator: "GreaterThanOrEqualTo",
             threshold: $threshold,
             thresholdType: "Actual",
-            contactEmails: [],
+            contactEmails: (if $budget_email == "" then [] else [$budget_email] end),
             contactRoles: [],
             contactGroups: [$action_group_id],
             locale: "en-us"

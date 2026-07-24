@@ -67,6 +67,7 @@ The AI is not the backend. It is one decision-producing component inside a backe
 - [Catalog CRUD and optimistic locking](CATALOG_CRUD_AND_OPTIMISTIC_LOCKING.md)
 - [Live scenario sandbox](LIVE_SCENARIO_SANDBOX.md)
 - [Next.js operator console](NEXTJS_OPERATOR_CONSOLE.md)
+- [Azure FinOps and owner-started demo sessions](AZURE_FINOPS_ON_DEMAND_DEMO.md)
 - [Live product navigation guide](../DEMO_GUIDE.md)
 - [Incident-investigation product research](../research/2026_INCIDENT_INVESTIGATION_PRODUCT_RESEARCH.md)
 

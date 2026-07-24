@@ -103,6 +103,12 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - The deployment identity must not receive VM start authority. A later push must not restart a VM that was deallocated by the cost guard.
 - Azure budgets are delayed alerts, never hard spending caps. Use an early threshold and a separate deallocate-only managed identity; state plainly that disk/static-IP costs can remain after deallocation.
 - Never automate deletion of the dedicated resource group without an explicit backup and retirement decision because it destroys the stable hostname and persisted demo data.
+- The reviewed low-cost target is `Standard_B2as_v2` with at most a two-hour owner-started session. Normal state is `VM deallocated`; public visitors never receive start authority.
+- `sentinel-demo-session` is a separate Consumption Logic App identity scoped to start/read/deallocate only the exact demo VM. Its signed callback URL is an owner credential and must never enter Git, frontend code, screenshots, or recruiter documentation.
+- A deallocated push may verify and publish but must not fail or restart compute. The VM boot activator may select only the exact main-branch SHA whose public GHCR image already exists; a missing image preserves the installed release.
+- Bound Docker logs and retain only the current and previous Sentinel application images. Never run a global Docker prune on the shared host.
+- A nightly read-only GitHub workflow checks for `Standard_B2as_v2` plus `VM deallocated` at 20:30 UTC. It must never receive VM mutation authority.
+- The July 2026 USD retail model is `$0.0984/hour` for B4as v2, `$0.0492/hour` for B2as v2, `$5.28/month` for the 64-GiB E6 LRS disk, and `$0.005/hour` for the static IPv4. Re-query official prices before making later cost claims.
 
 ## Demo dataset baseline
 

@@ -1414,3 +1414,90 @@ Ambitious documentation should make the engineering depth legible without inflat
 ### Verification and next action
 
 Verify relative links, Markdown structure, Mermaid fences, commands, current GitHub/Azure URLs, current dependency versions, clean diff, and repository authorship rules. Then commit and push the documentation update and confirm the GitHub README renders from the new main commit. Because the README is packaged in the Docker build context but not served by the application, the normal workflow will still prove the repository and deployment path without changing runtime behavior.
+
+---
+
+## Session 32 — FinOps diagnosis and bounded Azure compute
+
+### Goal
+
+Explain and stop the approximately `$2.50/day` Azure burn, preserve the real stateful Sentinel stack and stable résumé hostname, target less than `$0.50/day`, prevent forgotten sessions, retain automated delivery while compute is off, and add repeatable runtime/cost evidence rather than guessing from an idle CPU graph.
+
+### Root cause proven
+
+The deployment was not billed according to visitor traffic or Docker CPU usage. Azure billed the continuously allocated `Standard_B4as_v2` capacity. The official Azure Retail Prices API returned these Central India Linux rates on 24 July 2026:
+
+- B4as v2: `$0.0984/hour`, or `$2.3616/day`;
+- B2as v2: `$0.0492/hour`;
+- E6 LRS 64-GiB Standard SSD: `$5.28/month`, modeled as `$0.176/day`;
+- Standard static IPv4: `$0.005/hour`, or `$0.12/day`.
+
+The original modeled total is `$2.6576/day`, consistent with the observed burn. A deallocated VM still retains a `$0.296/day` disk/IP floor. A B2as-v2 two-hour session models `$0.3944/day`, while an always-on B2 would still cost about `$1.4768/day`.
+
+The public readiness endpoint was healthy. CPU and JVM actuator metrics correctly returned `401`, preserving the authenticated observability boundary. Runtime memory evidence cannot be collected from outside Azure; the new Cloud Shell audit uses exact-VM Run Command only while the VM is running.
+
+### Selected architecture
+
+ADR 0019 accepts normally deallocated, owner-started, two-hour compute sessions:
+
+```text
+private signed owner callback
+    -> separate exact-VM start/read/deallocate identity
+    -> Standard_B2as_v2 starts
+    -> boot selects current main SHA only if its exact GHCR image exists
+    -> stable URL serves the complete persisted application
+    -> two-hour non-extendable wait
+    -> Azure VM deallocate API
+```
+
+Public visitors cannot wake compute because anonymous start authority turns bots and scanners into billable actors. GitHub also cannot start the VM, so a normal push cannot override a financial stop. The existing budget workflow remains a separate deallocate-only emergency layer.
+
+### Runtime and storage optimization
+
+- Reduced aggregate container ceilings to 6.66 GiB for the 8-GiB target, leaving more than 1 GiB for Ubuntu and Docker.
+- Limited Ollama to one loaded model and one parallel inference with a 4,096-token context.
+- Reduced chat keep-alive to two minutes and embedding keep-alive to 30 seconds.
+- Capped the JVM container at 1,280 MiB with a 65% maximum heap percentage.
+- Added three rotating 10-MiB JSON logs to every container.
+- Preserved only the current and previous Sentinel application image after successful activation; no shared/global Docker prune is used.
+- Kept PostgreSQL, Redis, RabbitMQ, Ollama model data, Caddy state, the OS disk, NIC, static IP, and DNS label.
+
+The smaller VM may increase the previously measured five-minute CPU inference latency. The existing 14-minute browser polling limit and 15-minute public lease provide room, but no new latency claim is accepted until one real B2 run completes.
+
+### Delivery continuity
+
+The GitHub workflow now verifies the cost invariants before building. It reads VM power state after OIDC login:
+
+- running: activate exact SHA and verify public readiness;
+- deallocated: publish the image, report deferred activation, skip Run Command/readiness, and never start compute.
+
+The release installs `sentinel-activate-latest.service`. At owner-started boot, it resolves `main`, pulls only the matching immutable SHA tag, and preserves the installed release if the image is missing. A deployment lock serializes boot and GitHub activation.
+
+### Controls and learning artifacts
+
+- `configure-on-demand-session.sh`: confirmation-gated resize, pre-resize snapshot, exact-VM Logic App identity, private callback, and deallocated final state.
+- `audit-runtime-and-cost.sh`: VM/disk/IP inventory, container stats, Docker storage/logs, delayed daily costs, lifecycle events, control-plane resources, and retail projections.
+- `verify-cost-controls.sh`: CI/local enforcement for shell syntax, Compose validity, memory ceiling, log rotation, Ollama residency, no GitHub start authority, confirmation refusal, and the `$0.3944` model.
+- `monitor-azure-demo-cost.yml`: nightly read-only drift detection for the reviewed VM size and deallocated state at 20:30 UTC.
+- `AZURE_FINOPS_ON_DEMAND_DEMO.md`: beginner lesson, data flow, failure modes, commands, interview defense, and exercises.
+- Updated the README, Azure beginner guide, UI walkthrough, local runbook, readiness note, TODO, learning index, and contributor memory.
+
+### Verification completed before owner migration
+
+- All Azure shell files pass `bash -n`.
+- The merged Compose configuration is valid.
+- Aggregate limits equal `7,147,094,016` bytes, below the 7-GiB invariant ceiling.
+- All seven services have bounded JSON logs.
+- The deployment workflow parses as YAML.
+- The workflow contains no `az vm start` or restart authority.
+- The nightly monitor contains no VM mutation command and checks only `Standard_B2as_v2` plus `VM deallocated`.
+- The on-demand script refuses mutation without explicit confirmation.
+- The cost invariant calculates `$0.3944/day`.
+- The serialized Windows Java 25 regression run passed 113 tests across 38 suites with zero failures, errors, or skips.
+- `git diff --check` is clean.
+
+No Azure resize, Logic App, role assignment, start, or deallocation is falsely claimed from the local workspace. Those mutations require the owner's authenticated Cloud Shell. The existing B4 VM continues billing until the owner runs the committed bootstrap.
+
+### Next evidence
+
+Push the verified release while the B4 VM is still running so it installs bounded runtime settings and the boot activator. Then the owner runs the one-time Cloud Shell bootstrap. Capture its runtime snapshot, confirm `Standard_B2as_v2` and `VM deallocated`, open one two-hour session, complete a real investigation, measure latency/restarts/memory, verify automatic deallocation, connect the existing `$10` budget guard, and compare at least three delayed daily cost snapshots with the model.

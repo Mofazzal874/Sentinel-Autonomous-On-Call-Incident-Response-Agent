@@ -28,7 +28,7 @@ Never record the SSH private key, JWT secret, webhook secret, database password,
 | Subscription state | `Enabled` | Azure resource operations are allowed |
 | Region | `centralindia` / Central India | Resource placement and pricing boundary |
 | Total regional vCPU quota | `6` | Maximum general regional allocation observed |
-| Standard BS-family quota | `4` vCPUs | Matches the selected four-vCPU VM family limit |
+| Standard Basv2-family quota | `10` vCPUs reported during deployment | Supports the reviewed two-vCPU target |
 | Student credit reported by owner | approximately `$100`, one-year validity | Credit is not the same as a budget |
 | Demo budget | `$10` | Alert/automation threshold, not a hard cap |
 
@@ -38,7 +38,7 @@ Never record the SSH private key, JWT secret, webhook secret, database password,
 |---|---|
 | Resource group | `sentinel-demo-rg` |
 | VM | `sentinel-demo-vm` |
-| VM size | `Standard_B4as_v2` |
+| VM size | `Standard_B4as_v2` before the cost migration; `Standard_B2as_v2` target |
 | VM placement | Non-zonal in Central India |
 | Operating system | Ubuntu 24.04 |
 | Admin user | `azureuser` |
@@ -174,7 +174,7 @@ Resource groups → sentinel-demo-rg → sentinel-demo-vm → Overview
 Expected:
 
 ```text
-VM size:           Standard_B4as_v2
+VM size:           Standard_B2as_v2 after the one-time cost migration
 Public IP:         20.219.22.24
 Computer name:     sentinel-demo-vm
 Operating system:  Linux / Ubuntu 24.04
@@ -217,12 +217,13 @@ verify-and-publish ──────> deploy
 This job:
 
 1. checks out the exact commit;
-2. installs Java 25 on the temporary runner;
-3. installs pinned frontend dependencies;
-4. type-checks and builds the Next.js static console;
-5. runs the Spring/Gradle regression suite;
-6. builds the container image;
-7. publishes both the immutable SHA tag and moving `main` tag to GHCR.
+2. verifies the deployment cost invariants;
+3. installs Java 25 on the temporary runner;
+4. installs pinned frontend dependencies;
+5. type-checks and builds the Next.js static console;
+6. runs the Spring/Gradle regression suite;
+7. builds the container image;
+8. publishes both the immutable SHA tag and moving `main` tag to GHCR.
 
 If this job fails, Azure is not touched.
 
@@ -233,13 +234,14 @@ This job:
 1. enters the `azure-demo` GitHub environment;
 2. requests a GitHub OIDC token;
 3. exchanges it for a short-lived Azure access token;
-4. invokes `activate-release.sh` through the Azure VM agent;
-5. checks out the exact source SHA on the VM;
-6. pulls the image tagged with that same SHA;
-7. converges Docker Compose while preserving named volumes;
-8. checks the stable public readiness URL.
+4. reads the exact VM power state without starting it;
+5. if running, invokes `activate-release.sh` through the Azure VM agent;
+6. checks out the exact source SHA on the VM;
+7. pulls the image tagged with that same SHA;
+8. converges Docker Compose while preserving named volumes;
+9. checks the stable public readiness URL.
 
-Before `AZURE_DEPLOY_ENABLED=true`, a grey skipped deploy node is expected. After configuration, a skipped node means the repository variable is absent, misspelled, stored at the wrong scope, or not exactly lowercase `true`.
+Before `AZURE_DEPLOY_ENABLED=true`, a grey skipped deploy node is expected. After configuration, the job runs even when compute is off, but activation/readiness steps show as skipped with a notice. That means the exact image is published and waiting for the next owner-started session; it is not a failed deployment and does not restart billing.
 
 ## Screen 5 — Configure the GitHub environment
 
@@ -386,6 +388,7 @@ The identities intentionally have different authority:
 ```text
 GitHub deployer → Run Command only → cannot start or stop VM
 Budget Logic App → deallocate only → cannot start VM or deploy code
+Owner session Logic App → start/read/deallocate exact VM → cannot resize, deploy, or delete
 ```
 
 When the guard fires, confirm:
@@ -400,27 +403,52 @@ az vm get-instance-view \
 
 Expected: `VM deallocated`.
 
-## Screen 10 — Start, deallocate, or retire deliberately
+## Screen 10 — Open one bounded demo session
 
-Before starting a budget-stopped VM, check Cost Analysis and remaining student credit.
+After running the one-time `configure-on-demand-session.sh` bootstrap, the signed callback is stored privately in Cloud Shell. Before starting, check Cost Analysis and remaining student credit.
 
-Start:
-
-```bash
-az vm start \
-  --resource-group sentinel-demo-rg \
-  --name sentinel-demo-vm
-```
-
-Deallocate:
+Start a maximum two-hour session:
 
 ```bash
-az vm deallocate \
-  --resource-group sentinel-demo-rg \
-  --name sentinel-demo-vm
+curl \
+  --fail \
+  --show-error \
+  --silent \
+  --request POST \
+  "$(cat ~/.sentinel-demo-wake-url)"
 ```
 
-Permanent retirement, destructive:
+Confirm the size and state:
+
+```bash
+az vm show \
+  --resource-group sentinel-demo-rg \
+  --name sentinel-demo-vm \
+  --query hardwareProfile.vmSize \
+  --output tsv
+
+az vm get-instance-view \
+  --resource-group sentinel-demo-rg \
+  --name sentinel-demo-vm \
+  --query "instanceView.statuses[?starts_with(code,'PowerState/')].displayStatus | [0]" \
+  --output tsv
+```
+
+Expected after startup: `Standard_B2as_v2` and `VM running`. Expected after lease expiry: `VM deallocated`.
+
+The wake URL is a credential. Never paste it into documentation, frontend code, GitHub settings, or a message to a recruiter.
+
+## Screen 11 — Audit cost or retire deliberately
+
+Run the repeatable FinOps report:
+
+```bash
+cd ~/sentinel-deploy
+git pull --ff-only
+bash deployment/azure-demo/audit-runtime-and-cost.sh
+```
+
+Permanent retirement is destructive:
 
 ```bash
 az group delete \
@@ -429,11 +457,11 @@ az group delete \
   --no-wait
 ```
 
-Do not run retirement merely to restart the application. It deletes the database, OS disk, Public IP, and stable `cloudapp.azure.com` hostname.
+Do not run retirement merely to stop compute. It deletes the database, OS disk, Public IP, and stable `cloudapp.azure.com` hostname.
 
 ## What to say in a demonstration
 
-“A push to `main` does not directly SSH into production. GitHub first compiles the Next.js console, runs the Spring regression suite, and publishes an immutable commit-SHA image. The deploy job uses repository-and-environment-bound OIDC to obtain a short-lived Azure token. Its custom role can invoke Run Command only on one VM. The VM activates the same source and image SHA, preserves named database volumes, and the workflow verifies the stable public readiness URL. A separate deallocate-only managed identity responds early to the budget, and GitHub cannot restart a financially stopped VM.”
+“A push to `main` does not directly SSH into production or restart a financially stopped VM. GitHub verifies the cost invariants, compiles both stacks, runs the regression suite, and publishes an immutable commit-SHA image. During a private two-hour B2as-v2 session, boot activates only a main SHA whose exact image already exists. Separate identities handle deployment, owner start/deallocation, and emergency budget deallocation, while the static IP, disk, database volumes, and public URL remain stable.”
 
 ## Five checks before sharing the résumé link
 
@@ -442,3 +470,4 @@ Do not run retirement merely to restart the application. It deletes the database
 - [ ] A fixed public scenario creates a real persisted incident and reaches a dry-run ledger decision.
 - [ ] The page clearly labels the operational dataset as deterministic synthetic data.
 - [ ] Azure Cost Analysis, the `$10` budget, and VM power state have been reviewed.
+- [ ] The owner session expired to `VM deallocated`, and three daily audits trend below `$0.50/day`.

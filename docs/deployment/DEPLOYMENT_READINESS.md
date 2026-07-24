@@ -23,7 +23,7 @@ AKS is not recommended for this deadline. It adds cluster, ingress, identity, st
 
 ## Current blockers to an actual deployment
 
-1. Azure for Students is active with about `$100` remaining; Central India has six regional vCPUs and four Standard BS-family vCPUs. `Standard_B4as_v2` is available for a non-zonal deployment, while zone 3 is restricted and `Standard_B4ms` is unavailable.
+1. Azure for Students is active with about `$100` originally reported; Central India has six regional vCPUs and sufficient Basv2 quota. The original non-zonal `Standard_B4as_v2` is live; the reviewed cost migration targets `Standard_B2as_v2` after an availability check.
 2. The user created a `$10` budget alert. It is useful but does not cap or stop spending.
 3. No registry package, VM, resource group, DNS record, or public endpoint may be created until the user explicitly approves the reviewed bundle.
 4. The stable hostname label must be selected. The resulting Azure FQDN can receive automatic HTTPS through Caddy; a custom domain is optional branding.
@@ -52,7 +52,8 @@ For uncertain remediation, inspect `action_claim` and the append-only ledger; ne
 
 - Put all demo resources in one dedicated resource group so the complete environment can be enumerated and removed.
 - Apply a subscription budget alert before provisioning; budgets warn but do not automatically stop resources.
-- Use one fixed small VM only after checking that 16 GB RAM is sufficient for the app, infrastructure, and 4B model; deallocate it outside the demo.
+- Keep aggregate container ceilings below 7 GiB, load only one Ollama model, and verify the full stack on the 8-GiB `Standard_B2as_v2`.
+- Keep the VM deallocated outside an owner-started two-hour session. A public auto-wake endpoint is prohibited because it turns anonymous traffic into spending authority.
 - Do not create legacy Azure Cache for Redis. Microsoft recommends Azure Managed Redis for new work.
 - Do not enable paid Azure OpenAI until model availability, quota, region, and a hard evaluation call budget are confirmed.
 

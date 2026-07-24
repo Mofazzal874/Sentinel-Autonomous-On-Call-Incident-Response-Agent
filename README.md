@@ -442,14 +442,21 @@ flowchart LR
     CI --> Image[Layered non-root image]
     Image --> GHCR[GHCR tag = full Git SHA]
     GHCR --> OIDC[GitHub OIDC token]
-    OIDC --> RBAC[Exact-VM custom Azure role]
-    RBAC --> Run[Azure VM Run Command]
+    OIDC --> State{VM running?}
+    State -->|yes| Run[Azure VM Run Command]
+    State -->|no| Deferred[Activation deferred; VM stays deallocated]
     Run --> Compose[Activate exact Compose release]
     Compose --> Health[Internal + public readiness]
     Health --> Stable[Stable HTTPS résumé URL]
+    Owner[Private owner wake URL] --> Lease[Two-hour VM lease]
+    Lease --> Boot[Boot activates latest verified SHA]
+    Boot --> Stable
+    Lease --> Stop[Automatic VM deallocation]
 ```
 
-The GitHub identity has permission to read the target VM and invoke Run Command. It cannot create, resize, start, stop, or delete compute. The VM runs pinned PostgreSQL/pgvector, Redis, RabbitMQ, Ollama, Sentinel, and Caddy containers with retained named volumes.
+The GitHub identity has permission to read the target VM and invoke Run Command. It cannot create, resize, start, stop, or delete compute. A push while the VM is deallocated still passes tests and publishes its immutable image, but activation is deferred instead of restarting billing. At the next owner-started session, the boot service accepts only the current `main` SHA with an already-published exact-SHA image.
+
+The cost-controlled target is a burstable `Standard_B2as_v2` with bounded container logs, 6.66 GiB of aggregate memory ceilings, one loaded Ollama model, and a maximum two-hour session. PostgreSQL/pgvector, Redis, RabbitMQ, Ollama, Sentinel, Caddy, the 64-GiB disk, static IP, stable DNS name, and named data volumes remain intact.
 
 The deployment design, commands, costs, rollback, troubleshooting, and beginner explanations are documented in:
 
@@ -458,7 +465,11 @@ The deployment design, commands, costs, rollback, troubleshooting, and beginner 
 - [Local and Azure operator runbook](docs/deployment/LOCAL_AND_AZURE_DEMO.md)
 - [Deployment readiness and production alternatives](docs/deployment/DEPLOYMENT_READINESS.md)
 
-Azure budget notifications do not create a mathematically exact spending cap because cost records are delayed. The repository includes a separate least-privilege cost guard that can deallocate the demo VM at an early threshold; retained disks, IPs, and already accrued delayed charges can still cost money.
+At July 2026 USD retail rates, the former always-on B4as-v2 design modeled approximately `$2.6576/day`. A normally deallocated B2as-v2 deployment with one two-hour session models approximately `$0.3944/day`: `$0.0984` compute, `$0.176` retained Standard SSD, and `$0.12` static IPv4. Actual agreements, taxes, month length, and later pricing can differ.
+
+A read-only GitHub workflow checks nightly at 20:30 UTC that the VM is still `Standard_B2as_v2` and `VM deallocated`. It reports drift but cannot start, stop, resize, or deploy the VM. The owner-session Logic App enforces the two-hour lease; the separate budget Logic App is a delayed emergency backstop.
+
+Azure budget notifications do not create a mathematically exact spending cap because cost records are delayed. The repository layers an early budget-triggered deallocator underneath the time-bounded owner session. The private wake callback is an owner credential and is never exposed to public visitors; otherwise bots could directly spend the subscription. While deallocated, the résumé URL remains identical but is offline, and disk/IP charges continue.
 
 ## Engineering journal: how Sentinel grew
 

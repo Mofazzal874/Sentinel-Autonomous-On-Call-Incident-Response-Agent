@@ -321,10 +321,15 @@ Execution checkpoints:
 - [x] Obtain final approval for the dedicated Azure resource group, static public IP, ports 80/443, and VM spend.
 - [x] Run the committed OIDC bootstrap in Cloud Shell, create the passwordless Entra/federated identity and exact-VM role assignment, add the seven GitHub `azure-demo` variables, and set `AZURE_DEPLOY_ENABLED=true`.
 - [x] Prove workflow run `29699411314` has both jobs green for `7a05a88f6024cf6d5a050a4bd4efb47b39d32a72`; independently verify readiness `200 {"status":"UP"}` and the public console `200`.
+- [x] Diagnose the approximately `$2.50/day` burn against official retail meters and prove the always-allocated B4as v2, rather than idle Docker CPU, is the dominant cost.
+- [x] Add B2as-v2 memory ceilings, single-model Ollama residency, bounded container logs, exact-repository image retention, deallocated-safe CD, boot-time exact-SHA activation, a two-hour owner session lease, and a read-only cost/runtime audit.
+- [x] Add a CI-enforced deployment cost model with a `$0.50/day` target; the reviewed B2as-v2 two-hour projection is `$0.3944/day` before taxes or pricing changes.
+- [x] Add a read-only nightly GitHub drift check for `Standard_B2as_v2` plus `VM deallocated`; it runs at 20:30 UTC (02:30 Bangladesh time) and has no VM mutation authority.
+- [ ] Run the one-time on-demand-session bootstrap in authenticated Cloud Shell, capture the pre-resize runtime snapshot, resize to `Standard_B2as_v2`, verify the private wake URL, complete one live investigation within the two-hour lease, and confirm automatic `VM deallocated`.
 - [ ] Run the committed cost-guard bootstrap against the exact existing `$10` budget and verify its Action Group, Logic App identity, notification, and deallocation permission without forcing spend.
 - [x] Provision the approved minimal-cost target and verify the stable HTTPS console, health, migrations, secrets, and bounded end-to-end live scenario.
 - [x] Add the recruiter-facing README, architecture flow, safety model, evaluation result, demo instructions/evidence, and future work.
-- [x] Complete the final uncached suite after deployment startup wiring: 103 tests across 35 suites, zero failures/errors/skips.
+- [x] Complete the final uncached suite after deployment startup wiring: 113 tests across 38 suites, zero failures/errors/skips.
 - [x] Complete all seven operability/deployment Defend This answers.
 
-Operability/deployment gate: **deployment handoff open** — local observability, layered evaluation, packaging, learning defense, and smoke evidence are complete. Cloud provisioning, public access, and paid resources remain intentionally unstarted pending the user's subscription, region, budget, and access approval.
+Operability/deployment gate: **live and cost migration pending owner execution** — Azure delivery and the stable public demo are proven. The source-side FinOps controls are verified; authenticated Cloud Shell must now resize and deallocate the existing VM, create its owner-only session workflow, connect the existing budget guard, and record the first bounded-session evidence.

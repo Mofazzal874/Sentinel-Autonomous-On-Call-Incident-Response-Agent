@@ -1,5 +1,11 @@
 name: sentinel-azure-demo
 
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: pgvector/pgvector:0.8.2-pg17-bookworm@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966
@@ -16,13 +22,14 @@ services:
       timeout: 3s
       retries: 20
       start_period: 10s
-    mem_limit: 1536m
+    mem_limit: 512m
+    logging: *bounded-logging
     networks: [sentinel-private]
 
   redis:
     image: redis:7.4.9-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "384mb", "--maxmemory-policy", "noeviction"]
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
     volumes:
       - redis-data:/data
     healthcheck:
@@ -30,7 +37,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    mem_limit: 512m
+    mem_limit: 192m
+    logging: *bounded-logging
     networks: [sentinel-private]
 
   rabbitmq:
@@ -47,7 +55,8 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
-    mem_limit: 1024m
+    mem_limit: 512m
+    logging: *bounded-logging
     networks: [sentinel-private]
 
   sentinel:
@@ -79,11 +88,12 @@ services:
       SENTINEL_AI_CHAT_MODEL: ollama
       SENTINEL_AI_EMBEDDING_MODEL: ollama
       SENTINEL_OLLAMA_BASE_URL: ${SENTINEL_OLLAMA_BASE_URL}
+      JAVA_TOOL_OPTIONS: -XX:InitialRAMPercentage=10 -XX:MaxRAMPercentage=65 -XX:+ExitOnOutOfMemoryError
       SPRING_AI_OLLAMA_CHAT_MODEL: qwen3:4b
       SPRING_AI_OLLAMA_CHAT_THINK: "false"
-      SPRING_AI_OLLAMA_CHAT_KEEP_ALIVE: 30m
+      SPRING_AI_OLLAMA_CHAT_KEEP_ALIVE: 2m
       SPRING_AI_OLLAMA_EMBEDDING_MODEL: nomic-embed-text
-      SPRING_AI_OLLAMA_EMBEDDING_KEEP_ALIVE: 30m
+      SPRING_AI_OLLAMA_EMBEDDING_KEEP_ALIVE: 30s
       SENTINEL_AI_MAX_OUTPUT_TOKENS: "256"
     ports:
       - "127.0.0.1:${SENTINEL_APP_PORT:-18080}:8080"
@@ -94,7 +104,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    mem_limit: 2048m
+    mem_limit: 1280m
+    logging: *bounded-logging
     networks: [sentinel-private]
 
 networks:
