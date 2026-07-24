@@ -1501,3 +1501,9 @@ No Azure resize, Logic App, role assignment, start, or deallocation is falsely c
 ### Next evidence
 
 Push the verified release while the B4 VM is still running so it installs bounded runtime settings and the boot activator. Then the owner runs the one-time Cloud Shell bootstrap. Capture its runtime snapshot, confirm `Standard_B2as_v2` and `VM deallocated`, open one two-hour session, complete a real investigation, measure latency/restarts/memory, verify automatic deallocation, connect the existing `$10` budget guard, and compare at least three delayed daily cost snapshots with the model.
+
+### Delivery evidence
+
+Commit `3a06b5785cbed02a38ee2a754fab73f878b670bc` (`Cut Azure demo cost with bounded sessions`) was pushed while the B4 VM was online. GitHub Actions run `30118151125` completed successfully: all 13 verification/publication steps and all 9 Azure deployment steps passed. The immutable SHA image was activated, the bounded Compose profile and boot service were installed, and both the stable site and readiness endpoint returned HTTP 200 afterward.
+
+This completes the software delivery prerequisite. It does **not** complete the Azure cost cutover: the owner-authenticated Cloud Shell bootstrap must still resize and deallocate the VM. Until that command finishes with `Standard_B2as_v2` and `VM deallocated`, the B4 compute meter continues.
