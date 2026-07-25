@@ -456,7 +456,7 @@ flowchart LR
 
 The GitHub identity has permission to read the target VM and invoke Run Command. It cannot create, resize, start, stop, or delete compute. A push while the VM is deallocated still passes tests and publishes its immutable image, but activation is deferred instead of restarting billing. At the next owner-started session, the boot service accepts only the current `main` SHA with an already-published exact-SHA image.
 
-The cost-controlled target is a burstable `Standard_B2as_v2` with bounded container logs, 6.66 GiB of aggregate memory ceilings, one loaded Ollama model, and a maximum two-hour session. PostgreSQL/pgvector, Redis, RabbitMQ, Ollama, Sentinel, Caddy, the 64-GiB disk, static IP, stable DNS name, and named data volumes remain intact.
+The cost-controlled deployment now uses a burstable `Standard_B2as_v2` with bounded container logs, 6.66 GiB of aggregate memory ceilings, one loaded Ollama model, and a maximum two-hour session. PostgreSQL/pgvector, Redis, RabbitMQ, Ollama, Sentinel, Caddy, the 64-GiB disk, static IP, stable DNS name, and named data volumes remain intact. Its normal state is `VM deallocated`; the owner starts a private bounded demo session when needed.
 
 The deployment design, commands, costs, rollback, troubleshooting, and beginner explanations are documented in:
 

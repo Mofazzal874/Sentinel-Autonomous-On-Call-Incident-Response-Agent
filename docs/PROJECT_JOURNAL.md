@@ -1507,3 +1507,52 @@ Push the verified release while the B4 VM is still running so it installs bounde
 Commit `3a06b5785cbed02a38ee2a754fab73f878b670bc` (`Cut Azure demo cost with bounded sessions`) was pushed while the B4 VM was online. GitHub Actions run `30118151125` completed successfully: all 13 verification/publication steps and all 9 Azure deployment steps passed. The immutable SHA image was activated, the bounded Compose profile and boot service were installed, and both the stable site and readiness endpoint returned HTTP 200 afterward.
 
 This completes the software delivery prerequisite. It does **not** complete the Azure cost cutover: the owner-authenticated Cloud Shell bootstrap must still resize and deallocate the VM. Until that command finishes with `Standard_B2as_v2` and `VM deallocated`, the B4 compute meter continues.
+
+## Session 33 — Azure cost cutover completed
+
+**Date:** 26 July 2026
+
+### Owner-authenticated evidence
+
+The authenticated Cloud Shell bootstrap ran from repository commit `4c4bdff`. Before mutation it recorded:
+
+- VM: `Standard_B4as_v2`, `VM running`, uptime 6 days 8 hours 50 minutes;
+- host memory: 15,989 MiB total, 1,548 MiB used, 14,441 MiB available;
+- root disk: 61 GiB total, 15 GiB used (24%);
+- application container: 450 MiB;
+- PostgreSQL: 46.17 MiB;
+- RabbitMQ: 97.25 MiB;
+- Redis: 8.586 MiB;
+- Caddy: 38.61 MiB;
+- idle Ollama: 24.72 MiB;
+- Docker images: 9.826 GiB, only 205.8 MiB reclaimable;
+- persistent volumes: 2.842 GiB, zero reclaimable;
+- largest container log: 2.6 MiB.
+
+This rejects the original storage/database-computation hypothesis. The VM had abundant memory and disk headroom, negligible idle CPU, bounded logs, and little reclaimable image storage. Azure Cost Management recorded roughly `$2.664` on each complete always-on day, matching the retail B4 compute-plus-disk-plus-IP model.
+
+### Cutover result
+
+The script deallocated the VM, resized the same resource to `Standard_B2as_v2`, created the owner-only `sentinel-demo-session` workflow and private callback, then left the VM `VM deallocated`. It preserved:
+
+- the 64-GiB `StandardSSD_LRS` OS disk;
+- static IP `20.219.22.24`;
+- `sentinel-mofazzal874.centralindia.cloudapp.azure.com`;
+- the existing NIC, Docker volumes, PostgreSQL data, and stable public identity.
+
+The post-cutover audit proved:
+
+- size: `Standard_B2as_v2`;
+- state: `VM deallocated`;
+- deallocated retained-resource model: `$0.2960/day`;
+- one two-hour session model: `$0.3944/day`;
+- always-on B2 model: `$1.4768/day`.
+
+The stable site is intentionally offline while deallocated. This is the actual cost-control state, not an outage. The private wake callback remains an owner credential and was not copied into Git or documentation.
+
+### Remaining proof
+
+1. Push this journal update while the VM is deallocated and verify GitHub publishes the SHA but defers Azure activation without starting compute.
+2. Verify the existing `$10` budget is connected to the deallocate-only Logic App and owner email.
+3. Run one bounded B2 session, complete a real investigation, record latency/memory/restarts, and verify automatic deallocation after two hours.
+4. Capture at least three delayed daily Cost Management rows trending toward the `$0.3944/day` model.

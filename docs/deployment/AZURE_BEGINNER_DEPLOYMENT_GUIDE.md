@@ -13,7 +13,7 @@ As of 24 July 2026:
 - Azure subscription: `Azure for Students`.
 - Region: `centralindia`.
 - Resource group: `sentinel-demo-rg`.
-- VM: `sentinel-demo-vm`, non-zonal `Standard_B4as_v2`, Ubuntu 24.04; the committed one-time cost migration targets `Standard_B2as_v2`.
+- VM: `sentinel-demo-vm`, non-zonal `Standard_B2as_v2`, Ubuntu 24.04; normally `VM deallocated`.
 - Public hostname: `sentinel-mofazzal874.centralindia.cloudapp.azure.com`.
 - Stable HTTPS URL: `https://sentinel-mofazzal874.centralindia.cloudapp.azure.com/`.
 - Container registry: public GitHub Container Registry package under `ghcr.io/mofazzal874/`.

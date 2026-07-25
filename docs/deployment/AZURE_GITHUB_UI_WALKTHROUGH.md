@@ -38,7 +38,7 @@ Never record the SSH private key, JWT secret, webhook secret, database password,
 |---|---|
 | Resource group | `sentinel-demo-rg` |
 | VM | `sentinel-demo-vm` |
-| VM size | `Standard_B4as_v2` before the cost migration; `Standard_B2as_v2` target |
+| VM size | `Standard_B2as_v2`; normally deallocated after the completed cost migration |
 | VM placement | Non-zonal in Central India |
 | Operating system | Ubuntu 24.04 |
 | Admin user | `azureuser` |

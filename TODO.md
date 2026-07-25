@@ -326,11 +326,12 @@ Execution checkpoints:
 - [x] Add a CI-enforced deployment cost model with a `$0.50/day` target; the reviewed B2as-v2 two-hour projection is `$0.3944/day` before taxes or pricing changes.
 - [x] Add a read-only nightly GitHub drift check for `Standard_B2as_v2` plus `VM deallocated`; it runs at 20:30 UTC (02:30 Bangladesh time) and has no VM mutation authority.
 - [x] Push the optimized release while the B4 VM is running and verify exact-SHA Azure activation plus HTTP 200 on the stable site and readiness endpoint (commit `3a06b57`, run `30118151125`).
-- [ ] Run the one-time on-demand-session bootstrap in authenticated Cloud Shell, capture the pre-resize runtime snapshot, resize to `Standard_B2as_v2`, verify the private wake URL, complete one live investigation within the two-hour lease, and confirm automatic `VM deallocated`.
+- [x] Run the one-time on-demand-session bootstrap in authenticated Cloud Shell, capture the pre-resize runtime snapshot, resize to `Standard_B2as_v2`, create the owner-only session workflow, and finish at `VM deallocated`.
+- [ ] Start one private two-hour session, complete a live investigation on B2as v2, record latency/memory/restarts, and confirm automatic return to `VM deallocated`.
 - [ ] Run the committed cost-guard bootstrap against the exact existing `$10` budget and verify its Action Group, Logic App identity, notification, and deallocation permission without forcing spend.
 - [x] Provision the approved minimal-cost target and verify the stable HTTPS console, health, migrations, secrets, and bounded end-to-end live scenario.
 - [x] Add the recruiter-facing README, architecture flow, safety model, evaluation result, demo instructions/evidence, and future work.
 - [x] Complete the final uncached suite after deployment startup wiring: 113 tests across 38 suites, zero failures/errors/skips.
 - [x] Complete all seven operability/deployment Defend This answers.
 
-Operability/deployment gate: **live and cost migration pending owner execution** — Azure delivery and the stable public demo are proven. The source-side FinOps controls are verified; authenticated Cloud Shell must now resize and deallocate the existing VM, create its owner-only session workflow, connect the existing budget guard, and record the first bounded-session evidence.
+Operability/deployment gate: **cost-controlled deployment active; bounded-session evidence pending** — the VM is `Standard_B2as_v2` and normally `VM deallocated`, with its disk, static IP, DNS, and data preserved. The existing budget guard still needs to be connected and one live B2 session must prove workload latency plus automatic deallocation.

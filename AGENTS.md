@@ -104,6 +104,7 @@ Do not start Phase 4 until Phases 1–3 pass all tests and their interview-orien
 - Azure budgets are delayed alerts, never hard spending caps. Use an early threshold and a separate deallocate-only managed identity; state plainly that disk/static-IP costs can remain after deallocation.
 - Never automate deletion of the dedicated resource group without an explicit backup and retirement decision because it destroys the stable hostname and persisted demo data.
 - The reviewed low-cost target is `Standard_B2as_v2` with at most a two-hour owner-started session. Normal state is `VM deallocated`; public visitors never receive start authority.
+- The owner completed the B4as-v2 to B2as-v2 resize on 26 July 2026. The 64-GiB Standard SSD, static IP, DNS label, NIC, Docker volumes, and database data were preserved; the first bounded B2 workload run and delayed three-day cost proof remain outstanding.
 - `sentinel-demo-session` is a separate Consumption Logic App identity scoped to start/read/deallocate only the exact demo VM. Its signed callback URL is an owner credential and must never enter Git, frontend code, screenshots, or recruiter documentation.
 - A deallocated push may verify and publish but must not fail or restart compute. The VM boot activator may select only the exact main-branch SHA whose public GHCR image already exists; a missing image preserves the installed release.
 - Bound Docker logs and retain only the current and previous Sentinel application images. Never run a global Docker prune on the shared host.

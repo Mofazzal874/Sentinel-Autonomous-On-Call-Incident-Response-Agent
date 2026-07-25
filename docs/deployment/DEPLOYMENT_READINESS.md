@@ -23,7 +23,7 @@ AKS is not recommended for this deadline. It adds cluster, ingress, identity, st
 
 ## Current blockers to an actual deployment
 
-1. Azure for Students is active with about `$100` originally reported; Central India has six regional vCPUs and sufficient Basv2 quota. The original non-zonal `Standard_B4as_v2` is live; the reviewed cost migration targets `Standard_B2as_v2` after an availability check.
+1. Azure for Students is active with about `$100` originally reported; Central India has six regional vCPUs and sufficient Basv2 quota. The non-zonal VM was resized successfully to `Standard_B2as_v2` and its normal state is `VM deallocated`.
 2. The user created a `$10` budget alert. It is useful but does not cap or stop spending.
 3. No registry package, VM, resource group, DNS record, or public endpoint may be created until the user explicitly approves the reviewed bundle.
 4. The stable hostname label must be selected. The resulting Azure FQDN can receive automatic HTTPS through Caddy; a custom domain is optional branding.
