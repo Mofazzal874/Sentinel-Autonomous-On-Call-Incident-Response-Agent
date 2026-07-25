@@ -6,7 +6,7 @@ if [[ "${CONFIRM_CONFIGURE_COST_GUARD:-no}" != "yes" ]]; then
   exit 1
 fi
 
-for required_command in az jq; do
+for required_command in az jq date; do
   command -v "$required_command" >/dev/null 2>&1 || {
     echo "Required command is missing: $required_command" >&2
     exit 2
@@ -20,6 +20,7 @@ vm_name="${AZURE_VM_NAME:-sentinel-demo-vm}"
 location="${AZURE_LOCATION:-centralindia}"
 threshold="${AZURE_COST_GUARD_THRESHOLD_PERCENT:-50}"
 budget_email="${AZURE_BUDGET_EMAIL:-}"
+create_dedicated_budget="${CONFIRM_CREATE_DEDICATED_BUDGET:-no}"
 workflow_name="sentinel-budget-deallocate"
 action_group_name="sentinel-budget-stop"
 role_name="Sentinel Demo VM Deallocator"
@@ -85,16 +86,48 @@ probe_budget "$resource_group_id" "resource group $resource_group" \
   Microsoft.Consumption 2024-08-01 \
   "$working_directory/budget-resource-group-legacy.json"
 
-if (( budget_matches == 0 )); then
-  echo "Budget '$AZURE_BUDGET_NAME' was not found at subscription or $resource_group scope. No Azure resource changed." >&2
-  exit 3
-fi
 if (( budget_matches > 1 )); then
   echo "Budget '$AZURE_BUDGET_NAME' exists at both scopes. Use a unique budget name before configuring the guard. No Azure resource changed." >&2
   exit 3
 fi
 
-echo "Resolved budget '$AZURE_BUDGET_NAME' at $budget_scope scope."
+if (( budget_matches == 0 )); then
+  if [[ "$create_dedicated_budget" != "yes" ]]; then
+    echo "Budget '$AZURE_BUDGET_NAME' was not found at subscription or $resource_group scope. No Azure resource changed." >&2
+    echo 'To create the reviewed dedicated budget, use AZURE_BUDGET_NAME=sentinel-demo-rg-budget and CONFIRM_CREATE_DEDICATED_BUDGET=yes.' >&2
+    exit 3
+  fi
+  if [[ "$AZURE_BUDGET_NAME" != "sentinel-demo-rg-budget" ]]; then
+    echo 'Dedicated creation permits only AZURE_BUDGET_NAME=sentinel-demo-rg-budget. No Azure resource changed.' >&2
+    exit 3
+  fi
+
+  budget_start="$(date -u +%Y-%m-01T00:00:00Z)"
+  budget_end="$(date -u -d '+1 year' +%Y-%m-01T00:00:00Z)"
+  budget_id="$resource_group_id/providers/Microsoft.CostManagement/budgets/$encoded_budget_name"
+  budget_scope="resource group $resource_group via Microsoft.CostManagement"
+  budget_api_version="2025-03-01"
+
+  jq -n \
+    --arg start "$budget_start" \
+    --arg end "$budget_end" \
+    '{
+      properties: {
+        amount: 10,
+        category: "Cost",
+        timeGrain: "Monthly",
+        timePeriod: {
+          startDate: $start,
+          endDate: $end
+        },
+        notifications: {}
+      }
+    }' > "$working_directory/budget-current.json"
+
+  echo "Prepared a new \$10 monthly budget at $budget_scope scope."
+else
+  echo "Resolved budget '$AZURE_BUDGET_NAME' at $budget_scope scope."
+fi
 
 az provider register --namespace Microsoft.Logic --wait
 az provider register --namespace Microsoft.Insights --wait
@@ -216,35 +249,46 @@ jq \
   --arg action_group_id "$action_group_id" \
   --arg budget_email "$budget_email" \
   --argjson threshold "$threshold" \
-  '{
-    eTag: .eTag,
-    properties: {
-      amount: .properties.amount,
-      category: .properties.category,
-      timeGrain: .properties.timeGrain,
-      timePeriod: .properties.timePeriod,
-      filter: .properties.filter,
-      notifications: (
-        (.properties.notifications // {}) + {
-          SentinelEarlyDeallocate: {
-            enabled: true,
-            operator: "GreaterThanOrEqualTo",
-            threshold: $threshold,
-            thresholdType: "Actual",
-            contactEmails: (if $budget_email == "" then [] else [$budget_email] end),
-            contactRoles: [],
-            contactGroups: [$action_group_id],
-            locale: "en-us"
+  '(
+    if .eTag == null then {} else {eTag: .eTag} end
+  ) + {
+    properties: (
+      {
+        amount: .properties.amount,
+        category: .properties.category,
+        timeGrain: .properties.timeGrain,
+        timePeriod: .properties.timePeriod,
+        notifications: (
+          (.properties.notifications // {}) + {
+            SentinelEarlyDeallocate: {
+              enabled: true,
+              operator: "GreaterThanOrEqualTo",
+              threshold: $threshold,
+              thresholdType: "Actual",
+              contactEmails: (if $budget_email == "" then [] else [$budget_email] end),
+              contactRoles: [],
+              contactGroups: [$action_group_id],
+              locale: "en-us"
+            }
           }
-        }
+        )
+      } + (
+        if .properties.filter == null then {} else {filter: .properties.filter} end
       )
-    }
+    )
   }' "$working_directory/budget-current.json" > "$working_directory/budget-update.json"
 
 az rest --method put \
   --url "https://management.azure.com$budget_id?api-version=$budget_api_version" \
   --body "@$working_directory/budget-update.json" \
   --output none
+
+az rest \
+  --only-show-errors \
+  --method get \
+  --url "https://management.azure.com$budget_id?api-version=$budget_api_version" \
+  --query '{Name:name,Amount:properties.amount,TimeGrain:properties.timeGrain,Threshold:properties.notifications.SentinelEarlyDeallocate.threshold,ActionGroups:length(properties.notifications.SentinelEarlyDeallocate.contactGroups)}' \
+  --output table
 
 cat <<EOF
 Cost guard connected to budget '$AZURE_BUDGET_NAME' at $budget_scope scope.

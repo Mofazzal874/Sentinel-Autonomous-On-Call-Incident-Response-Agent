@@ -1570,3 +1570,9 @@ The subscription-level preview command returned no budgets. Official Azure CLI a
 The original guard built only a subscription budget resource ID and created supporting resources before proving that budget existed. It now performs two read-only lookups first: exact name at subscription scope and exact name at the dedicated resource-group scope. Zero matches or two matches fail before any mutation. One match selects that exact scope, and the update carries the latest budget `eTag` to protect against a stale overwrite.
 
 The resource-group preview CLI lookup was also empty. Current official documentation identified a provider-generation mismatch: portal budgets use `Microsoft.CostManagement/budgets` API `2025-03-01`, while `az consumption budget` targets the older `Microsoft.Consumption` surface. The resolver now probes the current provider at subscription and resource-group scope first, then the legacy provider at both scopes only as a compatibility fallback. The selected provider's API version is retained for the guarded update.
+
+### Existing budget located and dedicated guard designed
+
+The MCA billing account contains `sentinel-demo-budget`, amount `$20`, monthly. It is not the `$10` subscription/resource-group budget previously assumed. Azure permits email recipients at billing scopes but Action Group contacts only at subscription or resource-group scopes, so this account-wide budget cannot invoke the VM deallocation workflow.
+
+The existing `$20` budget remains unchanged. The cost-guard script now has a second explicit confirmation for the only approved creation path: `sentinel-demo-rg-budget`, exactly `$10` monthly, at the dedicated resource-group scope, for one year. Missing budgets still fail without that confirmation. Creation occurs only after the deallocate-only Logic App, VM-scope role, and Action Group exist, and the resulting budget/threshold/action-group count are read back for verification.

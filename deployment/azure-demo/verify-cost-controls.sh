@@ -81,6 +81,9 @@ grep -q 'Microsoft.Consumption 2024-08-01' deployment/azure-demo/configure-cost-
 grep -q 'budget_api_version=' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'budget_matches > 1' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'eTag: .eTag' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'CONFIRM_CREATE_DEDICATED_BUDGET' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'sentinel-demo-rg-budget' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'amount: 10' deployment/azure-demo/configure-cost-guard.sh
 
 if CONFIRM_CONFIGURE_ON_DEMAND_SESSION=no \
   bash deployment/azure-demo/configure-on-demand-session.sh \
