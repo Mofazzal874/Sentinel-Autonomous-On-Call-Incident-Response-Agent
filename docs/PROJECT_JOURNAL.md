@@ -1590,3 +1590,9 @@ After creation, Azure exposed the same resource-group budget through both the cu
 Resolution is now per logical scope: query `Microsoft.CostManagement` first and query `Microsoft.Consumption` at that scope only when the current provider has no match. A genuine same-name budget at both subscription and resource-group scope still fails as ambiguous.
 
 Azure then demonstrated that the request scope itself is not reliable identity evidence: an exact subscription lookup could resolve the same named child resource-group budget. The resolver now reads Azure's returned resource `id`, extracts its canonical subscription/resource-group scope, deduplicates on that scope, and uses the returned ID for updates. A response outside the two approved scopes is ignored with a warning. Same-name resources whose returned canonical scopes genuinely differ still fail before mutation.
+
+### Graph-independent RBAC verification
+
+A later idempotent run resolved the correct budget but Cloud Shell's portal-issued Microsoft Graph token expired while Azure CLI filled friendly principal metadata for an RBAC list. The script already knows the managed identity object ID and compares immutable role definition IDs, so Graph names add no correctness value.
+
+All deployment RBAC assignment reads now set `--fill-principal-name false` and `--fill-role-definition-name false`. Official Azure CLI behavior then uses Azure Resource Manager data without querying Microsoft Graph. Role creation already uses `--assignee-object-id` plus `ServicePrincipal`, preserving the propagation-safe and least-privilege path.

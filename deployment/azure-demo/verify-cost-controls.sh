@@ -87,6 +87,8 @@ grep -q 'eTag: .eTag' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'CONFIRM_CREATE_DEDICATED_BUDGET' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'sentinel-demo-rg-budget' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'amount: 10' deployment/azure-demo/configure-cost-guard.sh
+grep -q -- '--fill-principal-name false' deployment/azure-demo/configure-cost-guard.sh
+grep -q -- '--fill-role-definition-name false' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'Budget exists, but its early-deallocation notification did not pass strict verification' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'dedicated-budget.json' deployment/azure-demo/audit-runtime-and-cost.sh
 

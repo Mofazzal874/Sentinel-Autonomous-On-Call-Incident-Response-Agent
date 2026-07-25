@@ -231,6 +231,8 @@ fi
 assignment_id="$(az role assignment list \
   --assignee-object-id "$principal_id" \
   --scope "$vm_id" \
+  --fill-principal-name false \
+  --fill-role-definition-name false \
   --query "[?roleDefinitionId=='$role_id'].id | [0]" \
   --output tsv)"
 if [[ -z "$assignment_id" ]]; then

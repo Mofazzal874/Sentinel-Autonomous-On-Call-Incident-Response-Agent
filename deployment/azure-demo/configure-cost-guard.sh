@@ -233,7 +233,13 @@ if [[ -z "$role_id" ]]; then
   role_id="$(az role definition create --role-definition "$working_directory/role.json" --query id --output tsv)"
 fi
 
-assignment_id="$(az role assignment list --assignee-object-id "$principal_id" --scope "$vm_id" --query "[?roleDefinitionId=='$role_id'].id | [0]" --output tsv)"
+assignment_id="$(az role assignment list \
+  --assignee-object-id "$principal_id" \
+  --scope "$vm_id" \
+  --fill-principal-name false \
+  --fill-role-definition-name false \
+  --query "[?roleDefinitionId=='$role_id'].id | [0]" \
+  --output tsv)"
 if [[ -z "$assignment_id" ]]; then
   for attempt in {1..6}; do
     if az role assignment create \
