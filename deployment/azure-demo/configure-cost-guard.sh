@@ -303,7 +303,12 @@ if ! jq -e \
   jq '{
     name,
     amount: .properties.amount,
-    notification: .properties.notifications.SentinelEarlyDeallocate
+    notification: {
+      enabled: .properties.notifications.SentinelEarlyDeallocate.enabled,
+      threshold: .properties.notifications.SentinelEarlyDeallocate.threshold,
+      actionGroups: ((.properties.notifications.SentinelEarlyDeallocate.contactGroups // []) | length),
+      emailRecipients: ((.properties.notifications.SentinelEarlyDeallocate.contactEmails // []) | length)
+    }
   }' "$working_directory/budget-verified.json" >&2
   exit 5
 fi
