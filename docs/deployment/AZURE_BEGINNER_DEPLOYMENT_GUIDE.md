@@ -609,6 +609,15 @@ This separation prevents a later code push from undoing a budget stop.
 Find the exact budget name in **Cost Management → Budgets**, then in Cloud Shell:
 
 ```bash
+az consumption budget list \
+  --resource-group sentinel-demo-rg \
+  --query "[].{Name:name,Amount:amount,TimeGrain:timeGrain}" \
+  --output table
+```
+
+Omit `--resource-group` only for a subscription-scoped budget. The guard resolves the supplied exact name at both subscription and `sentinel-demo-rg` scope before it creates anything. It refuses a missing or ambiguous name.
+
+```bash
 cd ~/sentinel-deploy
 git pull --ff-only
 sed -n '1,340p' deployment/azure-demo/configure-cost-guard.sh
@@ -621,7 +630,7 @@ export CONFIRM_CONFIGURE_COST_GUARD='yes'
 bash deployment/azure-demo/configure-cost-guard.sh
 ```
 
-The script preserves the existing budget and adds a `SentinelEarlyDeallocate` notification. It creates a Consumption Logic App, Action Group, narrowly scoped custom role, and VM-scope assignment. When `AZURE_BUDGET_EMAIL` is set, the same notification also emails the owner. The default 50% threshold is deliberately conservative: with a `$10` budget the signal nominally starts at `$5`, leaving room for delayed cost records. Even this cannot guarantee a final amount below `$10`.
+The script preserves the existing budget, carries its current `eTag` to prevent a stale overwrite, and adds a `SentinelEarlyDeallocate` notification. It creates a Consumption Logic App, Action Group, narrowly scoped custom role, and VM-scope assignment. When `AZURE_BUDGET_EMAIL` is set, the same notification also emails the owner. The default 50% threshold is deliberately conservative: with a `$10` budget the signal nominally starts at `$5`, leaving room for delayed cost records. Even this cannot guarantee a final amount below `$10`.
 
 The Logic App is a Consumption resource and an invocation can itself have a small cost. Action Group notification limits and pricing also depend on the subscription. Inspect the resulting resources in Cost Analysis rather than assuming they are free.
 

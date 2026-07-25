@@ -1562,3 +1562,9 @@ The stable site is intentionally offline while deallocated. This is the actual c
 The first post-cutover audit reached `Control-plane verification` and then waited indefinitely in the Azure CLI `az logic workflow show` helper. Every preceding operation had already completed: the resize succeeded and the VM was safely deallocated. Canceling that read with `Ctrl+C` cannot undo or mutate those resources.
 
 The audit now uses the same direct Microsoft Logic REST resource read as the provisioning scripts and wraps each workflow lookup in a 30-second process timeout. An unavailable API, CLI issue, or missing workflow produces an explicit warning and the audit continues instead of hanging. The cost-control verification script prevents the unbounded helper from being reintroduced.
+
+### Budget-scope regression
+
+The subscription-level preview command returned no budgets. Official Azure CLI and REST documentation confirms that budgets are scoped resources and `az consumption budget list` accepts `--resource-group`. The user's `$10` budget is therefore being checked at `sentinel-demo-rg` scope next.
+
+The original guard built only a subscription budget resource ID and created supporting resources before proving that budget existed. It now performs two read-only lookups first: exact name at subscription scope and exact name at the dedicated resource-group scope. Zero matches or two matches fail before any mutation. One match selects that exact scope, and the update carries the latest budget `eTag` to protect against a stale overwrite.

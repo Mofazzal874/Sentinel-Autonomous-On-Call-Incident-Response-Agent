@@ -326,6 +326,7 @@ Execution checkpoints:
 - [x] Add a CI-enforced deployment cost model with a `$0.50/day` target; the reviewed B2as-v2 two-hour projection is `$0.3944/day` before taxes or pricing changes.
 - [x] Add a read-only nightly GitHub drift check for `Standard_B2as_v2` plus `VM deallocated`; it runs at 20:30 UTC (02:30 Bangladesh time) and has no VM mutation authority.
 - [x] Replace the hanging `az logic workflow show` audit calls with direct REST reads bounded to 30 seconds and enforce the regression check in CI.
+- [x] Make budget-guard configuration resolve the exact budget at subscription or dedicated resource-group scope before mutation, refuse missing/ambiguous names, and preserve the current `eTag`.
 - [x] Push the optimized release while the B4 VM is running and verify exact-SHA Azure activation plus HTTP 200 on the stable site and readiness endpoint (commit `3a06b57`, run `30118151125`).
 - [x] Run the one-time on-demand-session bootstrap in authenticated Cloud Shell, capture the pre-resize runtime snapshot, resize to `Standard_B2as_v2`, create the owner-only session workflow, and finish at `VM deallocated`.
 - [ ] Start one private two-hour session, complete a live investigation on B2as v2, record latency/memory/restarts, and confirm automatic return to `VM deallocated`.

@@ -38,14 +38,54 @@ vm_id="$(az vm show --resource-group "$resource_group" --name "$vm_name" --query
 workflow_id="$resource_group_id/providers/Microsoft.Logic/workflows/$workflow_name"
 action_group_id="$resource_group_id/providers/Microsoft.Insights/actionGroups/$action_group_name"
 encoded_budget_name="$(printf '%s' "$AZURE_BUDGET_NAME" | jq -sRr @uri)"
-budget_id="/subscriptions/$subscription_id/providers/Microsoft.Consumption/budgets/$encoded_budget_name"
+subscription_budget_id="/subscriptions/$subscription_id/providers/Microsoft.Consumption/budgets/$encoded_budget_name"
+resource_group_budget_id="$resource_group_id/providers/Microsoft.Consumption/budgets/$encoded_budget_name"
+
+working_directory="$(mktemp -d)"
+trap 'rm -rf "$working_directory"' EXIT
+
+budget_matches=0
+budget_id=""
+budget_scope=""
+
+if az rest \
+  --only-show-errors \
+  --method get \
+  --url "https://management.azure.com$subscription_budget_id?api-version=2024-08-01" \
+  > "$working_directory/budget-subscription.json" \
+  2>/dev/null; then
+  budget_matches=$((budget_matches + 1))
+  budget_id="$subscription_budget_id"
+  budget_scope="subscription"
+  cp "$working_directory/budget-subscription.json" "$working_directory/budget-current.json"
+fi
+
+if az rest \
+  --only-show-errors \
+  --method get \
+  --url "https://management.azure.com$resource_group_budget_id?api-version=2024-08-01" \
+  > "$working_directory/budget-resource-group.json" \
+  2>/dev/null; then
+  budget_matches=$((budget_matches + 1))
+  budget_id="$resource_group_budget_id"
+  budget_scope="resource group $resource_group"
+  cp "$working_directory/budget-resource-group.json" "$working_directory/budget-current.json"
+fi
+
+if (( budget_matches == 0 )); then
+  echo "Budget '$AZURE_BUDGET_NAME' was not found at subscription or $resource_group scope. No Azure resource changed." >&2
+  exit 3
+fi
+if (( budget_matches > 1 )); then
+  echo "Budget '$AZURE_BUDGET_NAME' exists at both scopes. Use a unique budget name before configuring the guard. No Azure resource changed." >&2
+  exit 3
+fi
+
+echo "Resolved budget '$AZURE_BUDGET_NAME' at $budget_scope scope."
 
 az provider register --namespace Microsoft.Logic --wait
 az provider register --namespace Microsoft.Insights --wait
 az provider register --namespace Microsoft.Consumption --wait
-
-working_directory="$(mktemp -d)"
-trap 'rm -rf "$working_directory"' EXIT
 
 jq -n \
   --arg location "$location" \
@@ -158,15 +198,12 @@ az rest --method put \
   --body "@$working_directory/action-group.json" \
   --output none
 
-az rest --method get \
-  --url "https://management.azure.com$budget_id?api-version=2024-08-01" \
-  > "$working_directory/budget-current.json"
-
 jq \
   --arg action_group_id "$action_group_id" \
   --arg budget_email "$budget_email" \
   --argjson threshold "$threshold" \
   '{
+    eTag: .eTag,
     properties: {
       amount: .properties.amount,
       category: .properties.category,
@@ -196,7 +233,7 @@ az rest --method put \
   --output none
 
 cat <<EOF
-Cost guard connected to budget '$AZURE_BUDGET_NAME'.
+Cost guard connected to budget '$AZURE_BUDGET_NAME' at $budget_scope scope.
 At ${threshold}% actual budget consumption, Azure can invoke the Logic App to deallocate $vm_name.
 
 This is containment, not a hard cap: Azure cost data can be delayed. The OS disk and static IP can
