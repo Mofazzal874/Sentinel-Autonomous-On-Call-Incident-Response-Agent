@@ -287,8 +287,34 @@ az rest \
   --only-show-errors \
   --method get \
   --url "https://management.azure.com$budget_id?api-version=$budget_api_version" \
-  --query '{Name:name,Amount:properties.amount,TimeGrain:properties.timeGrain,Threshold:properties.notifications.SentinelEarlyDeallocate.threshold,ActionGroups:length(properties.notifications.SentinelEarlyDeallocate.contactGroups)}' \
-  --output table
+  > "$working_directory/budget-verified.json"
+
+if ! jq -e \
+  --arg action_group_id "$action_group_id" \
+  --argjson threshold "$threshold" \
+  '
+    .properties.notifications.SentinelEarlyDeallocate as $notification |
+    $notification != null and
+    $notification.enabled == true and
+    $notification.threshold == $threshold and
+    (($notification.contactGroups // []) | index($action_group_id) != null)
+  ' "$working_directory/budget-verified.json" >/dev/null; then
+  echo 'Budget exists, but its early-deallocation notification did not pass strict verification.' >&2
+  jq '{
+    name,
+    amount: .properties.amount,
+    notification: .properties.notifications.SentinelEarlyDeallocate
+  }' "$working_directory/budget-verified.json" >&2
+  exit 5
+fi
+
+jq '{
+  name,
+  amount: .properties.amount,
+  timeGrain: .properties.timeGrain,
+  threshold: .properties.notifications.SentinelEarlyDeallocate.threshold,
+  actionGroups: ((.properties.notifications.SentinelEarlyDeallocate.contactGroups // []) | length)
+}' "$working_directory/budget-verified.json"
 
 cat <<EOF
 Cost guard connected to budget '$AZURE_BUDGET_NAME' at $budget_scope scope.

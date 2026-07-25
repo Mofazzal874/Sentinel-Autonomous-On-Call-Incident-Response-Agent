@@ -329,6 +329,7 @@ Execution checkpoints:
 - [x] Make budget-guard configuration resolve the exact budget at subscription or dedicated resource-group scope before mutation, refuse missing/ambiguous names, and preserve the current `eTag`.
 - [x] Resolve current portal budgets through `Microsoft.CostManagement` API `2025-03-01`, with the older `Microsoft.Consumption` provider retained only as a compatibility fallback.
 - [x] Locate the existing `$20` MCA billing-account budget, preserve it, and add an explicitly confirmed `$10` monthly resource-group budget creation path for the deallocation Action Group.
+- [x] Replace the nullable budget display query with strict notification/threshold/exact-Action-Group verification and include the dedicated budget in recurring audits.
 - [x] Push the optimized release while the B4 VM is running and verify exact-SHA Azure activation plus HTTP 200 on the stable site and readiness endpoint (commit `3a06b57`, run `30118151125`).
 - [x] Run the one-time on-demand-session bootstrap in authenticated Cloud Shell, capture the pre-resize runtime snapshot, resize to `Standard_B2as_v2`, create the owner-only session workflow, and finish at `VM deallocated`.
 - [ ] Start one private two-hour session, complete a live investigation on B2as v2, record latency/memory/restarts, and confirm automatic return to `VM deallocated`.

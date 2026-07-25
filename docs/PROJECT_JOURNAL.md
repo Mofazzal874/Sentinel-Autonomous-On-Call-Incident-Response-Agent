@@ -1576,3 +1576,9 @@ The resource-group preview CLI lookup was also empty. Current official documenta
 The MCA billing account contains `sentinel-demo-budget`, amount `$20`, monthly. It is not the `$10` subscription/resource-group budget previously assumed. Azure permits email recipients at billing scopes but Action Group contacts only at subscription or resource-group scopes, so this account-wide budget cannot invoke the VM deallocation workflow.
 
 The existing `$20` budget remains unchanged. The cost-guard script now has a second explicit confirmation for the only approved creation path: `sentinel-demo-rg-budget`, exactly `$10` monthly, at the dedicated resource-group scope, for one year. Missing budgets still fail without that confirmation. Creation occurs only after the deallocate-only Logic App, VM-scope role, and Action Group exist, and the resulting budget/threshold/action-group count are read back for verification.
+
+### Budget display-query regression
+
+The first dedicated-guard run created the deallocate-only Logic App and left the VM safely deallocated, but its final Azure CLI JMESPath display failed because `length()` received a null `contactGroups` value. A presentation query is not sufficient proof of safety wiring.
+
+The script now saves the read-back resource and uses strict `jq` assertions: the named notification must exist, be enabled, equal the configured threshold, and contain the exact Action Group resource ID. Failure prints a bounded diagnostic and returns nonzero. The recurring FinOps audit also reports the dedicated budget's amount, time grain, threshold, and Action Group count.

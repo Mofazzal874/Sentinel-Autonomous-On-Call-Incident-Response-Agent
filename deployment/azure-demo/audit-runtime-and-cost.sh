@@ -148,6 +148,23 @@ show_workflow() {
 show_workflow sentinel-demo-session 'On-demand session workflow was not verified'
 show_workflow sentinel-budget-deallocate 'Budget deallocation workflow was not verified'
 
+budget_url="$resource_group_id/providers/Microsoft.CostManagement/budgets/sentinel-demo-rg-budget?api-version=2025-03-01"
+if timeout 30s az rest \
+  --only-show-errors \
+  --method get \
+  --url "https://management.azure.com$budget_url" \
+  > "$working_directory/dedicated-budget.json"; then
+  jq '{
+    name,
+    amount: .properties.amount,
+    timeGrain: .properties.timeGrain,
+    threshold: .properties.notifications.SentinelEarlyDeallocate.threshold,
+    actionGroups: ((.properties.notifications.SentinelEarlyDeallocate.contactGroups // []) | length)
+  }' "$working_directory/dedicated-budget.json"
+else
+  echo 'Dedicated resource-group budget was not verified (the read was unavailable or exceeded 30 seconds).'
+fi
+
 cat <<'EOF'
 
 Interpretation:
