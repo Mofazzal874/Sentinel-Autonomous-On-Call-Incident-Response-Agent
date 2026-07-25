@@ -48,6 +48,7 @@ budget_matches=0
 budget_id=""
 budget_scope=""
 budget_api_version=""
+matched_scope_ids="|"
 
 probe_budget() {
   local scope_id="$1"
@@ -56,6 +57,8 @@ probe_budget() {
   local api_version="$4"
   local result_file="$5"
   local candidate_id="$scope_id/providers/$provider/budgets/$encoded_budget_name"
+  local returned_id
+  local returned_scope_id
 
   if az rest \
     --only-show-errors \
@@ -63,8 +66,29 @@ probe_budget() {
     --url "https://management.azure.com$candidate_id?api-version=$api_version" \
     > "$result_file" \
     2>/dev/null; then
+    returned_id="$(jq -r '.id // empty' "$result_file")"
+    [[ -n "$returned_id" ]] || return 0
+    returned_scope_id="${returned_id%/providers/*}"
+    case "$returned_scope_id" in
+      "$subscription_scope")
+        scope_label="subscription"
+        ;;
+      "$resource_group_id")
+        scope_label="resource group $resource_group"
+        ;;
+      *)
+        echo "Budget lookup returned an unexpected scope: $returned_scope_id" >&2
+        return 0
+        ;;
+    esac
+
+    if [[ "$matched_scope_ids" == *"|$returned_scope_id|"* ]]; then
+      return 0
+    fi
+
+    matched_scope_ids="${matched_scope_ids}${returned_scope_id}|"
     budget_matches=$((budget_matches + 1))
-    budget_id="$candidate_id"
+    budget_id="$returned_id"
     budget_scope="$scope_label via $provider"
     budget_api_version="$api_version"
     cp "$result_file" "$working_directory/budget-current.json"

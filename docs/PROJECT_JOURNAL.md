@@ -1588,3 +1588,5 @@ The script now saves the read-back resource and uses strict `jq` assertions: the
 After creation, Azure exposed the same resource-group budget through both the current Cost Management provider and the legacy Consumption provider. The resolver incorrectly treated those provider aliases as two budgets and safely refused the rerun before mutation.
 
 Resolution is now per logical scope: query `Microsoft.CostManagement` first and query `Microsoft.Consumption` at that scope only when the current provider has no match. A genuine same-name budget at both subscription and resource-group scope still fails as ambiguous.
+
+Azure then demonstrated that the request scope itself is not reliable identity evidence: an exact subscription lookup could resolve the same named child resource-group budget. The resolver now reads Azure's returned resource `id`, extracts its canonical subscription/resource-group scope, deduplicates on that scope, and uses the returned ID for updates. A response outside the two approved scopes is ignored with a warning. Same-name resources whose returned canonical scopes genuinely differ still fail before mutation.
