@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for required_command in az jq curl; do
+for required_command in az jq curl timeout; do
   command -v "$required_command" >/dev/null 2>&1 || {
     echo "Required command is missing: $required_command" >&2
     exit 2
@@ -130,18 +130,23 @@ az monitor activity-log list \
 echo
 echo 'Control-plane verification'
 echo '--------------------------'
-az logic workflow show \
-  --resource-group "$resource_group" \
-  --name sentinel-demo-session \
-  --query '{name:name,state:state,identity:identity.type}' \
-  --output table 2>/dev/null ||
-  echo 'On-demand session workflow is not configured.'
-az logic workflow show \
-  --resource-group "$resource_group" \
-  --name sentinel-budget-deallocate \
-  --query '{name:name,state:state,identity:identity.type}' \
-  --output table 2>/dev/null ||
-  echo 'Budget deallocation workflow is not configured.'
+show_workflow() {
+  local workflow_name="$1"
+  local missing_message="$2"
+  local workflow_url="$resource_group_id/providers/Microsoft.Logic/workflows/$workflow_name?api-version=2019-05-01"
+
+  if ! timeout 30s az rest \
+    --only-show-errors \
+    --method get \
+    --url "https://management.azure.com$workflow_url" \
+    --query '{name:name,state:properties.state,identity:identity.type}' \
+    --output table; then
+    echo "$missing_message (the read was unavailable or exceeded 30 seconds)."
+  fi
+}
+
+show_workflow sentinel-demo-session 'On-demand session workflow was not verified'
+show_workflow sentinel-budget-deallocate 'Budget deallocation workflow was not verified'
 
 cat <<'EOF'
 

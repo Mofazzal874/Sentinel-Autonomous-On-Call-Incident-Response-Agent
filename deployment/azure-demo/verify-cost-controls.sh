@@ -71,6 +71,11 @@ fi
 
 grep -q '"Microsoft.Compute/virtualMachines/start/action"' deployment/azure-demo/configure-on-demand-session.sh
 grep -q '"Microsoft.Compute/virtualMachines/deallocate/action"' deployment/azure-demo/configure-on-demand-session.sh
+grep -q 'timeout 30s az rest' deployment/azure-demo/audit-runtime-and-cost.sh
+if grep -q 'az logic workflow show' deployment/azure-demo/audit-runtime-and-cost.sh; then
+  echo 'The audit must use bounded REST reads instead of the CLI workflow helper.' >&2
+  exit 4
+fi
 
 if CONFIRM_CONFIGURE_ON_DEMAND_SESSION=no \
   bash deployment/azure-demo/configure-on-demand-session.sh \

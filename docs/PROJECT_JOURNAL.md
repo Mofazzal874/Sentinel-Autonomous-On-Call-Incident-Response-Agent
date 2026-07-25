@@ -1556,3 +1556,9 @@ The stable site is intentionally offline while deallocated. This is the actual c
 2. Verify the existing `$10` budget is connected to the deallocate-only Logic App and owner email.
 3. Run one bounded B2 session, complete a real investigation, record latency/memory/restarts, and verify automatic deallocation after two hours.
 4. Capture at least three delayed daily Cost Management rows trending toward the `$0.3944/day` model.
+
+### Audit hang regression
+
+The first post-cutover audit reached `Control-plane verification` and then waited indefinitely in the Azure CLI `az logic workflow show` helper. Every preceding operation had already completed: the resize succeeded and the VM was safely deallocated. Canceling that read with `Ctrl+C` cannot undo or mutate those resources.
+
+The audit now uses the same direct Microsoft Logic REST resource read as the provisioning scripts and wraps each workflow lookup in a 30-second process timeout. An unavailable API, CLI issue, or missing workflow produces an explicit warning and the audit continues instead of hanging. The cost-control verification script prevents the unbounded helper from being reintroduced.
