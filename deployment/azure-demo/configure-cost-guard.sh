@@ -38,8 +38,7 @@ vm_id="$(az vm show --resource-group "$resource_group" --name "$vm_name" --query
 workflow_id="$resource_group_id/providers/Microsoft.Logic/workflows/$workflow_name"
 action_group_id="$resource_group_id/providers/Microsoft.Insights/actionGroups/$action_group_name"
 encoded_budget_name="$(printf '%s' "$AZURE_BUDGET_NAME" | jq -sRr @uri)"
-subscription_budget_id="/subscriptions/$subscription_id/providers/Microsoft.Consumption/budgets/$encoded_budget_name"
-resource_group_budget_id="$resource_group_id/providers/Microsoft.Consumption/budgets/$encoded_budget_name"
+subscription_scope="/subscriptions/$subscription_id"
 
 working_directory="$(mktemp -d)"
 trap 'rm -rf "$working_directory"' EXIT
@@ -47,30 +46,44 @@ trap 'rm -rf "$working_directory"' EXIT
 budget_matches=0
 budget_id=""
 budget_scope=""
+budget_api_version=""
 
-if az rest \
-  --only-show-errors \
-  --method get \
-  --url "https://management.azure.com$subscription_budget_id?api-version=2024-08-01" \
-  > "$working_directory/budget-subscription.json" \
-  2>/dev/null; then
-  budget_matches=$((budget_matches + 1))
-  budget_id="$subscription_budget_id"
-  budget_scope="subscription"
-  cp "$working_directory/budget-subscription.json" "$working_directory/budget-current.json"
-fi
+probe_budget() {
+  local scope_id="$1"
+  local scope_label="$2"
+  local provider="$3"
+  local api_version="$4"
+  local result_file="$5"
+  local candidate_id="$scope_id/providers/$provider/budgets/$encoded_budget_name"
 
-if az rest \
-  --only-show-errors \
-  --method get \
-  --url "https://management.azure.com$resource_group_budget_id?api-version=2024-08-01" \
-  > "$working_directory/budget-resource-group.json" \
-  2>/dev/null; then
-  budget_matches=$((budget_matches + 1))
-  budget_id="$resource_group_budget_id"
-  budget_scope="resource group $resource_group"
-  cp "$working_directory/budget-resource-group.json" "$working_directory/budget-current.json"
-fi
+  if az rest \
+    --only-show-errors \
+    --method get \
+    --url "https://management.azure.com$candidate_id?api-version=$api_version" \
+    > "$result_file" \
+    2>/dev/null; then
+    budget_matches=$((budget_matches + 1))
+    budget_id="$candidate_id"
+    budget_scope="$scope_label via $provider"
+    budget_api_version="$api_version"
+    cp "$result_file" "$working_directory/budget-current.json"
+  fi
+}
+
+# The current Cost Management provider is authoritative. The older Consumption
+# provider remains a compatibility fallback for budgets created through its API.
+probe_budget "$subscription_scope" "subscription" \
+  Microsoft.CostManagement 2025-03-01 \
+  "$working_directory/budget-subscription-current.json"
+probe_budget "$resource_group_id" "resource group $resource_group" \
+  Microsoft.CostManagement 2025-03-01 \
+  "$working_directory/budget-resource-group-current.json"
+probe_budget "$subscription_scope" "subscription" \
+  Microsoft.Consumption 2024-08-01 \
+  "$working_directory/budget-subscription-legacy.json"
+probe_budget "$resource_group_id" "resource group $resource_group" \
+  Microsoft.Consumption 2024-08-01 \
+  "$working_directory/budget-resource-group-legacy.json"
 
 if (( budget_matches == 0 )); then
   echo "Budget '$AZURE_BUDGET_NAME' was not found at subscription or $resource_group scope. No Azure resource changed." >&2
@@ -85,6 +98,7 @@ echo "Resolved budget '$AZURE_BUDGET_NAME' at $budget_scope scope."
 
 az provider register --namespace Microsoft.Logic --wait
 az provider register --namespace Microsoft.Insights --wait
+az provider register --namespace Microsoft.CostManagement --wait
 az provider register --namespace Microsoft.Consumption --wait
 
 jq -n \
@@ -228,7 +242,7 @@ jq \
   }' "$working_directory/budget-current.json" > "$working_directory/budget-update.json"
 
 az rest --method put \
-  --url "https://management.azure.com$budget_id?api-version=2024-08-01" \
+  --url "https://management.azure.com$budget_id?api-version=$budget_api_version" \
   --body "@$working_directory/budget-update.json" \
   --output none
 

@@ -76,8 +76,9 @@ if grep -q 'az logic workflow show' deployment/azure-demo/audit-runtime-and-cost
   echo 'The audit must use bounded REST reads instead of the CLI workflow helper.' >&2
   exit 4
 fi
-grep -q 'subscription_budget_id=' deployment/azure-demo/configure-cost-guard.sh
-grep -q 'resource_group_budget_id=' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'Microsoft.CostManagement 2025-03-01' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'Microsoft.Consumption 2024-08-01' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'budget_api_version=' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'budget_matches > 1' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'eTag: .eTag' deployment/azure-demo/configure-cost-guard.sh
 

@@ -609,13 +609,16 @@ This separation prevents a later code push from undoing a budget stop.
 Find the exact budget name in **Cost Management → Budgets**, then in Cloud Shell:
 
 ```bash
-az consumption budget list \
-  --resource-group sentinel-demo-rg \
-  --query "[].{Name:name,Amount:amount,TimeGrain:timeGrain}" \
+SENTINEL_SUBSCRIPTION_ID="$(az account show --query id --output tsv)"
+
+az rest \
+  --method get \
+  --url "https://management.azure.com/subscriptions/${SENTINEL_SUBSCRIPTION_ID}/providers/Microsoft.CostManagement/budgets?api-version=2025-03-01" \
+  --query "value[].{Name:name,Amount:properties.amount,TimeGrain:properties.timeGrain}" \
   --output table
 ```
 
-Omit `--resource-group` only for a subscription-scoped budget. The guard resolves the supplied exact name at both subscription and `sentinel-demo-rg` scope before it creates anything. It refuses a missing or ambiguous name.
+The current portal API uses `Microsoft.CostManagement`; the preview `az consumption budget` helper targets the older `Microsoft.Consumption` surface and can return an empty list. The guard resolves the supplied exact name through the current provider first at both subscription and `sentinel-demo-rg` scope, then checks the legacy provider only for compatibility. It does this before creating anything and refuses a missing or ambiguous name.
 
 ```bash
 cd ~/sentinel-deploy
