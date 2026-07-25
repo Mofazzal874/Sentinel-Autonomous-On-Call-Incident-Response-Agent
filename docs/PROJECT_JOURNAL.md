@@ -1582,3 +1582,9 @@ The existing `$20` budget remains unchanged. The cost-guard script now has a sec
 The first dedicated-guard run created the deallocate-only Logic App and left the VM safely deallocated, but its final Azure CLI JMESPath display failed because `length()` received a null `contactGroups` value. A presentation query is not sufficient proof of safety wiring.
 
 The script now saves the read-back resource and uses strict `jq` assertions: the named notification must exist, be enabled, equal the configured threshold, and contain the exact Action Group resource ID. Failure prints a bounded diagnostic and returns nonzero. The recurring FinOps audit also reports the dedicated budget's amount, time grain, threshold, and Action Group count.
+
+### Provider-alias deduplication
+
+After creation, Azure exposed the same resource-group budget through both the current Cost Management provider and the legacy Consumption provider. The resolver incorrectly treated those provider aliases as two budgets and safely refused the rerun before mutation.
+
+Resolution is now per logical scope: query `Microsoft.CostManagement` first and query `Microsoft.Consumption` at that scope only when the current provider has no match. A genuine same-name budget at both subscription and resource-group scope still fails as ambiguous.

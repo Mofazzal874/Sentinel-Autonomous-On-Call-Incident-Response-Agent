@@ -79,6 +79,7 @@ fi
 grep -q 'Microsoft.CostManagement 2025-03-01' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'Microsoft.Consumption 2024-08-01' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'budget_api_version=' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'scope_matches_before=' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'budget_matches > 1' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'eTag: .eTag' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'CONFIRM_CREATE_DEDICATED_BUDGET' deployment/azure-demo/configure-cost-guard.sh

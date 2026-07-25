@@ -71,20 +71,28 @@ probe_budget() {
   fi
 }
 
-# The current Cost Management provider is authoritative. The older Consumption
-# provider remains a compatibility fallback for budgets created through its API.
+# The current Cost Management provider is authoritative. Azure may expose the
+# same logical budget through the legacy provider, so consult legacy only when
+# the current provider has no match at that scope.
+scope_matches_before="$budget_matches"
 probe_budget "$subscription_scope" "subscription" \
   Microsoft.CostManagement 2025-03-01 \
   "$working_directory/budget-subscription-current.json"
+if (( budget_matches == scope_matches_before )); then
+  probe_budget "$subscription_scope" "subscription" \
+    Microsoft.Consumption 2024-08-01 \
+    "$working_directory/budget-subscription-legacy.json"
+fi
+
+scope_matches_before="$budget_matches"
 probe_budget "$resource_group_id" "resource group $resource_group" \
   Microsoft.CostManagement 2025-03-01 \
   "$working_directory/budget-resource-group-current.json"
-probe_budget "$subscription_scope" "subscription" \
-  Microsoft.Consumption 2024-08-01 \
-  "$working_directory/budget-subscription-legacy.json"
-probe_budget "$resource_group_id" "resource group $resource_group" \
-  Microsoft.Consumption 2024-08-01 \
-  "$working_directory/budget-resource-group-legacy.json"
+if (( budget_matches == scope_matches_before )); then
+  probe_budget "$resource_group_id" "resource group $resource_group" \
+    Microsoft.Consumption 2024-08-01 \
+    "$working_directory/budget-resource-group-legacy.json"
+fi
 
 if (( budget_matches > 1 )); then
   echo "Budget '$AZURE_BUDGET_NAME' exists at both scopes. Use a unique budget name before configuring the guard. No Azure resource changed." >&2
