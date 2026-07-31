@@ -20,6 +20,8 @@ Know these ideas first:
 - **Cost model:** a calculation from unit prices and assumed runtime. It predicts rather than guarantees a bill.
 - **Deallocate:** release the VM's CPU/RAM host allocation. The VM object and disk remain.
 - **Session lease:** a bounded time window after which compute is forcibly deallocated.
+- **Recurrence trigger:** a cloud-owned timetable that starts a workflow without a laptop or Cloud Shell remaining online.
+- **Read-back verification:** fetching a resource after a write and asserting the safety properties Azure actually stored.
 - **Cost floor:** resources that remain billed even when compute is off.
 - **Cold start:** the delay while the VM, Docker, services, model, and application become ready.
 
@@ -75,6 +77,21 @@ sequenceDiagram
 
 The owner link can spend money, so it is private. The public link can use the application but cannot start infrastructure.
 
+## The approved weekday schedule
+
+The owner later selected unattended Monday-Friday availability from 10:00 through 18:00 Bangladesh time. Sentinel prepares two independent workflows:
+
+```text
+03:50 UTC / 09:50 Bangladesh  -> exact-VM start request
+04:00 UTC / 10:00 Bangladesh  -> target public readiness
+12:00 UTC / 18:00 Bangladesh  -> exact-VM deallocation request
+Saturday and Sunday           -> no scheduled allocation
+```
+
+Start occurs ten minutes early because VM allocation, Docker startup, database recovery, model loading, and Spring readiness take time. The start identity cannot deallocate. The stop identity cannot start. An unhealthy application therefore cannot prevent the independent infrastructure shutdown schedule.
+
+The source is locally verified but the Azure workflows are not considered active until provisioning reads them back and the first real start/readiness/deallocation cycle is observed.
+
 ## Local component behavior
 
 The 8-GiB target uses explicit ceilings:
@@ -109,11 +126,22 @@ Four failure boundaries remain separate:
 1. **CI failure:** no exact-SHA image is published.
 2. **VM offline:** deployment activation is deferred without starting compute.
 3. **Boot update failure:** the previous installed release continues.
-4. **Lease stop failure:** the separate budget deallocator remains a second containment layer.
+4. **Lease stop failure:** manual `az vm deallocate` remains available; the budget notification is not currently connected and must not be treated as a working fallback.
 
 The public application does not gain Azure credentials. The model does not gain Azure credentials. Neither can extend the VM lease.
 
-A nightly GitHub workflow adds read-only drift detection. At 20:30 UTC it checks that the exact VM is `Standard_B2as_v2` and `VM deallocated`. It cannot start, stop, deallocate, resize, run commands, or deploy. Detection remains separate from the owner-session and budget enforcement identities so a monitoring credential cannot become another mutation path.
+A nightly GitHub workflow adds read-only drift detection. At 20:30 UTC it checks that the exact VM is `Standard_B2as_v2` and `VM deallocated`. It cannot start, stop, deallocate, resize, run commands, or deploy. Detection remains separate from the owner-session, weekday scheduler, and optional budget identity so a monitoring credential cannot become another mutation path.
+
+## Why the budget work did not block deployment
+
+Deployment, runtime allocation, and budget alerts are separate control planes:
+
+- GitHub can verify, publish, and activate only when compute is already running.
+- The owner session or weekday starter can allocate the exact VM.
+- The weekday stopper and manual CLI can deallocate it.
+- A budget notification would be a delayed additional signal, but live Azure currently stores no threshold or Action Group connection.
+
+The application was already deployed while budget troubleshooting continued. A deallocated VM is offline but not undeployed. This distinction prevents an optional alert integration from blocking a working release.
 
 ## Why not “scale to zero on the first HTTP request”?
 
@@ -128,11 +156,13 @@ An always-on wake proxy would itself need compute, disk, and an edge identity. A
 | B2 memory pressure | OOM/restarted container | Audit `docker stats`; return to B4 but retain two-hour lease |
 | CPU credits exhausted | Inference becomes very slow | Measure one full run; shorten prompts/model or use a paid inference provider later |
 | Wake callback leaked | Unexpected sessions | Regenerate the Logic App callback and review activity logs |
-| Logic App stop fails | VM remains running | Budget guard and manual deallocation; inspect workflow run |
+| Logic App stop fails | VM remains running | Manually deallocate; inspect the owner-session or independent weekday-stop run |
 | Resize capacity unavailable | Bootstrap exits after its second check | VM remains deallocated and data stays intact; retry later |
 | CI completes while offline | Deploy activation steps skipped | Expected; boot activates the exact published SHA next session |
 | Cost still appears high | Cost data lags or VM stayed allocated | Compare power-state activity with three daily cost snapshots |
 | Disk fills | Pull/start failures | Bounded logs and image retention; inspect exact Docker totals, never global-prune blindly |
+
+Do not assume a budget event will fire until strict read-back proves the notification connection.
 
 ## Verification commands
 
@@ -142,6 +172,10 @@ bash deployment/azure-demo/verify-cost-controls.sh
 
 # Azure read-only report
 bash deployment/azure-demo/audit-runtime-and-cost.sh
+
+# One-time weekday scheduler activation
+export CONFIRM_CONFIGURE_WEEKDAY_SCHEDULE='yes'
+bash deployment/azure-demo/configure-weekday-schedule.sh
 
 # Exact VM state
 az vm get-instance-view \
@@ -161,11 +195,11 @@ At the local level:
 
 At the system-design level:
 
-> The stable IP, disk, data, and DNS outlive compute. An owner-only two-hour lease allocates compute, while delivery and emergency deallocation use separate identities.
+> The stable IP, disk, data, and DNS outlive compute. A private lease and two independent weekday identities control allocation; delivery cannot start compute, and public traffic receives no cloud mutation authority.
 
 At the engineering-interview level:
 
-> I traced the burn to the VM retail meter rather than guessing from CPU graphs. The original model was `$2.6576/day`; the B2 two-hour model is `$0.3944/day`. CI enforces that model, but I still require delayed Cost Management evidence and a real B2 workload run before calling the optimization proven.
+> I traced the burn to the VM retail meter rather than guessing from CPU graphs. The original model was `$2.6576/day`; the B2 two-hour model is `$0.3944/day`, while the approved 09:50-18:00 weekday model is `$0.6978` per active weekday and about `$17.72` for 22 weekdays. I separate modeled cost from delayed billing evidence and refuse to call an Azure write successful without read-back.
 
 ## Pen-and-paper exercises
 
@@ -175,6 +209,8 @@ At the engineering-interview level:
 4. Explain why an exact-SHA image check protects boot activation after a failed build.
 5. List two reasons actual cost can differ from the retail model.
 6. Design a future Container Apps migration without placing PostgreSQL on ephemeral storage.
+7. Explain why the start and stop schedules use different identities.
+8. Explain why a green deployment, a running website, and a connected budget alert are three different states.
 
 ## Official references
 

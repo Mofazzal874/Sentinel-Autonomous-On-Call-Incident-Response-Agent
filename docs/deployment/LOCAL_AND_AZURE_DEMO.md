@@ -125,7 +125,7 @@ Use environment approval protection if the repository plan supports it. A failed
 
 ## Budget and lifecycle
 
-The `$10` budget is not a hard spending cap. `configure-cost-guard.sh` can connect an early threshold to a separate deallocate-only Logic App identity. Azure cost data is delayed, and disk/static-IP charges can remain after deallocation, so inspect Cost Analysis during the demo window. A résumé link and a deallocated VM are a direct tradeoff: the name stays stable, but the service is offline.
+The `$10` budget is not a hard spending cap. `configure-cost-guard.sh` is designed to connect an early threshold to a separate deallocate-only Logic App identity, but live read-back currently shows no persisted notification or Action Group connection. Azure cost data is delayed, and disk/static-IP charges can remain after deallocation, so inspect Cost Analysis during the demo window. A résumé link and a deallocated VM are a direct tradeoff: the name stays stable, but the service is offline.
 
 For normal operation, run `configure-on-demand-session.sh` once from authenticated Cloud Shell. It captures a safe runtime snapshot, resizes the existing VM to `Standard_B2as_v2`, leaves it deallocated, and creates a separate owner-only Logic App that starts the exact VM for at most two hours. Keep the signed callback URL private. Boot selects the latest `main` SHA only when that exact GHCR image already exists, so a failed build cannot become active.
 

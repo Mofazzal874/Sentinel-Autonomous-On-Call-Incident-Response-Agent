@@ -23,8 +23,8 @@ AKS is not recommended for this deadline. It adds cluster, ingress, identity, st
 
 ## Current blockers to an actual deployment
 
-1. Azure for Students is active with about `$100` originally reported; Central India has six regional vCPUs and sufficient Basv2 quota. The non-zonal VM was resized successfully to `Standard_B2as_v2` and its normal state is `VM deallocated`.
-2. The user created a `$10` budget alert. It is useful but does not cap or stop spending.
+1. Azure for Students is active with about `$100` originally reported; Central India has six regional vCPUs and sufficient Basv2 quota. The non-zonal VM was resized successfully to `Standard_B2as_v2` and is deallocated outside an explicitly started or scheduled window.
+2. The user has `$10` subscription/resource-group budgets plus a `$20` MCA budget. The intended resource-group budget currently has no persisted notification or Action Group connection, and no budget is a hard cap.
 3. No registry package, VM, resource group, DNS record, or public endpoint may be created until the user explicitly approves the reviewed bundle.
 4. The stable hostname label must be selected. The resulting Azure FQDN can receive automatic HTTPS through Caddy; a custom domain is optional branding.
 5. GitHub deployment secrets and the opt-in repository variable remain intentionally unset.
@@ -53,7 +53,7 @@ For uncertain remediation, inspect `action_claim` and the append-only ledger; ne
 - Put all demo resources in one dedicated resource group so the complete environment can be enumerated and removed.
 - Apply a subscription budget alert before provisioning; budgets warn but do not automatically stop resources.
 - Keep aggregate container ceilings below 7 GiB, load only one Ollama model, and verify the full stack on the 8-GiB `Standard_B2as_v2`.
-- Keep the VM deallocated outside an owner-started two-hour session. A public auto-wake endpoint is prohibited because it turns anonymous traffic into spending authority.
+- Keep the VM deallocated outside the proven owner-started session or the approved Monday-Friday 10:00-18:00 window after that scheduler is activated and observed. A public auto-wake endpoint is prohibited because it turns anonymous traffic into spending authority.
 - Do not create legacy Azure Cache for Redis. Microsoft recommends Azure Managed Redis for new work.
 - Do not enable paid Azure OpenAI until model availability, quota, region, and a hard evaluation call budget are confirmed.
 

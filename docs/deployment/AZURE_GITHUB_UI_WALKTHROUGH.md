@@ -345,7 +345,7 @@ In Azure Portal:
 Cost Management + Billing → Cost Management → Budgets
 ```
 
-Open the existing `$10` budget and record its exact name. The amount is a comparison threshold; it does not reserve `$10` and does not stop consumption by itself.
+The account currently contains a `$20` MCA budget and two same-name `$10` budgets at subscription and resource-group scope. A budget amount is a comparison threshold; it does not reserve money and does not stop consumption by itself.
 
 Cloud Shell:
 
@@ -353,13 +353,14 @@ Cloud Shell:
 az consumption budget list --output table
 ```
 
-After the first automated deployment is proven, connect the early deallocation action:
+The guarded script can attempt the intended resource-group connection explicitly:
 
 ```bash
 cd ~/sentinel-deploy
 git pull --ff-only
 
-export AZURE_BUDGET_NAME='<EXACT BUDGET NAME FROM THE TABLE>'
+export AZURE_BUDGET_NAME='sentinel-demo-rg-budget'
+export AZURE_BUDGET_SCOPE='resource-group'
 export AZURE_COST_GUARD_THRESHOLD_PERCENT='50'
 export CONFIRM_CONFIGURE_COST_GUARD='yes'
 
@@ -377,7 +378,7 @@ sentinel-budget-deallocate   Logic App
 sentinel-budget-stop         Action Group
 ```
 
-Then inspect the budget notification named:
+The Logic App and Action Group exist, but inspect whether the budget actually contains:
 
 ```text
 SentinelEarlyDeallocate
@@ -391,7 +392,7 @@ Budget Logic App → deallocate only → cannot start VM or deploy code
 Owner session Logic App → start/read/deallocate exact VM → cannot resize, deploy, or delete
 ```
 
-When the guard fires, confirm:
+Current evidence shows that notification is absent (`threshold: null`, zero Action Groups). Do not claim an active budget stop until strict read-back succeeds. If a future correction proves threshold `50` plus the exact Action Group, verify a real trigger with:
 
 ```bash
 az vm get-instance-view \
@@ -405,7 +406,18 @@ Expected: `VM deallocated`.
 
 ## Screen 10 — Open one bounded demo session
 
-After running the one-time `configure-on-demand-session.sh` bootstrap, the signed callback is stored privately in Cloud Shell. Before starting, check Cost Analysis and remaining student credit.
+The approved unattended schedule is committed but requires one Cloud Shell activation:
+
+```bash
+cd ~/sentinel-deploy
+git pull --ff-only
+export CONFIRM_CONFIGURE_WEEKDAY_SCHEDULE='yes'
+bash deployment/azure-demo/configure-weekday-schedule.sh
+```
+
+It targets Monday-Friday start at 09:50 and deallocation at 18:00 Bangladesh time. Success requires strict provisioning read-back plus observation of the first real scheduled cycle.
+
+The private bounded session remains the proven fallback. After running the one-time `configure-on-demand-session.sh` bootstrap, its signed callback is stored privately in Cloud Shell. Before starting, check Cost Analysis and remaining student credit.
 
 Start a maximum two-hour session:
 
@@ -469,5 +481,6 @@ Do not run retirement merely to stop compute. It deletes the database, OS disk, 
 - [ ] The stable HTTPS URL opens in a private browser window.
 - [ ] A fixed public scenario creates a real persisted incident and reaches a dry-run ledger decision.
 - [ ] The page clearly labels the operational dataset as deterministic synthetic data.
-- [ ] Azure Cost Analysis, the `$10` budget, and VM power state have been reviewed.
-- [ ] The owner session expired to `VM deallocated`, and three daily audits trend below `$0.50/day`.
+- [ ] Azure Cost Analysis, all three known budget scopes, and VM power state have been reviewed.
+- [ ] The weekday workflows were activated and the first 09:50 start/readiness/18:00 deallocation cycle was observed.
+- [ ] Delayed audits trend toward the approved `$0.6978` active-weekday model; the disconnected budget notification is not presented as a hard cap.

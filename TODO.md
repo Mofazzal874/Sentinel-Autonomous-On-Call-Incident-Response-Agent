@@ -346,4 +346,4 @@ Execution checkpoints:
 - [x] Complete the final uncached suite after deployment startup wiring: 113 tests across 38 suites, zero failures/errors/skips.
 - [x] Complete all seven operability/deployment Defend This answers.
 
-Operability/deployment gate: **cost-controlled deployment active; bounded-session evidence pending** — the VM is `Standard_B2as_v2` and normally `VM deallocated`, with its disk, static IP, DNS, and data preserved. The existing budget guard still needs to be connected and one live B2 session must prove workload latency plus automatic deallocation.
+Operability/deployment gate: **deployed and manually runnable; scheduled evidence pending** — the VM is `Standard_B2as_v2`, with its disk, static IP, DNS, and data preserved. The private two-hour workflow is the proven start path. The weekday scheduler is committed but not yet activated in Azure, and the optional budget notification remains disconnected despite the Logic App and Action Group existing.

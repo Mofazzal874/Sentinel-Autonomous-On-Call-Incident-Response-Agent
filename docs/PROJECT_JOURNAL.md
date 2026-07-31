@@ -1605,15 +1605,17 @@ All deployment RBAC assignment reads now set `--fill-principal-name false` and `
 
 Resume the intentionally deallocated demo safely after several days and finish the delayed `$10` budget deallocation backstop before starting another paid session.
 
-### Evidence and diagnosis
+### Evidence and initial hypothesis
 
 The idempotent cost-guard run resolved `sentinel-demo-rg-budget` at resource-group scope, but strict read-back proved that Azure still stored no `SentinelEarlyDeallocate` notification: `enabled` and `threshold` were null and both recipient counts were zero. The VM remained deallocated, so this failure did not restart compute or create additional VM runtime cost.
 
-Azure exposes the same logical budget through `Microsoft.CostManagement` and legacy `Microsoft.Consumption` aliases. The resolver correctly used the returned resource ID to discover the logical scope, but incorrectly reused that returned provider alias with the API version from the original request. A resource provider and its API version are one protocol contract; mixing them can yield a successful-looking update whose notification fields are not persisted.
+Azure exposes the same logical budget through `Microsoft.CostManagement` and legacy `Microsoft.Consumption` aliases. The resolver correctly used the returned resource ID to discover the logical scope, but reused that returned provider alias with the API version from the original request. This was a valid protocol defect because a resource provider and API version form one contract. It was treated as a possible explanation for the missing notification, not yet proven as the Azure-side root cause.
 
-### Change and verification
+### Source correction and later live result
 
-The resolver now uses the returned ID only for scope validation and alias deduplication. It retains the exact candidate provider ID alongside the API version that successfully probed it for all update and verification requests. The cost-control regression script rejects any future assignment of the returned alias as the update target. Shell syntax and the complete deployment cost-control verification pass locally.
+The resolver now uses the returned ID only for scope validation and alias deduplication. It retains the exact candidate provider ID alongside the API version that successfully probed it for all update and verification requests. The cost-control regression script rejects any future assignment of the returned alias as the update target. Shell syntax and the complete deployment cost-control verification passed locally.
+
+The authenticated rerun still returned `enabled: null`, `threshold: null`, `actionGroups: 0`, and `emailRecipients: 0`. Therefore the provider/API pairing bug was real source hygiene but was **not** the complete cause of Azure dropping the budget notification. The journal must not present that hypothesis as a successful cloud fix.
 
 ### Lesson and next safe action
 
@@ -1623,7 +1625,9 @@ An HTTP success is not sufficient evidence for infrastructure automation. Read t
 
 The next fail-closed run and two read-only list operations proved that Azure contains two distinct `$10` resources named `sentinel-demo-rg-budget`: one directly under the subscription and the intended one under `sentinel-demo-rg`. The resource-group list contains only the intended child; the subscription list includes both descendants. Neither budget was deleted or modified during diagnosis.
 
-The guard now accepts an explicit `AZURE_BUDGET_SCOPE` selector with `auto`, `subscription`, or `resource-group`. `auto` remains the default and refuses real ambiguity. Selecting `resource-group` probes and updates only the exact dedicated scope, allowing the correct safety wiring to proceed without destructively deleting the accidental subscription budget. Dedicated creation remains restricted to resource-group scope.
+The guard now accepts an explicit `AZURE_BUDGET_SCOPE` selector with `auto`, `subscription`, or `resource-group`. `auto` remains the default and refuses real ambiguity. Selecting `resource-group` probes and updates only the exact dedicated scope without destructively deleting the accidental subscription budget. Dedicated creation remains restricted to resource-group scope.
+
+The explicit resource-group rerun resolved the intended budget but again read back no notification. This disproved scope ambiguity as the remaining persistence cause. Current ground truth is: the `$10` resource-group budget exists, `sentinel-budget-deallocate` and its Action Group resources exist, but the budget notification is **not connected**. The application deployment and owner/session controls do not depend on this optional delayed backstop.
 
 ---
 
@@ -1650,3 +1654,106 @@ The actual paid weekday is approximately 8 hours 10 minutes because of the boot 
 ### Next safe action
 
 The owner must pull the committed script and run it once in authenticated Cloud Shell. Completion requires the script's strict success report, followed by observed evidence from the first automatic weekday start, HTTPS readiness, and 18:00 deallocation. Until that Azure run occurs, the existing manual two-hour session remains the active start mechanism.
+
+---
+
+## Session 36 — Post-absence recovery and truthful deployment handoff
+
+### Goal
+
+Reconstruct how to operate Sentinel after the owner returned several days later, avoid relying on compacted chat history, and distinguish a deployed application from optional cost automation.
+
+### What the owner needed to remember
+
+Azure Cloud Shell is ephemeral. A new session can lose the `~/sentinel-deploy` clone, exported confirmation variables, and the private wake callback file. The Git repository, Azure resources, stable IP/DNS, managed disk, and Docker data remain. The safe recovery order is: clone or fast-forward the repository, inspect the VM state, recreate the private callback only when needed, start through the owner-only workflow, wait for readiness, and deallocate after use.
+
+Lines such as `threshold: null` and `actionGroups: 0` are evidence, not shell commands. Configuration scripts deliberately require confirmation variables in every new Cloud Shell because ephemeral shells do not preserve exports. A refusal such as `No cost-control resource changed` proves the guard worked; it is not a deployment failure.
+
+### Resume command map
+
+In a fresh authenticated Cloud Shell, restore the source and inspect the control plane before mutating anything:
+
+```bash
+cd ~
+if [ -d sentinel-deploy/.git ]; then
+  cd sentinel-deploy
+  git pull --ff-only
+else
+  git clone \
+    https://github.com/Mofazzal874/Sentinel-Autonomous-On-Call-Incident-Response-Agent.git \
+    sentinel-deploy
+  cd sentinel-deploy
+fi
+
+git log -1 --oneline
+bash deployment/azure-demo/audit-runtime-and-cost.sh
+```
+
+Activate the committed weekday schedule once, not on every login:
+
+```bash
+export CONFIRM_CONFIGURE_WEEKDAY_SCHEDULE='yes'
+bash deployment/azure-demo/configure-weekday-schedule.sh
+```
+
+For an exceptional manual session, retrieve the signed owner callback into a shell variable, invoke it once, and immediately unset it. Never print or publish its value:
+
+```bash
+SENTINEL_RG_ID="$(az group show --name sentinel-demo-rg --query id --output tsv)"
+SENTINEL_WAKE_URL="$(
+  az rest \
+    --method post \
+    --url "https://management.azure.com${SENTINEL_RG_ID}/providers/Microsoft.Logic/workflows/sentinel-demo-session/triggers/owner_wake_request/listCallbackUrl?api-version=2019-05-01" \
+    --query value \
+    --output tsv
+)"
+curl --fail --show-error --silent --request POST "$SENTINEL_WAKE_URL"
+unset SENTINEL_WAKE_URL
+```
+
+Manual early containment remains:
+
+```bash
+az vm deallocate \
+  --resource-group sentinel-demo-rg \
+  --name sentinel-demo-vm \
+  --output none
+```
+
+### Deployment versus runtime versus budget automation
+
+Three states had been blurred together:
+
+1. **Deployed:** GitHub verified and published the immutable image, and the VM has an installed release plus stable hostname.
+2. **Running:** Azure compute is allocated and the application is ready. A deallocated deployment is intentionally offline, not undeployed.
+3. **Budget-wired:** a delayed Azure budget notification targets the deallocation Action Group. This remains unverified and optional.
+
+The week-long frustration came from treating item 3 as a prerequisite for items 1 and 2. It is not. The two-hour owner workflow and direct `az vm deallocate` are independent controls. The new weekday scheduler is also independent of the budget API.
+
+### Complete budget evidence
+
+- The MCA billing account has `sentinel-demo-budget`, `$20` monthly.
+- Azure also contains two `$10` budgets named `sentinel-demo-rg-budget`: one subscription-scoped and one under `sentinel-demo-rg`.
+- No duplicate was deleted because deletion was neither required nor explicitly approved.
+- The intended resource-group budget reads back with no `SentinelEarlyDeallocate` notification.
+- Provider pairing, Graph-independent RBAC lookup, alias deduplication, and explicit scope selection improved source safety but did not make Azure persist the notification.
+- The VM stayed deallocated during these failed budget attempts, so they did not consume VM runtime.
+
+### Current operating model
+
+Commit `6c7b06a` contains the weekday scheduler. It targets Monday-Friday availability from 10:00 through 18:00 Bangladesh time, requests start at 09:50 for boot lead, and independently requests deallocation at 18:00. Its local syntax, confirmation refusal, fixed schedule, least-privilege identities, exact-VM roles, strict read-back logic, and cost model passed. It has **not yet been run against Azure**, so scheduled availability must not be claimed as active.
+
+Until live activation succeeds, the private two-hour session remains the usable start path. After scheduler activation, completion still requires observing the first automatic start, HTTPS readiness, and automatic deallocation—not merely seeing a successful provisioning command.
+
+### Cost lesson
+
+The prior `$0.3944/day` model represented one two-hour session, not the new schedule. The approved 09:50-18:00 weekday window is 8 hours 10 minutes of potential allocation. It models approximately `$0.6978` per active weekday and `$17.72` in a 22-weekday month, including the retained disk/IP model but excluding taxes, price changes, and Logic App executions. A `$10` budget cannot fund that schedule for a complete month.
+
+### Next evidence required
+
+1. Run `configure-weekday-schedule.sh` once in authenticated Cloud Shell with explicit confirmation.
+2. Require both workflow, recurrence, managed-identity, exact-role, and assignment read-backs to pass.
+3. Observe a Monday-Friday 09:50 start and public readiness near 10:00.
+4. Observe 18:00 deallocation independently of application health.
+5. Compare delayed Cost Management rows with the scheduled model.
+6. Leave the budget notification task explicitly unresolved unless Azure reads back threshold `50` and one exact Action Group.

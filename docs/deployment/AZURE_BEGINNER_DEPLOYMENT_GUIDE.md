@@ -20,8 +20,8 @@ As of 24 July 2026:
 - Safety mode: `SENTINEL_REMEDIATION_DRY_RUN=true`.
 - CI: active. Each `main` push verifies and publishes an immutable image.
 - CD: active. OIDC plus Azure VM Run Command has deployed multiple exact-SHA releases successfully.
-- Cost guard implementation: an early budget action can deallocate the VM; it must be connected to the user's existing budget once from Cloud Shell.
-- On-demand implementation: B2as-v2 memory/log limits, deferred deployment, boot-time exact-SHA activation, a private two-hour session workflow, and cost auditing are committed. Authenticated Cloud Shell must run the confirmation-gated migration once.
+- Cost guard implementation: the deallocate-only Logic App and Action Group exist, but live read-back still shows no budget notification (`threshold: null`, zero Action Groups). Treat this delayed backstop as disconnected until Azure proves otherwise.
+- Runtime implementation: B2as-v2 memory/log limits, deferred deployment, boot-time exact-SHA activation, and a private two-hour session workflow are active. The Monday-Friday 10:00-18:00 scheduler is committed but still requires one authenticated Cloud Shell activation and live schedule evidence.
 - OIDC Azure setup: completed on 20 July 2026; Entra application, immutable federated credential, custom role, and exact-VM assignment were created without a client secret.
 - GitHub setup: the seven `azure-demo` environment variables and repository enable switch were entered by the owner. Workflow run `29699411314` proved both jobs green for SHA `7a05a88f6024cf6d5a050a4bd4efb47b39d32a72`; independent HTTPS checks returned readiness `200 {"status":"UP"}` and console `200`.
 
@@ -604,7 +604,22 @@ The cost guard is intentionally a separate identity from deployment:
 
 This separation prevents a later code push from undoing a budget stop.
 
-### Connect the existing `$10` budget once
+### Budget deallocation backstop: current unresolved status
+
+This section records an unfinished optional safeguard, not a prerequisite for deployment or VM startup. The intended `$10` resource-group budget exists, as do `sentinel-budget-deallocate` and `sentinel-budget-stop`, but repeated authenticated updates have read back no `SentinelEarlyDeallocate` notification. The confirmed diagnostic remains:
+
+```json
+{
+  "enabled": null,
+  "threshold": null,
+  "actionGroups": 0,
+  "emailRecipients": 0
+}
+```
+
+Azure also contains a same-name `$10` subscription budget and the separate `$20` MCA billing-account budget. No duplicate has been deleted. Do not report the budget deallocator as connected, and do not block normal deployment, manual sessions, or the independent weekday scheduler on this delayed alert integration.
+
+### Attempt the guarded budget connection
 
 Find the exact budget name in **Cost Management → Budgets**, then in Cloud Shell:
 
@@ -650,7 +665,9 @@ bash deployment/azure-demo/configure-cost-guard.sh
 
 This explicit combination is the only path that creates a budget. It creates exactly `$10`, monthly, at `sentinel-demo-rg` scope for one year. It neither modifies nor deletes the existing `$20` MCA budget. `AZURE_BUDGET_SCOPE=resource-group` also disambiguates an accidental same-name subscription budget without deleting or modifying that duplicate; leaving the selector at `auto` preserves fail-closed behavior when both scopes match.
 
-The script preserves the existing budget, carries its current `eTag` to prevent a stale overwrite, and adds a `SentinelEarlyDeallocate` notification. It creates a Consumption Logic App, Action Group, narrowly scoped custom role, and VM-scope assignment. When `AZURE_BUDGET_EMAIL` is set, the same notification also emails the owner. The default 50% threshold is deliberately conservative: with a `$10` budget the signal nominally starts at `$5`, leaving room for delayed cost records. Even this cannot guarantee a final amount below `$10`.
+The script is designed to preserve the existing budget, carry its current `eTag`, and request a `SentinelEarlyDeallocate` notification. It also configures the Consumption Logic App, Action Group, narrowly scoped custom role, and VM-scope assignment. Live Azure evidence has not yet proven persistence of the notification. Success requires a read-back showing `threshold: 50` and exactly one Action Group; an HTTP success or existing Logic App is insufficient.
+
+If Azure eventually persists the notification, the 50% threshold would nominally start at `$5`, leaving margin for delayed cost records. Even then it cannot guarantee a final amount below `$10`.
 
 The Logic App is a Consumption resource and an invocation can itself have a small cost. Action Group notification limits and pricing also depend on the subscription. Inspect the resulting resources in Cost Analysis rather than assuming they are free.
 
@@ -834,7 +851,7 @@ A public wake button would let crawlers, vulnerability scanners, or a malicious 
 - **public application URL:** safe to share, but offline while compute is deallocated;
 - **private owner wake URL:** can spend money and must remain private;
 - **GitHub deployer:** can activate a release only while the VM is already running;
-- **budget identity:** can only deallocate.
+- **budget identity:** can only deallocate, but the budget-to-Action-Group notification is currently disconnected.
 
 This is the same authority-separation principle used inside Sentinel: intelligence and convenience do not receive unrestricted mutation authority.
 
@@ -896,7 +913,7 @@ Stable service identity is separated from replaceable software identity. CI prov
 
 ### Interview defense
 
-“I deployed a Spring Boot/Next.js incident-response control plane to an isolated, normally deallocated Azure VM. GitHub Actions tests both stacks and publishes commit-SHA images without receiving start authority. An owner-only Logic App opens a two-hour B2as-v2 session; boot activates only a main-branch SHA whose exact GHCR image already passed CI. A separate identity deallocates the VM when the lease expires, while the static IP, disk, database volumes, immutable tags, forward-only migrations, and readiness checks remain stable and auditable.”
+“I deployed a Spring Boot/Next.js incident-response control plane to an isolated Azure VM. GitHub Actions tests both stacks and publishes commit-SHA images without receiving start authority. A private two-hour lease is the proven manual path, while separate least-privilege weekday identities are prepared to start before 10:00 and deallocate at 18:00 Bangladesh time. Boot activates only a main-branch SHA whose exact GHCR image passed CI. I verify deployment, runtime scheduling, and budget wiring independently; the current budget notification remains explicitly unresolved.”
 
 ## 22. Beginner questions, answers, and scenarios
 
@@ -950,7 +967,7 @@ Compute allocation stops, but the OS disk and retained Standard static Public IP
 
 ### Should I enable daily shutdown?
 
-The two-hour owner session is stronger than a fixed daily shutdown because its lifetime is relative to each explicit start. Keep Azure's fixed auto-shutdown only as an optional second fallback. In both cases, the résumé URL is offline while deallocated.
+The two-hour owner session bounds an exceptional/manual start relative to that request. The approved weekday schedule instead provides predictable recruiter availability and uses an independent deallocation recurrence rather than one long-running timer. Outside either window, the résumé URL remains stable but offline while compute is deallocated.
 
 ### Why does visiting the public URL not automatically start the VM?
 
