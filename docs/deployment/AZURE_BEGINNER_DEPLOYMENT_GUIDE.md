@@ -618,7 +618,7 @@ az rest \
   --output table
 ```
 
-The current portal API uses `Microsoft.CostManagement`; the preview `az consumption budget` helper targets the older `Microsoft.Consumption` surface and can return an empty list. The guard resolves the supplied exact name through the current provider first at both subscription and `sentinel-demo-rg` scope, then checks the legacy provider only for compatibility. It does this before creating anything and refuses a missing or ambiguous name.
+The current portal API uses `Microsoft.CostManagement`; the preview `az consumption budget` helper targets the older `Microsoft.Consumption` surface and can return an empty list. The guard resolves the supplied exact name through the current provider first at both subscription and `sentinel-demo-rg` scope, then checks the legacy provider only for compatibility. It does this before creating anything and refuses a missing or ambiguous name. Azure can return a resource ID using the other provider alias, so the guard uses that returned ID only to identify and deduplicate the logical scope. The update itself retains the exact provider resource ID and API version that formed the successful request; provider IDs and API versions must never be mixed.
 
 ```bash
 cd ~/sentinel-deploy

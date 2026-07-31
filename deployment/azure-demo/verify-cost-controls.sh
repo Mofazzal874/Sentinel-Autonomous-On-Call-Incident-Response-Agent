@@ -82,6 +82,11 @@ grep -q 'budget_api_version=' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'scope_matches_before=' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'returned_scope_id=' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'matched_scope_ids=' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'budget_id="$candidate_id"' deployment/azure-demo/configure-cost-guard.sh
+if grep -q 'budget_id="$returned_id"' deployment/azure-demo/configure-cost-guard.sh; then
+  echo 'Budget updates must keep the probed provider ID paired with its API version.' >&2
+  exit 4
+fi
 grep -q 'budget_matches > 1' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'eTag: .eTag' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'CONFIRM_CREATE_DEDICATED_BUDGET' deployment/azure-demo/configure-cost-guard.sh

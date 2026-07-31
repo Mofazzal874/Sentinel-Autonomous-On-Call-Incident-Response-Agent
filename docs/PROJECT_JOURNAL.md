@@ -1596,3 +1596,25 @@ Azure then demonstrated that the request scope itself is not reliable identity e
 A later idempotent run resolved the correct budget but Cloud Shell's portal-issued Microsoft Graph token expired while Azure CLI filled friendly principal metadata for an RBAC list. The script already knows the managed identity object ID and compares immutable role definition IDs, so Graph names add no correctness value.
 
 All deployment RBAC assignment reads now set `--fill-principal-name false` and `--fill-role-definition-name false`. Official Azure CLI behavior then uses Azure Resource Manager data without querying Microsoft Graph. Role creation already uses `--assignee-object-id` plus `ServicePrincipal`, preserving the propagation-safe and least-privilege path.
+
+---
+
+## Session 34 — Azure budget provider/API pairing correction
+
+### Goal
+
+Resume the intentionally deallocated demo safely after several days and finish the delayed `$10` budget deallocation backstop before starting another paid session.
+
+### Evidence and diagnosis
+
+The idempotent cost-guard run resolved `sentinel-demo-rg-budget` at resource-group scope, but strict read-back proved that Azure still stored no `SentinelEarlyDeallocate` notification: `enabled` and `threshold` were null and both recipient counts were zero. The VM remained deallocated, so this failure did not restart compute or create additional VM runtime cost.
+
+Azure exposes the same logical budget through `Microsoft.CostManagement` and legacy `Microsoft.Consumption` aliases. The resolver correctly used the returned resource ID to discover the logical scope, but incorrectly reused that returned provider alias with the API version from the original request. A resource provider and its API version are one protocol contract; mixing them can yield a successful-looking update whose notification fields are not persisted.
+
+### Change and verification
+
+The resolver now uses the returned ID only for scope validation and alias deduplication. It retains the exact candidate provider ID alongside the API version that successfully probed it for all update and verification requests. The cost-control regression script rejects any future assignment of the returned alias as the update target. Shell syntax and the complete deployment cost-control verification pass locally.
+
+### Lesson and next safe action
+
+An HTTP success is not sufficient evidence for infrastructure automation. Read the resource back and assert the exact safety properties. The owner must pull this correction in Cloud Shell, rerun the idempotent guard, and require `threshold: 50` plus `actionGroups: 1` before treating the budget backstop as connected. The two-hour lease remains the primary control because Azure budget evaluation is delayed.

@@ -88,7 +88,12 @@ probe_budget() {
 
     matched_scope_ids="${matched_scope_ids}${returned_scope_id}|"
     budget_matches=$((budget_matches + 1))
-    budget_id="$returned_id"
+    # Azure can return the same logical budget under a different provider alias
+    # (Microsoft.Consumption versus Microsoft.CostManagement). Keep the exact
+    # request ID paired with the API version used for this successful probe;
+    # mixing the returned alias with the requested API version can produce an
+    # apparently successful update that silently drops notification fields.
+    budget_id="$candidate_id"
     budget_scope="$scope_label via $provider"
     budget_api_version="$api_version"
     cp "$result_file" "$working_directory/budget-current.json"
