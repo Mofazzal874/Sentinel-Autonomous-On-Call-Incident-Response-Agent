@@ -1624,3 +1624,29 @@ An HTTP success is not sufficient evidence for infrastructure automation. Read t
 The next fail-closed run and two read-only list operations proved that Azure contains two distinct `$10` resources named `sentinel-demo-rg-budget`: one directly under the subscription and the intended one under `sentinel-demo-rg`. The resource-group list contains only the intended child; the subscription list includes both descendants. Neither budget was deleted or modified during diagnosis.
 
 The guard now accepts an explicit `AZURE_BUDGET_SCOPE` selector with `auto`, `subscription`, or `resource-group`. `auto` remains the default and refuses real ambiguity. Selecting `resource-group` probes and updates only the exact dedicated scope, allowing the correct safety wiring to proceed without destructively deleting the accidental subscription budget. Dedicated creation remains restricted to resource-group scope.
+
+---
+
+## Session 35 — Unattended weekday demo availability
+
+### Goal
+
+Remove the need for a daily owner wake-up while excluding weekends. The approved public availability target is Monday-Friday, 10:00-18:00 Bangladesh time.
+
+### Design
+
+Sentinel uses two independent Consumption Logic Apps. The start workflow fires at 09:50 Bangladesh time so infrastructure and application boot can complete near 10:00. The stop workflow deallocates at 18:00. Both schedules use fixed UTC because Bangladesh currently has no daylight-saving change. An explicit past recurrence anchor prevents Azure Logic Apps from running immediately merely because a recurrence resource was saved.
+
+The workflows deliberately do not share authority. The starter's system identity can read and start only the exact VM. The stopper's system identity can read and deallocate only that VM. GitHub delivery, the frontend, and anonymous visitors receive neither permission. Separate recurrence runs mean shutdown does not depend on the earlier start run surviving for the whole day.
+
+### Verification built into provisioning
+
+The idempotent setup refuses to run without explicit confirmation and refuses a VM size other than `Standard_B2as_v2`. After each Azure write it reads back the workflow and proves state, identity, weekday list, UTC hour/minute, fixed VM URI, operation, and managed-identity authentication. It separately proves each custom role's exact action set and exact-VM assignment. Local cost-control verification covers shell syntax, refusal behavior, schedule constants, strict-read-back clauses, permissions, and the approved cost model.
+
+### Cost and tradeoff
+
+The actual paid weekday is approximately 8 hours 10 minutes because of the boot lead. At the reviewed July 2026 rates, an active weekday models `$0.6978`; a 22-weekday month including the retained disk and IP models `$17.72`, before taxes, pricing changes, and Logic App operations. This consciously exceeds the old `$0.50` active-day target and the `$10` monthly budget. It buys predictable recruiter availability while retaining weekend and overnight deallocation.
+
+### Next safe action
+
+The owner must pull the committed script and run it once in authenticated Cloud Shell. Completion requires the script's strict success report, followed by observed evidence from the first automatic weekday start, HTTPS readiness, and 18:00 deallocation. Until that Azure run occurs, the existing manual two-hour session remains the active start mechanism.

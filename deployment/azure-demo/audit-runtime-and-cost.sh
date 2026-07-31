@@ -146,6 +146,8 @@ show_workflow() {
 }
 
 show_workflow sentinel-demo-session 'On-demand session workflow was not verified'
+show_workflow sentinel-demo-weekday-start 'Weekday start workflow was not verified'
+show_workflow sentinel-demo-weekday-stop 'Weekday stop workflow was not verified'
 show_workflow sentinel-budget-deallocate 'Budget deallocation workflow was not verified'
 
 budget_url="$resource_group_id/providers/Microsoft.CostManagement/budgets/sentinel-demo-rg-budget?api-version=2025-03-01"

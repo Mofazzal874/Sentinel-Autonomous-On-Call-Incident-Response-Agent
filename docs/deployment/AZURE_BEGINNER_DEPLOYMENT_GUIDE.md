@@ -800,6 +800,33 @@ The public URL is unchanged. Docker restarts the installed stack, and `sentinel-
 
 The lease cannot be extended by calling it again. That is deliberate: overlapping requests must not let an old session keep billing indefinitely. After two hours, the workflow calls Azure's **deallocate** API even if the demo was forgotten.
 
+### Configure unattended weekday availability
+
+The owner later approved a recurring Monday-Friday window from `10:00` through `18:00` Bangladesh time. Run this once in authenticated Azure Cloud Shell:
+
+```bash
+cd ~/sentinel-deploy
+git pull --ff-only
+
+export CONFIRM_CONFIGURE_WEEKDAY_SCHEDULE='yes'
+bash deployment/azure-demo/configure-weekday-schedule.sh
+```
+
+The script creates and strictly reads back two independent Consumption Logic Apps:
+
+| Workflow | Bangladesh schedule | UTC schedule | Exact authority |
+|---|---:|---:|---|
+| `sentinel-demo-weekday-start` | Monday-Friday 09:50 | Monday-Friday 03:50 | VM read + start |
+| `sentinel-demo-weekday-stop` | Monday-Friday 18:00 | Monday-Friday 12:00 | VM read + deallocate |
+
+The ten-minute lead allows the VM, Docker, and Spring Boot to become ready near 10:00. Fixed UTC is intentional because Bangladesh currently has no daylight-saving shift. A historical Monday recurrence anchor prevents saving the workflows from immediately starting or stopping the VM.
+
+Start and stop are separate failure domains: deallocation does not depend on a ten-hour timer or on the earlier start run remaining healthy. The setup is idempotent and reports success only after it verifies both schedules, exact VM operation URIs, managed identities, narrowly scoped role actions, and role assignments. It does not alter the VM's power state while being configured.
+
+Using the reviewed July 2026 rates, 09:50-18:00 costs approximately `$0.6978` per active weekday. With 22 weekdays, the retained disk/IP plus scheduled compute model approximately `$17.72/month`, excluding taxes, pricing changes, and small Logic App execution costs. This approved availability window exceeds both the earlier `$0.50` active-day target and a `$10` monthly budget.
+
+The private two-hour callback remains useful for weekends or exceptional off-hours. Do not invoke it during the scheduled window: its independent two-hour lease would deallocate the VM before the weekday stop schedule.
+
 ### Why public visitors cannot wake the VM
 
 A public wake button would let crawlers, vulnerability scanners, or a malicious loop spend Azure credit. Sentinel therefore separates:
@@ -828,7 +855,7 @@ The report includes:
 - live container CPU, memory, PIDs, disk space, Docker image/storage totals, and largest logs when running;
 - delayed daily Cost Management rows;
 - recent start/deallocate operations;
-- session and budget Logic App existence;
+- session, weekday start/stop, and budget Logic App existence;
 - deallocated, two-hour, and always-on retail projections.
 
 Cost Management data normally arrives later than runtime activity. Do not judge the result from one hour. The success gate is:

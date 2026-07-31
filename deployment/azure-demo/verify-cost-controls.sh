@@ -71,6 +71,22 @@ fi
 
 grep -q '"Microsoft.Compute/virtualMachines/start/action"' deployment/azure-demo/configure-on-demand-session.sh
 grep -q '"Microsoft.Compute/virtualMachines/deallocate/action"' deployment/azure-demo/configure-on-demand-session.sh
+grep -q 'sentinel-demo-weekday-start' deployment/azure-demo/configure-weekday-schedule.sh
+grep -q 'sentinel-demo-weekday-stop' deployment/azure-demo/configure-weekday-schedule.sh
+grep -q 'configure_workflow.*start 3 50' deployment/azure-demo/configure-weekday-schedule.sh
+grep -q 'configure_workflow.*deallocate 12 0' deployment/azure-demo/configure-weekday-schedule.sh
+grep -q '"Monday","Tuesday","Wednesday","Thursday","Friday"' deployment/azure-demo/configure-weekday-schedule.sh
+grep -q 'schedule_anchor="2026-01-05T00:00:00Z"' deployment/azure-demo/configure-weekday-schedule.sh
+grep -q 'did not pass strict schedule read-back verification' deployment/azure-demo/configure-weekday-schedule.sh
+grep -q 'does not have the exact reviewed permissions' deployment/azure-demo/configure-weekday-schedule.sh
+if CONFIRM_CONFIGURE_WEEKDAY_SCHEDULE=no \
+  bash deployment/azure-demo/configure-weekday-schedule.sh \
+  > "$working_directory/weekday-refusal.out" \
+  2>&1; then
+  echo 'The weekday scheduler did not enforce explicit confirmation.' >&2
+  exit 5
+fi
+grep -q 'No Azure schedule changed' "$working_directory/weekday-refusal.out"
 grep -q 'timeout 30s az rest' deployment/azure-demo/audit-runtime-and-cost.sh
 if grep -q 'az logic workflow show' deployment/azure-demo/audit-runtime-and-cost.sh; then
   echo 'The audit must use bounded REST reads instead of the CLI workflow helper.' >&2
@@ -112,6 +128,12 @@ grep -q 'No VM or Azure workflow changed' "$working_directory/refusal.out"
 projected_daily_cost="$(awk 'BEGIN {printf "%.4f", (5.28 / 30) + (0.005 * 24) + (0.0492 * 2)}')"
 awk -v projected="$projected_daily_cost" 'BEGIN {exit !(projected <= 0.50)}'
 
+projected_weekday_cost="$(awk 'BEGIN {printf "%.4f", (5.28 / 30) + (0.005 * 24) + (0.0492 * (8 + (10 / 60)))}')"
+projected_monthly_cost="$(awk 'BEGIN {printf "%.2f", (5.28 / 30 + 0.005 * 24) * 30 + (0.0492 * (8 + (10 / 60)) * 22)}')"
+awk -v projected="$projected_weekday_cost" 'BEGIN {exit !(projected < 0.70)}'
+awk -v projected="$projected_monthly_cost" 'BEGIN {exit !(projected < 18.00)}'
+
 echo "Cost-control verification passed."
 echo "Container memory ceiling: $memory_limit_bytes bytes (maximum $maximum_memory_bytes)."
 echo "Modeled B2as v2 two-hour daily cost: \$$projected_daily_cost."
+echo "Modeled scheduled weekday cost: \$$projected_weekday_cost; 22-weekday month: \$$projected_monthly_cost."
