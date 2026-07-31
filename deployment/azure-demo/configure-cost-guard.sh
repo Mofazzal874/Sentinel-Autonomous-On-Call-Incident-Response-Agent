@@ -21,6 +21,7 @@ location="${AZURE_LOCATION:-centralindia}"
 threshold="${AZURE_COST_GUARD_THRESHOLD_PERCENT:-50}"
 budget_email="${AZURE_BUDGET_EMAIL:-}"
 create_dedicated_budget="${CONFIRM_CREATE_DEDICATED_BUDGET:-no}"
+budget_scope_selector="${AZURE_BUDGET_SCOPE:-auto}"
 workflow_name="sentinel-budget-deallocate"
 action_group_name="sentinel-budget-stop"
 role_name="Sentinel Demo VM Deallocator"
@@ -32,6 +33,14 @@ if (( threshold < 1 || threshold > 100 )); then
   echo 'AZURE_COST_GUARD_THRESHOLD_PERCENT must be from 1 through 100.' >&2
   exit 2
 fi
+
+case "$budget_scope_selector" in
+  auto|subscription|resource-group) ;;
+  *)
+    echo 'AZURE_BUDGET_SCOPE must be auto, subscription, or resource-group.' >&2
+    exit 2
+    ;;
+esac
 
 subscription_id="$(az account show --query id --output tsv)"
 resource_group_id="$(az group show --name "$resource_group" --query id --output tsv)"
@@ -103,24 +112,28 @@ probe_budget() {
 # The current Cost Management provider is authoritative. Azure may expose the
 # same logical budget through the legacy provider, so consult legacy only when
 # the current provider has no match at that scope.
-scope_matches_before="$budget_matches"
-probe_budget "$subscription_scope" "subscription" \
-  Microsoft.CostManagement 2025-03-01 \
-  "$working_directory/budget-subscription-current.json"
-if (( budget_matches == scope_matches_before )); then
+if [[ "$budget_scope_selector" == "auto" || "$budget_scope_selector" == "subscription" ]]; then
+  scope_matches_before="$budget_matches"
   probe_budget "$subscription_scope" "subscription" \
-    Microsoft.Consumption 2024-08-01 \
-    "$working_directory/budget-subscription-legacy.json"
+    Microsoft.CostManagement 2025-03-01 \
+    "$working_directory/budget-subscription-current.json"
+  if (( budget_matches == scope_matches_before )); then
+    probe_budget "$subscription_scope" "subscription" \
+      Microsoft.Consumption 2024-08-01 \
+      "$working_directory/budget-subscription-legacy.json"
+  fi
 fi
 
-scope_matches_before="$budget_matches"
-probe_budget "$resource_group_id" "resource group $resource_group" \
-  Microsoft.CostManagement 2025-03-01 \
-  "$working_directory/budget-resource-group-current.json"
-if (( budget_matches == scope_matches_before )); then
+if [[ "$budget_scope_selector" == "auto" || "$budget_scope_selector" == "resource-group" ]]; then
+  scope_matches_before="$budget_matches"
   probe_budget "$resource_group_id" "resource group $resource_group" \
-    Microsoft.Consumption 2024-08-01 \
-    "$working_directory/budget-resource-group-legacy.json"
+    Microsoft.CostManagement 2025-03-01 \
+    "$working_directory/budget-resource-group-current.json"
+  if (( budget_matches == scope_matches_before )); then
+    probe_budget "$resource_group_id" "resource group $resource_group" \
+      Microsoft.Consumption 2024-08-01 \
+      "$working_directory/budget-resource-group-legacy.json"
+  fi
 fi
 
 if (( budget_matches > 1 )); then
@@ -136,6 +149,10 @@ if (( budget_matches == 0 )); then
   fi
   if [[ "$AZURE_BUDGET_NAME" != "sentinel-demo-rg-budget" ]]; then
     echo 'Dedicated creation permits only AZURE_BUDGET_NAME=sentinel-demo-rg-budget. No Azure resource changed.' >&2
+    exit 3
+  fi
+  if [[ "$budget_scope_selector" == "subscription" ]]; then
+    echo 'Dedicated budget creation is permitted only at resource-group scope. No Azure resource changed.' >&2
     exit 3
   fi
 

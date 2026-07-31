@@ -639,6 +639,7 @@ Create the reviewed deployment-only budget instead:
 
 ```bash
 export AZURE_BUDGET_NAME='sentinel-demo-rg-budget'
+export AZURE_BUDGET_SCOPE='resource-group'
 export AZURE_COST_GUARD_THRESHOLD_PERCENT='50'
 export AZURE_BUDGET_EMAIL='YOUR EMAIL ADDRESS'
 export CONFIRM_CREATE_DEDICATED_BUDGET='yes'
@@ -647,7 +648,7 @@ export CONFIRM_CONFIGURE_COST_GUARD='yes'
 bash deployment/azure-demo/configure-cost-guard.sh
 ```
 
-This explicit combination is the only path that creates a budget. It creates exactly `$10`, monthly, at `sentinel-demo-rg` scope for one year. It neither modifies nor deletes the existing `$20` MCA budget.
+This explicit combination is the only path that creates a budget. It creates exactly `$10`, monthly, at `sentinel-demo-rg` scope for one year. It neither modifies nor deletes the existing `$20` MCA budget. `AZURE_BUDGET_SCOPE=resource-group` also disambiguates an accidental same-name subscription budget without deleting or modifying that duplicate; leaving the selector at `auto` preserves fail-closed behavior when both scopes match.
 
 The script preserves the existing budget, carries its current `eTag` to prevent a stale overwrite, and adds a `SentinelEarlyDeallocate` notification. It creates a Consumption Logic App, Action Group, narrowly scoped custom role, and VM-scope assignment. When `AZURE_BUDGET_EMAIL` is set, the same notification also emails the owner. The default 50% threshold is deliberately conservative: with a `$10` budget the signal nominally starts at `$5`, leaving room for delayed cost records. Even this cannot guarantee a final amount below `$10`.
 

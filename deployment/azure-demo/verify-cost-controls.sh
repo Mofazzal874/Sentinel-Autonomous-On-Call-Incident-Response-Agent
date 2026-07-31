@@ -88,6 +88,9 @@ if grep -q 'budget_id="$returned_id"' deployment/azure-demo/configure-cost-guard
   exit 4
 fi
 grep -q 'budget_matches > 1' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'AZURE_BUDGET_SCOPE:-auto' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'auto|subscription|resource-group' deployment/azure-demo/configure-cost-guard.sh
+grep -q 'budget_scope_selector.*resource-group' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'eTag: .eTag' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'CONFIRM_CREATE_DEDICATED_BUDGET' deployment/azure-demo/configure-cost-guard.sh
 grep -q 'sentinel-demo-rg-budget' deployment/azure-demo/configure-cost-guard.sh

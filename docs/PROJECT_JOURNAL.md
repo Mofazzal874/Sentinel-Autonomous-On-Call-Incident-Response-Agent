@@ -1618,3 +1618,9 @@ The resolver now uses the returned ID only for scope validation and alias dedupl
 ### Lesson and next safe action
 
 An HTTP success is not sufficient evidence for infrastructure automation. Read the resource back and assert the exact safety properties. The owner must pull this correction in Cloud Shell, rerun the idempotent guard, and require `threshold: 50` plus `actionGroups: 1` before treating the budget backstop as connected. The two-hour lease remains the primary control because Azure budget evaluation is delayed.
+
+### Same-name scope ambiguity discovered
+
+The next fail-closed run and two read-only list operations proved that Azure contains two distinct `$10` resources named `sentinel-demo-rg-budget`: one directly under the subscription and the intended one under `sentinel-demo-rg`. The resource-group list contains only the intended child; the subscription list includes both descendants. Neither budget was deleted or modified during diagnosis.
+
+The guard now accepts an explicit `AZURE_BUDGET_SCOPE` selector with `auto`, `subscription`, or `resource-group`. `auto` remains the default and refuses real ambiguity. Selecting `resource-group` probes and updates only the exact dedicated scope, allowing the correct safety wiring to proceed without destructively deleting the accidental subscription budget. Dedicated creation remains restricted to resource-group scope.
